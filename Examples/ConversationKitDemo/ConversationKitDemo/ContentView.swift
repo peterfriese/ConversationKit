@@ -32,7 +32,7 @@ struct ContentView: View {
 
   var body: some View {
     NavigationStack {
-      ConversationView2(messages: $messages)
+      ConversationView(messages: $messages)
         .onSendMessage { userMessage in // consider making onSendMessage async
           Task {
             print("You said: \(userMessage.content)")
@@ -69,7 +69,6 @@ struct ContentView: View {
       // Handle errors if needed
     }
   }
-
 
 }
 
