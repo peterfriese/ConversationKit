@@ -82,7 +82,7 @@ struct MessageView: View {
         Spacer()
       }
       else {
-        Image(systemName: "person.circle.fill")
+        Image(systemName: "cloud.circle.fill")
           .font(.title)
       }
       Text(message)
@@ -101,7 +101,7 @@ struct MessageView: View {
         Spacer()
       }
       else {
-        Image(systemName: "cloud.circle.fill")
+        Image(systemName: "person.circle.fill")
           .font(.title)
       }
     }
