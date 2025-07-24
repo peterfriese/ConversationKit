@@ -27,7 +27,10 @@ struct ContentView: View {
     .init(content: "Not too bad. Not too bad after all.", participant: .other),
     .init(content: "Laboris officia aliqua eiusmod deserunt pariatur aliquip cillum proident excepteur qui pariatur consequat aute occaecat deserunt.", participant: .user),
     .init(content: "Laborum ea ad anim magna.", participant: .other),
-    .init(content: "Esse aliquip laboris irure est voluptate aliquip non duis aute eu. Occaecat irure incididunt aute aute do sunt labore nisi esse nostrud amet labore enim mollit occaecat. Occaecat incididunt consectetur sint dolor deserunt exercitation mollit id culpa deserunt fugiat pariatur pariatur ullamco. Ex aliqua sit commodo enim qui commodo aliqua sint dolor laboris magna consequat adipisicing sunt.", participant: .user)
+    .init(content: "Esse aliquip laboris irure est voluptate aliquip non duis aute eu. Occaecat irure incididunt aute aute do sunt labore nisi esse nostrud amet labore enim mollit occaecat. Occaecat incididunt consectetur sint dolor deserunt exercitation mollit id culpa deserunt fugiat pariatur pariatur ullamco. Ex aliqua sit commodo enim qui commodo aliqua sint dolor laboris magna consequat adipisicing sunt.",
+          imageURL: "https://picsum.photos/100/100",
+          participant: .user)
+    
   ]
 
   var body: some View {
@@ -35,7 +38,7 @@ struct ContentView: View {
       ConversationView(messages: $messages)
         .onSendMessage { userMessage in // consider making onSendMessage async
           Task {
-            print("You said: \(userMessage.content)")
+            print("You said: \(userMessage.content ?? "nothing")")
             await generateResponse(for: userMessage)
           }
         }
@@ -45,7 +48,7 @@ struct ContentView: View {
   }
 
   func generateResponse(for message: Message) async {
-    let text = "Culpa *amet* irure aliquip qui deserunt ullamco tempor do irure anim amet do incididunt. Tempor et dolor qui. Aliqua anim aliqua elit in. Veniam veniam magna aliquip. Anim eu et excepteur voluptate labore reprehenderit exercitation voluptate fugiat dolor reprehenderit tempor esse et amet."
+    let text = "Culpa *amet* irure aliquip qui deserunt ullamco tempor do irure anim amet do incididunt. Tempor et dolor qui. Aliqua **anim** aliqua elit in. Veniam veniam magna aliquip. Anim eu et excepteur voluptate labore reprehenderit exercitation voluptate fugiat dolor reprehenderit tempor esse et amet."
 
     var generatedText = ""
     var message = Message(content: generatedText, participant: .other)
