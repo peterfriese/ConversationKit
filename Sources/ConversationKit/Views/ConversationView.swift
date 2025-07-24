@@ -1,6 +1,5 @@
-//
-// SwiftUIView.swift
-//
+// 
+// ConversationView.swift
 //
 // Created by Peter Friese on 20.02.24.
 //
@@ -19,17 +18,15 @@
 import SwiftUI
 import MarkdownUI
 
-
-
 extension EnvironmentValues {
-  @Entry var onSendMessageAction: (_ message: Message) -> Void = { message in
+  @Entry var onSendMessageAction: (_ message: Message) async -> Void = { message in
     // no-op
   }
   
 }
 
 public extension View {
-  func onSendMessage(_ action: @escaping (_ message: Message) -> Void) -> some View {
+  func onSendMessage(_ action: @escaping (_ message: Message) async -> Void) -> some View {
     environment(\.onSendMessageAction, action)
   }
 }
@@ -46,11 +43,15 @@ public extension View {
 ///
 /// To handle new messages sent by the user, use the `onSendMessage(_:)`
 /// view modifier. This modifier's closure is called with the user's `Message`
-/// object when they send it. In this closure, you can process the message,
-/// such as by sending it to a backend or a local model, and then append any
-/// response to your `messages` array to have it appear in the conversation.
+/// object when they send it and supports async operations. In this closure, you can
+/// process the message asynchronously, such as by sending it to a backend or a local
+/// model, and then append any response to your `messages` array to have it appear
+/// in the conversation.
 ///
-/// ## Example
+/// ## Built-in Message Rendering
+///
+/// The simplest way to use `ConversationView` is with the default message renderer,
+/// which uses the built-in `MessageView` to display messages:
 ///
 /// ```swift
 /// struct ChatScreen: View {
@@ -61,14 +62,11 @@ public extension View {
 ///     var body: some View {
 ///         ConversationView(messages: $messages)
 ///             .onSendMessage { userMessage in
-///                 // Process the user's message, for example, by sending
-///                 // it to a remote service and getting a response.
-///                 Task {
-///                     let responseText = await getResponse(for: userMessage.content ?? "")
-///                     let responseMessage = Message(content: responseText, participant: .other)
-///                     await MainActor.run {
-///                         messages.append(responseMessage)
-///                     }
+///                 // Process the user's message asynchronously
+///                 let responseText = await getResponse(for: userMessage.content ?? "")
+///                 let responseMessage = Message(content: responseText, participant: .other)
+///                 await MainActor.run {
+///                     messages.append(responseMessage)
 ///                 }
 ///             }
 ///     }
@@ -81,7 +79,81 @@ public extension View {
 /// }
 /// ```
 ///
+/// ## Custom Message Rendering
+///
+/// For more control over message appearance, you can provide a custom content closure
+/// that defines how each message should be rendered:
+///
+/// ```swift
+/// struct CustomChatScreen: View {
+///     @State private var messages: [Message] = [
+///         .init(content: "Hello!", participant: .other)
+///     ]
+///
+///     var body: some View {
+///         ConversationView(messages: $messages) { message in
+///             HStack {
+///                 if message.participant == .user {
+///                     Spacer()
+///                 }
+///                 
+///                 VStack(alignment: .leading) {
+///                     if let content = message.content {
+///                         Text(content)
+///                             .padding()
+///                             .background(message.participant == .user ? Color.blue : Color.gray)
+///                             .foregroundColor(.white)
+///                             .cornerRadius(12)
+///                     }
+///                 }
+///                 
+///                 if message.participant == .other {
+///                     Spacer()
+///                 }
+///             }
+///         }
+///         .onSendMessage { userMessage in
+///             // Handle the sent message asynchronously
+///             await processMessage(userMessage)
+///         }
+///     }
+///     
+///     func processMessage(_ message: Message) async {
+///         // Perform async operations like API calls
+///         let response = await chatService.getResponse(to: message.content ?? "")
+///         await MainActor.run {
+///             messages.append(Message(content: response, participant: .other))
+///         }
+///     }
+/// }
+/// ```
+///
+/// ## Error Handling
+///
+/// Since the `onSendMessage` action is async, you can handle errors naturally:
+///
+/// ```swift
+/// .onSendMessage { userMessage in
+///     do {
+///         let response = try await chatService.sendMessage(userMessage.content ?? "")
+///         await MainActor.run {
+///             messages.append(Message(content: response, participant: .other))
+///         }
+///     } catch {
+///         await MainActor.run {
+///             messages.append(Message(content: "Error: \(error.localizedDescription)", participant: .other))
+///         }
+///     }
+/// }
+/// ```
+///
+/// ## Initializers
+///
+/// - `init(messages:)`: Creates a conversation view with built-in message rendering using `MessageView`
+/// - `init(messages:content:)`: Creates a conversation view with custom message rendering using the provided content closure
+///
 /// - Parameter messages: A binding to an array of `Message` instances representing the conversation.
+/// - Parameter content: A closure that takes a `Message` and returns a view for rendering that message.
 public struct ConversationView<Content>: View where Content: View {
   @Binding var messages: [Message]
 
@@ -149,7 +221,9 @@ public struct ConversationView<Content>: View where Content: View {
     message = ""
     focusedField = .message
 
-    onSendMessageAction(userMessage)
+    Task {
+      await onSendMessageAction(userMessage)
+    }
   }
 
 }
@@ -176,7 +250,11 @@ public struct ConversationView<Content>: View where Content: View {
       .onSendMessage { userMessage in
         let content = userMessage.content ?? "(nothing at all)"
         print("You said: \(content)")
-        messages.append(Message(content: content.localizedUppercase, participant: .other))
+        // Simulate async response
+        try? await Task.sleep(for: .seconds(0.5))
+        await MainActor.run {
+          messages.append(Message(content: content.localizedUppercase, participant: .other))
+        }
       }
       .navigationTitle("Chat")
       .navigationBarTitleDisplayMode(.inline)
@@ -251,7 +329,9 @@ public struct ConversationView<Content>: View where Content: View {
       .onSendMessage { userMessage in
         let content = userMessage.content ?? "(nothing at all)"
         print("You said: \(content)")
-        messages.append(Message(content: content.localizedUppercase, participant: .other))
+        await MainActor.run {
+          messages.append(Message(content: content.localizedUppercase, participant: .other))
+        }
       }
       .navigationTitle("Chat")
       .navigationBarTitleDisplayMode(.inline)
