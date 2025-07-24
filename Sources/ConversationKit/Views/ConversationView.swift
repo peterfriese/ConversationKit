@@ -82,7 +82,7 @@ public extension View {
 /// ```
 ///
 /// - Parameter messages: A binding to an array of `Message` instances representing the conversation.
-public struct ConversationView: View {
+public struct ConversationView<Content>: View where Content: View {
   @Binding var messages: [Message]
 
   @State private var scrolledID: Message.ID?
@@ -94,9 +94,22 @@ public struct ConversationView: View {
   }
 
   @Environment(\.onSendMessageAction) private var onSendMessageAction
-
-  public init(messages: Binding<[Message]>) {
+  
+  private let content: (Message) -> Content
+  
+  public init(messages: Binding<[Message]>) where Content == MessageView {
     self._messages = messages
+    self.content = { message in
+      MessageView(message: message.content,
+                  imageURL: message.imageURL,
+                  participant: message.participant)
+    }
+  }
+
+
+  public init(messages: Binding<[Message]>, content: @escaping (Message) -> Content) {
+    self._messages = messages
+    self.content = content
   }
 
   public var body: some View {
@@ -104,10 +117,8 @@ public struct ConversationView: View {
       ScrollView {
         LazyVStack(spacing: 20) {
           ForEach(messages) { message in
-            MessageView(message: message.content,
-                        imageURL: message.imageURL,
-                        participant: message.participant)
-            .padding(.horizontal)
+            content(message)
+              .padding(.horizontal)
           }
           Spacer()
             .frame(height: 50)
@@ -143,7 +154,7 @@ public struct ConversationView: View {
 
 }
 
-#Preview {
+#Preview("Built-in chat bubbles") {
   @Previewable @State var messages: [Message] = [
     .init(content: "Hello, how are you?",
           imageURL: "https://picsum.photos/1080/1920",
@@ -169,5 +180,81 @@ public struct ConversationView: View {
       }
       .navigationTitle("Chat")
       .navigationBarTitleDisplayMode(.inline)
+  }
+}
+
+#Preview("Custom chat bubbles") {
+  @Previewable @State var messages: [Message] = [
+    .init(content: "Hello, how are you?",
+          imageURL: "https://picsum.photos/1080/1920",
+          participant: .other),
+    .init(content: "Well, I am fine, how are you?",
+          imageURL: "https://picsum.photos/100/100",
+          participant: .user),
+    .init(content: "Not too bad. Not too bad after all.",
+          participant: .other),
+    .init(imageURL: "https://picsum.photos/100/100",
+          participant: .user),
+    .init(content: "Laborum ea ad anim magna.", participant: .other),
+    .init(content: "Esse aliquip laboris irure est voluptate aliquip non duis aute eu. Occaecat irure incididunt aute aute do sunt labore nisi esse nostrud amet labore enim mollit occaecat. Occaecat incididunt consectetur sint dolor deserunt exercitation mollit id culpa deserunt fugiat pariatur pariatur ullamco. Ex aliqua sit commodo enim qui commodo aliqua sint dolor laboris magna consequat adipisicing sunt.",
+          imageURL: "https://picsum.photos/100/100",
+          participant: .user)
+  ]
+  NavigationStack {
+    ConversationView(messages: $messages) { message in
+      VStack {
+        if let imageURL = message.imageURL {
+          if let url = URL(string: imageURL) {
+            HStack {
+              if message.participant == .user {
+                Spacer()
+              }
+              AsyncImage(url: url) { phase in
+                if let image = phase.image {
+                  image
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(maxWidth: 200, maxHeight: 400)
+                } else if phase.error != nil {
+                  Image(systemName: "icloud.slash")
+                } else {
+                  ProgressView()
+                }
+              }
+              .frame(width: .infinity, height: .infinity, alignment: .center)
+              .cornerRadius(8.0)
+              if message.participant == .other {
+                Spacer()
+              }
+            }
+          }
+        }
+        if let messageContent = message.content {
+          HStack {
+            if message.participant == .user {
+              Spacer()
+            }
+            Markdown(messageContent ?? "")
+              .padding()
+              .background {
+                Color(uiColor: message.participant == .other
+                      ? .secondarySystemBackground
+                      : .systemGray4)
+              }
+              .roundedCorner(10, corners: .allCorners)
+            if message.participant == .other {
+              Spacer()
+            }
+          }
+        }
+      }
+      .onSendMessage { userMessage in
+        let content = userMessage.content ?? "(nothing at all)"
+        print("You said: \(content)")
+        messages.append(Message(content: content.localizedUppercase, participant: .other))
+      }
+      .navigationTitle("Chat")
+      .navigationBarTitleDisplayMode(.inline)
+    }
   }
 }
