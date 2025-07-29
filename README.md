@@ -174,8 +174,8 @@ func streamResponse() async {
     var message = Message(content: "", participant: .other)
     messages.append(message)
     
-    for (index, character) in responseText.enumerated() {
-        message.content = String(responseText.prefix(index + 1))
+    for character in responseText {
+        message.content?.append(character)
         messages[messages.count - 1] = message
         try? await Task.sleep(for: .milliseconds(100))
     }
