@@ -30,7 +30,6 @@ struct ContentView: View {
   var body: some View {
     NavigationStack {
       ConversationView(messages: $messages)
-        .disableAttachments()
         .navigationTitle("Chat")
         .navigationBarTitleDisplayMode(.inline)
         .onSendMessage { message in

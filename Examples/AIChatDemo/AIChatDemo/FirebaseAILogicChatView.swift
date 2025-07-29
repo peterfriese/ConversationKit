@@ -34,6 +34,14 @@ struct FirebaseAILogicChatView: View {
   var body: some View {
     NavigationStack {
       ConversationView(messages: $messages)
+        .attachmentActions {
+          Button(action: {}) {
+            Label("Photos", systemImage: "photo.on.rectangle.angled")
+          }
+          Button(action: {}) {
+            Label("Camera", systemImage: "camera")
+          }
+        }
         .navigationTitle("Chat")
         .navigationBarTitleDisplayMode(.inline)
         .onSendMessage { message in
