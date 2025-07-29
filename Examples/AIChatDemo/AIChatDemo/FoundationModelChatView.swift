@@ -17,37 +17,35 @@
 // limitations under the License.
 
 import ConversationKit
-import SwiftUI
 import FoundationModels
+import SwiftUI
 
-struct ContentView: View {
+struct FoundationModelChatView {
   @State private var messages: [Message] = [
     Message(content: "Hello! How can I help you today?", participant: .other)
   ]
   
   let session = LanguageModelSession()
+}
 
+extension FoundationModelChatView: View {
   var body: some View {
     NavigationStack {
       ConversationView(messages: $messages)
         .navigationTitle("Chat")
         .navigationBarTitleDisplayMode(.inline)
         .onSendMessage { message in
-          Task {
-            // In a real application, you would pass the message to your model
-            // and handle the response. For now, we'll just echo it back.
-            if let content = message.content {
-              var responseText: String
-              do {
-                let response = try await session.respond(to: content)
-                responseText = response.content
-              }
-              catch {
-                responseText = "I'm sorry, I don't understand that. Please try again. \(error.localizedDescription)"
-              }
-              let response = Message(content: responseText, participant: .other)
-              messages.append(response)
+          if let content = message.content {
+            var responseText: String
+            do {
+              let response = try await session.respond(to: content)
+              responseText = response.content
+            } catch {
+              responseText =
+                "I'm sorry, I don't understand that. Please try again. \(error.localizedDescription)"
             }
+            let response = Message(content: responseText, participant: .other)
+            messages.append(response)
           }
         }
     }
@@ -55,5 +53,5 @@ struct ContentView: View {
 }
 
 #Preview {
-  ContentView()
+  FoundationModelChatView()
 }

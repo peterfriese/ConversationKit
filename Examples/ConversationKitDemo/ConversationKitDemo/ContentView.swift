@@ -42,6 +42,12 @@ struct ContentView: View {
             await generateResponse(for: userMessage)
           }
         }
+        .attachmentActions {
+          Button("Image", systemImage: "photo.on.rectangle.angled") {
+          }
+          Button("Camera", systemImage: "camera") {
+          }
+        }
         .navigationTitle("Chat")
         .navigationBarTitleDisplayMode(.inline)
     }

@@ -104,8 +104,8 @@
 			mainGroup = 889CF9A42E1C5BB4000EE62F;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				889CF9BB2E1C5BED000EE62F /* XCLocalSwiftPackageReference "../../../ConversationKit" */,
 				889CF9C22E1C6219000EE62F /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+				88156EF52E397722004CE19F /* XCLocalSwiftPackageReference "../../../ConversationKit" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 889CF9AE2E1C5BB4000EE62F /* Products */;
@@ -345,7 +345,7 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		889CF9BB2E1C5BED000EE62F /* XCLocalSwiftPackageReference "../../../ConversationKit" */ = {
+		88156EF52E397722004CE19F /* XCLocalSwiftPackageReference "../../../ConversationKit" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = ../../../ConversationKit;
 		};
@@ -357,7 +357,7 @@
 			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 11.15.0;
+				minimumVersion = 12.0.0;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */

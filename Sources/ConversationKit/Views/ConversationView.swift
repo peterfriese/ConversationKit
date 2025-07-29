@@ -334,15 +334,15 @@ public struct ConversationView<Content>: View where Content: View {
           }
         }
       }
-      .onSendMessage { userMessage in
-        let content = userMessage.content ?? "(nothing at all)"
-        print("You said: \(content)")
-        await MainActor.run {
-          messages.append(Message(content: content.localizedUppercase, participant: .other))
-        }
-      }
-      .navigationTitle("Chat")
-      .navigationBarTitleDisplayMode(.inline)
     }
+    .onSendMessage { userMessage in
+      let content = userMessage.content ?? "(nothing at all)"
+      print("You said: \(content)")
+      await MainActor.run {
+        messages.append(Message(content: content.localizedUppercase, participant: .other))
+      }
+    }
+    .navigationTitle("Chat")
+    .navigationBarTitleDisplayMode(.inline)
   }
 }
