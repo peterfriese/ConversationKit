@@ -20,32 +20,53 @@ import ConversationKit
 import FirebaseAI
 import SwiftUI
 
-struct FirebaseAILogicChatView: View {
-  @State private var messages: [Message]
-  private var model: GenerativeModel
-  private var chat: Chat
+@Observable
+class FirebaseAILogicChatViewModel {
+  var messages: [Message] = []
+
+  private let model: GenerativeModel
+  private let chat: Chat
 
   init() {
-    let firstMessage = Message(content: "Hello! How can I help you today?", participant: .other)
-    
-    let model =
+    let firstMessage = Message(
+      content: "Hello! How can I help you today?",
+      participant: .other
+    )
+    self.messages = [firstMessage]
+
+    model =
       FirebaseAI
       .firebaseAI(backend: .googleAI())
       .generativeModel(modelName: "gemini-2.5-flash")
-    let chat = model.startChat(history: [
-      ModelContent(
-        role: "model",
-        parts: firstMessage.content ?? ""
-      )
-    ])
-    self.model = model
-    self.chat = chat
-    self._messages = .init(initialValue: [firstMessage])
+
+    let history = [
+      ModelContent(role: "model", parts: firstMessage.content ?? "")
+    ]
+    chat = model.startChat(history: history)
   }
+
+  func sendMessage(_ message: Message) async {
+    if let content = message.content {
+      var responseText: String
+      do {
+        let response = try await chat.sendMessage(content)
+        responseText = response.text ?? ""
+      } catch {
+        responseText =
+          "I'm sorry, I don't understand that. Please try again. \(error.localizedDescription)"
+      }
+      let response = Message(content: responseText, participant: .other)
+      messages.append(response)
+    }
+  }
+}
+
+struct FirebaseAILogicChatView: View {
+  @State private var viewModel = FirebaseAILogicChatViewModel()
 
   var body: some View {
     NavigationStack {
-      ConversationView(messages: $messages)
+      ConversationView(messages: $viewModel.messages)
         .attachmentActions {
           Button(action: {}) {
             Label("Photos", systemImage: "photo.on.rectangle.angled")
@@ -57,18 +78,7 @@ struct FirebaseAILogicChatView: View {
         .navigationTitle("Chat")
         .navigationBarTitleDisplayMode(.inline)
         .onSendMessage { message in
-          if let content = message.content {
-            var responseText: String
-            do {
-              let response = try await chat.sendMessage(content)
-              responseText = response.text ?? ""
-            } catch {
-              responseText =
-                "I'm sorry, I don't understand that. Please try again. \(error.localizedDescription)"
-            }
-            let response = Message(content: responseText, participant: .other)
-            messages.append(response)
-          }
+          await viewModel.sendMessage(message)
         }
     }
   }

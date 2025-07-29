@@ -26,7 +26,6 @@ struct FoundationModelChatView {
   ]
   
   let session = LanguageModelSession()
-  
 }
 
 extension FoundationModelChatView: View {
