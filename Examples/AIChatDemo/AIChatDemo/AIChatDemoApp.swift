@@ -27,7 +27,7 @@ struct AIChatDemoApp: App {
   var body: some Scene {
     WindowGroup {
       TabView {
-        ContentView()
+        FoundationModelChatView()
           .tabItem {
             Label("On-Device", systemImage: "cpu")
           }
