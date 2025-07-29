@@ -17,20 +17,32 @@
 // limitations under the License.
 
 import ConversationKit
-import SwiftUI
 import FirebaseAI
+import SwiftUI
 
 struct FirebaseAILogicChatView: View {
-  @State private var messages: [Message] = [
-    Message(content: "Hello! How can I help you today?", participant: .other)
-  ]
-  
-  let model = {
-    let ai = FirebaseAI.firebaseAI(backend: .googleAI())
-    let model = ai.generativeModel(modelName: "gemini-2.5-flash")
-    return model
-  }()
-  
+  @State private var messages: [Message]
+  private var model: GenerativeModel
+  private var chat: Chat
+
+  init() {
+    let firstMessage = Message(content: "Hello! How can I help you today?", participant: .other)
+    
+    let model =
+      FirebaseAI
+      .firebaseAI(backend: .googleAI())
+      .generativeModel(modelName: "gemini-2.5-flash")
+    let chat = model.startChat(history: [
+      ModelContent(
+        role: "model",
+        parts: firstMessage.content ?? ""
+      )
+    ])
+    self.model = model
+    self.chat = chat
+    self._messages = .init(initialValue: [firstMessage])
+  }
+
   var body: some View {
     NavigationStack {
       ConversationView(messages: $messages)
@@ -45,19 +57,17 @@ struct FirebaseAILogicChatView: View {
         .navigationTitle("Chat")
         .navigationBarTitleDisplayMode(.inline)
         .onSendMessage { message in
-          Task {
-            if let content = message.content {
-              var responseText: String
-              do {
-                let response = try await model.generateContent(content)
-                responseText = response.text ?? ""
-              }
-              catch {
-                responseText = "I'm sorry, I don't understand that. Please try again. \(error.localizedDescription)"
-              }
-              let response = Message(content: responseText, participant: .other)
-              messages.append(response)
+          if let content = message.content {
+            var responseText: String
+            do {
+              let response = try await chat.sendMessage(content)
+              responseText = response.text ?? ""
+            } catch {
+              responseText =
+                "I'm sorry, I don't understand that. Please try again. \(error.localizedDescription)"
             }
+            let response = Message(content: responseText, participant: .other)
+            messages.append(response)
           }
         }
     }
