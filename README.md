@@ -16,7 +16,7 @@ Add ConversationKit to your project using Swift Package Manager:
 
 ```swift
 dependencies: [
-    .package(url: "PATH_TO_CONVERSATIONKIT_REPO", from: "1.0.0")
+    .package(url: "https://github.com/peterfriese/ConversationKit", from: "1.0.0")
 ]
 ```
 

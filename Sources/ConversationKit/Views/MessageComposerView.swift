@@ -1,5 +1,5 @@
 //
-// SwiftUIView 2.swift
+// MessageComposerView.swift
 // ConversationKit
 //
 // Created by Peter Friese on 03.07.25.
