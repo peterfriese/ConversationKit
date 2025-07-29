@@ -247,6 +247,14 @@ public struct ConversationView<Content>: View where Content: View {
   ]
   NavigationStack {
     ConversationView(messages: $messages)
+      .attachmentActions {
+        Button(action: {}) {
+          Label("Photos", systemImage: "photo.on.rectangle.angled")
+        }
+        Button(action: {}) {
+          Label("Camera", systemImage: "camera")
+        }
+      }
       .onSendMessage { userMessage in
         let content = userMessage.content ?? "(nothing at all)"
         print("You said: \(content)")

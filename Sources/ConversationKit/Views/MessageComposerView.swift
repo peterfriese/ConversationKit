@@ -20,28 +20,45 @@ import SwiftUI
 
 extension EnvironmentValues {
   @Entry var onSubmitAction: () -> Void = {}
+  @Entry var disableAttachments: Bool = false
+  @Entry var attachmentActions: AnyView = AnyView(EmptyView())
 }
 
 extension View {
   public func onSubmitAction(_ action: @escaping () -> Void) -> some View {
     environment(\.onSubmitAction, action)
   }
+  
+  public func disableAttachments(_ disable: Bool = true) -> some View {
+    environment(\.disableAttachments, disable)
+  }
+  
+  public func attachmentActions<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+    environment(\.attachmentActions, AnyView(content()))
+  }
 }
 
 struct MessageComposerView: View {
   @Environment(\.onSubmitAction) private var onSubmitAction
+  @Environment(\.disableAttachments) private var disableAttachments
+  @Environment(\.attachmentActions) private var attachmentActions
+  
   @Binding var message: String
   
   var body: some View {
     if #available(iOS 26.0, *) {
       GlassEffectContainer {
         HStack(alignment: .bottom) {
-          Button(action: {}) {
-            Image(systemName: "plus")
+          if !disableAttachments {
+            Menu {
+              attachmentActions
+            } label: {
+              Image(systemName: "plus")
+            }
+            .controlSize(.large)
+            .buttonBorderShape(.circle)
+            .glassEffect(.regular.interactive(), in: .circle)
           }
-          .buttonBorderShape(.circle)
-          .controlSize(.large)
-          .buttonStyle(.glass)
           
           HStack(alignment: .bottom) {
             TextField("Enter a message", text: $message, axis: .vertical)
@@ -59,6 +76,8 @@ struct MessageComposerView: View {
           .offset(x: -5.0, y: 0.0)
         }
       }
+      .padding(.horizontal, 8)
+      .padding(.bottom, 8)
     } else {
       HStack {
         TextField("Enter a message", text: $message, axis: .vertical)
@@ -78,6 +97,7 @@ struct MessageComposerView: View {
 
 #Preview("Short message") {
   @Previewable @State var message = "Why, hello!"
+  @Previewable @State var foo = false
 
   NavigationStack {
     VStack(spacing: 0) {
@@ -100,6 +120,21 @@ struct MessageComposerView: View {
       MessageComposerView(message: $message)
         .padding(.bottom, 8)
         .padding(.horizontal, 8)
+        .disableAttachments()
+        // Example of providing custom attachment actions
+        .attachmentActions {
+            Button(action: {
+              print("You tapped the custom action 1!")
+              foo.toggle()
+            }) {
+              Label("Custom Action 1", systemImage: foo ? "star" : "star.slash")
+            }
+            Button(action: {
+              print("You tapped the custom action 2!")
+            }) {
+                Label("Custom Action 2", systemImage: "heart")
+            }
+        }
     }
     .navigationTitle("Chat")
     .navigationBarTitleDisplayMode(.inline)
@@ -138,3 +173,4 @@ struct MessageComposerView: View {
     .navigationBarTitleDisplayMode(.inline)
   }
 }
+
