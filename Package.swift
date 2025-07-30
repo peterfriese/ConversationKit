@@ -5,7 +5,7 @@ import PackageDescription
 
 let package = Package(
   name: "ConversationKit",
-  platforms: [.iOS(.v17)],
+  platforms: [.iOS(.v17), .macCatalyst(.v17)],
   products: [
     .library(
       name: "ConversationKit",
