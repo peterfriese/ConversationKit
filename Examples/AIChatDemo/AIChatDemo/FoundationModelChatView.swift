@@ -20,6 +20,7 @@ import ConversationKit
 import FoundationModels
 import SwiftUI
 
+@available(iOS 26.0, macCatalyst 26.0, *)
 struct FoundationModelChatView {
   @State private var messages: [Message] = [
     Message(content: "Hello! How can I help you today?", participant: .other)
@@ -28,6 +29,7 @@ struct FoundationModelChatView {
   let session = LanguageModelSession()
 }
 
+@available(iOS 26.0, macCatalyst 26.0, *)
 extension FoundationModelChatView: View {
   var body: some View {
     NavigationStack {
@@ -53,5 +55,9 @@ extension FoundationModelChatView: View {
 }
 
 #Preview {
-  FoundationModelChatView()
+  if #available(iOS 26.0, macCatalyst 26.0, *) {
+    FoundationModelChatView()
+  } else {
+    Text("The Apple Foundation Models framework requires iOS 26+.")
+  }
 }
