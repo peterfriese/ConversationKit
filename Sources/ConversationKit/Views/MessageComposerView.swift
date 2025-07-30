@@ -76,21 +76,51 @@ struct MessageComposerView: View {
           .offset(x: -5.0, y: 0.0)
         }
       }
-      .padding(.horizontal, 8)
-      .padding(.bottom, 8)
+      .padding([.horizontal, .bottom], 8)
     } else {
-      HStack {
-        TextField("Enter a message", text: $message, axis: .vertical)
-          .textFieldStyle(.automatic)
-          .onSubmit(of: .text) { onSubmitAction() }
-        Button(action: { onSubmitAction() }) {
-          Image(systemName: "arrow.up.circle.fill")
-            .font(.title)
+      // provide compatible attachment actions and glass effect for iOS 18 and below
+      HStack(alignment: .bottom) {
+        if !disableAttachments {
+          Menu {
+            attachmentActions
+          } label: {
+            Image(systemName: "plus")
+              .foregroundColor(.primary)
+          }
+          .controlSize(.large)
+          .frame(width: 44, height: 44)
+          .background(.regularMaterial)
+          .clipShape(Circle())
+          .overlay(
+            Circle()
+              .stroke(Color(.separator), lineWidth: 0.5)
+          )
+          .padding(.trailing, 8)
         }
+        
+        HStack(alignment: .bottom) {
+          TextField("Enter a message", text: $message, axis: .vertical)
+            .frame(minHeight: 32)
+            .padding(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 0))
+            .onSubmit(of: .text) { onSubmitAction() }
+          
+          Button(action: { onSubmitAction() }) {
+            Image(systemName: "arrow.up")
+          }
+          .buttonStyle(.borderedProminent)
+          .buttonBorderShape(.circle)
+          .controlSize(.regular)
+          .padding(EdgeInsets(top: 6, leading: 0, bottom: 6, trailing: 7))
+        }
+        .background(.regularMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 22))
+        .overlay(
+          RoundedRectangle(cornerRadius: 22)
+            .stroke(Color(.separator), lineWidth: 0.5)
+        )
       }
       .padding(.top, 8)
       .padding([.horizontal, .bottom], 16)
-      .background(.thinMaterial)
     }
   }
 }
@@ -173,4 +203,3 @@ struct MessageComposerView: View {
     .navigationBarTitleDisplayMode(.inline)
   }
 }
-
