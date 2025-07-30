@@ -79,18 +79,51 @@ struct MessageComposerView: View {
       .padding(.horizontal, 8)
       .padding(.bottom, 8)
     } else {
-      HStack {
-        TextField("Enter a message", text: $message, axis: .vertical)
-          .textFieldStyle(.automatic)
-          .onSubmit(of: .text) { onSubmitAction() }
-        Button(action: { onSubmitAction() }) {
-          Image(systemName: "arrow.up.circle.fill")
-            .font(.title)
+      // provide compatible attachment actions and glass effect for iOS 18 and below
+      HStack(alignment: .bottom) {
+        if !disableAttachments {
+          Menu {
+            attachmentActions
+          } label: {
+            Image(systemName: "plus")
+              .font(.title2)
+              .foregroundColor(.primary)
+              .frame(width: 44, height: 44)
+              .background(.regularMaterial)
+              .clipShape(Circle())
+              .overlay(
+                Circle()
+                  .stroke(Color.gray.opacity(0.3), lineWidth: 0.5)
+              )
+          }
+          .padding(.trailing, 8)
         }
+        
+        HStack(alignment: .bottom) {
+          TextField("Enter a message", text: $message, axis: .vertical)
+            .frame(minHeight: 32)
+            .padding(EdgeInsets(top: 7, leading: 16, bottom: 7, trailing: 0))
+            .onSubmit(of: .text) { onSubmitAction() }
+          
+          Button(action: { onSubmitAction() }) {
+            Image(systemName: "arrow.up")
+              .font(.system(size: 16, weight: .semibold))
+              .foregroundColor(.white)
+              .frame(width: 32, height: 32)
+              .background(Color.accentColor)
+              .clipShape(Circle())
+          }
+          .padding(EdgeInsets(top: 7, leading: 0, bottom: 7, trailing: 7))
+        }
+        .background(.regularMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 22))
+        .overlay(
+          RoundedRectangle(cornerRadius: 22)
+            .stroke(Color.gray.opacity(0.2), lineWidth: 0.5)
+        )
       }
       .padding(.top, 8)
       .padding([.horizontal, .bottom], 16)
-      .background(.thinMaterial)
     }
   }
 }
