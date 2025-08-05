@@ -48,14 +48,16 @@ class FirebaseAILogicChatViewModel {
   func sendMessage(_ message: Message) async {
     if let content = message.content {
       var responseText: String
+      var metaData: [String: AnyHashable] = [:]
       do {
         let response = try await chat.sendMessage(content)
+        metaData["totalTokenCount"] = response.usageMetadata?.totalTokenCount ?? 0
         responseText = response.text ?? ""
       } catch {
         responseText =
           "I'm sorry, I don't understand that. Please try again. \(error.localizedDescription)"
       }
-      let response = Message(content: responseText, participant: .other)
+      let response = Message(content: responseText, participant: .other, metadata: metaData)
       messages.append(response)
     }
   }
@@ -66,7 +68,18 @@ struct FirebaseAILogicChatView: View {
 
   var body: some View {
     NavigationStack {
-      ConversationView(messages: $viewModel.messages)
+      ConversationView(messages: $viewModel.messages) { message in
+        let totalTokenCount = message.metadata["totalTokenCount"] as? Int ?? 0
+        print("totalTokenCount: \(totalTokenCount)")
+
+        return VStack {
+          MessageView(message: message.content ?? "",
+                      imageURL: message.imageURL ?? "",
+                      participant: message.participant,
+                      metadata: message.metadata)
+          Text("Total tokens: \(totalTokenCount)")
+        }
+      }
         .attachmentActions {
           Button(action: {}) {
             Label("Photos", systemImage: "photo.on.rectangle.angled")

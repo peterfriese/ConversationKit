@@ -28,10 +28,12 @@ public struct Message: Identifiable, Hashable {
   public var content: String?
   public let imageURL: String?
   public let participant: Participant
+  public let metadata: [String: AnyHashable]
 
-  public init(content: String? = nil, imageURL: String? = nil, participant: Participant) {
+  public init(content: String? = nil, imageURL: String? = nil, participant: Participant, metadata: [String: AnyHashable] = [:]) {
     self.content = content
     self.imageURL = imageURL
     self.participant = participant
+    self.metadata = metadata
   }
 }

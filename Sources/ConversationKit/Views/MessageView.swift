@@ -43,9 +43,24 @@ extension View {
 public struct MessageView: View {
   let message: String?
   let imageURL: String?
-  let fullWidth: Bool = false
+  let fullWidth: Bool
   let participant: Participant
-
+  let metadata: [String: AnyHashable]
+  
+  public init(
+    message: String? = nil,
+    imageURL: String? = nil,
+    fullWidth: Bool = false,
+    participant: Participant = .user,
+    metadata: [String: AnyHashable] = [:]
+  ) {
+    self.message = message
+    self.imageURL = imageURL
+    self.fullWidth = fullWidth
+    self.participant = participant
+    self.metadata = metadata
+  }
+  
   public var body: some View {
     HStack(alignment: .top) {
       if participant == .user {
@@ -70,13 +85,11 @@ public struct MessageView: View {
                 ProgressView()
               }
             }
-//            .frame(width: .infinity, height: .infinity, alignment: .center)
             .cornerRadius(8.0)
           }
         }
         if let message {
           Markdown(message)
-//          Text(message)
         }
       }
       .padding()
