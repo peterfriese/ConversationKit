@@ -10,7 +10,7 @@ ConversationKit is a SwiftUI library that provides an elegant and easy-to-use ch
 - 📝 **Markdown rendering** for rich text messages
 - ⚡️ **Async/await support** for message handling
 - 🎨 **Customizable message rendering** with custom content closures
-- 📱 **Modern iOS design** with glass effects (iOS 17+)
+- 📱 **Modern iOS design** with glass effects (iOS 26+)
 - 🔄 **Real-time message streaming** support
 - 📎 **Attachment actions** with customizable menu
 - 🎯 **Auto-scrolling** to latest messages
@@ -90,6 +90,12 @@ public struct Message: Identifiable, Hashable {
     public var content: String?
     public let imageURL: String?
     public let participant: Participant
+
+    public init(content: String? = nil, imageURL: String? = nil, participant: Participant) {
+        self.content = content
+        self.imageURL = imageURL
+        self.participant = participant
+    }
 }
 
 public enum Participant {
