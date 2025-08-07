@@ -158,6 +158,7 @@ public struct ConversationView<Content>: View where Content: View {
   @Binding var messages: [Message]
 
   @State private var scrolledID: Message.ID?
+  @State private var scrollPositionAnchor: UnitPoint? = .top
 
   @State private var message: String = ""
   @FocusState private var focusedField: FocusedField?
@@ -200,7 +201,7 @@ public struct ConversationView<Content>: View where Content: View {
       .scrollTargetBehavior(.viewAligned)
       .scrollBounceBehavior(.always)
       .scrollDismissesKeyboard(.interactively)
-      .scrollPosition(id: $scrolledID, anchor: .top)
+      .scrollPosition(id: $scrolledID, anchor: scrollPositionAnchor)
 
       MessageComposerView(message: $message)
         .padding(.bottom, 10) // keep distance from keyboard
@@ -209,8 +210,19 @@ public struct ConversationView<Content>: View where Content: View {
           submit()
         }
     }
+    .onChange(of: focusedField) { oldValue, newValue in
+      if newValue != nil {
+        withAnimation {
+          scrollPositionAnchor = .bottom
+          scrolledID = messages.last?.id
+        }
+      }
+    }
     .onChange(of: messages) { oldValue, newValue in
-      scrolledID = messages.last?.id
+      withAnimation {
+        scrollPositionAnchor = .top
+        scrolledID = messages.last?.id
+      }
     }
   }
 
