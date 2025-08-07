@@ -20,17 +20,12 @@ import SwiftUI
 
 extension EnvironmentValues {
   @Entry var onSubmitAction: () -> Void = {}
-  @Entry var disableAttachments: Bool = false
   @Entry var attachmentActions: AnyView = AnyView(EmptyView())
 }
 
 extension View {
   public func onSubmitAction(_ action: @escaping () -> Void) -> some View {
     environment(\.onSubmitAction, action)
-  }
-  
-  public func disableAttachments(_ disable: Bool = true) -> some View {
-    environment(\.disableAttachments, disable)
   }
   
   public func attachmentActions<Content: View>(@ViewBuilder content: () -> Content) -> some View {
@@ -40,7 +35,6 @@ extension View {
 
 struct MessageComposerView: View {
   @Environment(\.onSubmitAction) private var onSubmitAction
-  @Environment(\.disableAttachments) private var disableAttachments
   @Environment(\.attachmentActions) private var attachmentActions
   
   @Binding var message: String
@@ -49,7 +43,7 @@ struct MessageComposerView: View {
     if #available(iOS 26.0, *) {
       GlassEffectContainer {
         HStack(alignment: .bottom) {
-          if !disableAttachments {
+          if attachmentActions != nil {
             Menu {
               attachmentActions
             } label: {
@@ -80,7 +74,7 @@ struct MessageComposerView: View {
     } else {
       // provide compatible attachment actions and glass effect for iOS 18 and below
       HStack(alignment: .bottom) {
-        if !disableAttachments {
+        if attachmentActions != nil {
           Menu {
             attachmentActions
           } label: {
@@ -150,7 +144,6 @@ struct MessageComposerView: View {
       MessageComposerView(message: $message)
         .padding(.bottom, 8)
         .padding(.horizontal, 8)
-        .disableAttachments()
         // Example of providing custom attachment actions
         .attachmentActions {
             Button(action: {
