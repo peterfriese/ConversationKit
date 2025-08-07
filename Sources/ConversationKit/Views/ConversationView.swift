@@ -1,4 +1,4 @@
-// 
+//
 // ConversationView.swift
 //
 // Created by Peter Friese on 20.02.24.
@@ -22,7 +22,6 @@ extension EnvironmentValues {
   @Entry var onSendMessageAction: (_ message: Message) async -> Void = { message in
     // no-op
   }
-  
 }
 
 public extension View {
@@ -30,7 +29,6 @@ public extension View {
     environment(\.onSendMessageAction, action)
   }
 }
-
 
 /// A view that displays a conversation thread and provides a text input field for the user.
 ///
@@ -157,7 +155,7 @@ public extension View {
 public struct ConversationView<Content>: View where Content: View {
   @Binding var messages: [Message]
 
-  @State private var scrolledID: Message.ID?
+  @State private var scrolledID: AnyHashable?
   @State private var scrollPositionAnchor: UnitPoint? = .top
 
   @State private var message: String = ""
@@ -167,9 +165,11 @@ public struct ConversationView<Content>: View where Content: View {
   }
 
   @Environment(\.onSendMessageAction) private var onSendMessageAction
-  
+
+  @State private var composerHeight: CGFloat = 0
+
   private let content: (Message) -> Content
-  
+
   public init(messages: Binding<[Message]>) where Content == MessageView {
     self._messages = messages
     self.content = { message in
@@ -178,7 +178,6 @@ public struct ConversationView<Content>: View where Content: View {
                   participant: message.participant)
     }
   }
-
 
   public init(messages: Binding<[Message]>, content: @escaping (Message) -> Content) {
     self._messages = messages
@@ -192,9 +191,11 @@ public struct ConversationView<Content>: View where Content: View {
           ForEach(messages) { message in
             content(message)
               .padding(.horizontal)
+              .id(message.id)
           }
           Spacer()
-            .frame(height: 50)
+            .frame(height: composerHeight + 22)
+            .id("bottom-spacer")
         }
         .scrollTargetLayout()
       }
@@ -204,7 +205,12 @@ public struct ConversationView<Content>: View where Content: View {
       .scrollPosition(id: $scrolledID, anchor: scrollPositionAnchor)
 
       MessageComposerView(message: $message)
-        .padding(.bottom, 10) // keep distance from keyboard
+        .onGeometryChange(for: CGSize.self) { proxy in
+          proxy.size
+        } action: {
+          composerHeight = $0.height
+        }
+        .padding(.bottom, 10)
         .focused($focusedField, equals: .message)
         .onSubmitAction {
           submit()
@@ -214,14 +220,21 @@ public struct ConversationView<Content>: View where Content: View {
       if newValue != nil {
         withAnimation {
           scrollPositionAnchor = .bottom
-          scrolledID = messages.last?.id
+          scrolledID = nil
+          DispatchQueue.main.async {
+            scrolledID = "bottom-spacer"
+          }
         }
       }
     }
     .onChange(of: messages) { oldValue, newValue in
+      guard let lastID = newValue.last?.id else { return }
       withAnimation {
         scrollPositionAnchor = .top
-        scrolledID = messages.last?.id
+        scrolledID = nil
+        DispatchQueue.main.async {
+          scrolledID = lastID
+        }
       }
     }
   }
@@ -237,7 +250,6 @@ public struct ConversationView<Content>: View where Content: View {
       await onSendMessageAction(userMessage)
     }
   }
-
 }
 
 #Preview("Built-in chat bubbles") {
@@ -248,7 +260,7 @@ public struct ConversationView<Content>: View where Content: View {
     .init(content: "Well, I am fine, how are you?",
           imageURL: "https://picsum.photos/100/100",
           participant: .user),
-    .init(content: "Not too bad. Not too bad after all.", 
+    .init(content: "Not too bad. Not too bad after all.",
           participant: .other),
     .init(imageURL: "https://picsum.photos/100/100",
           participant: .user),
@@ -358,3 +370,4 @@ public struct ConversationView<Content>: View where Content: View {
     .navigationBarTitleDisplayMode(.inline)
   }
 }
+
