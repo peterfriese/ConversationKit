@@ -33,7 +33,6 @@ struct AIChatDemoApp: App {
               Label("On-Device", systemImage: "cpu")
             }
         }
-
         FirebaseAILogicChatView()
           .tabItem {
             Label("Firebase AI", systemImage: "cloud")
