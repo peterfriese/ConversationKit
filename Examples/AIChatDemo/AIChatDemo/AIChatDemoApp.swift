@@ -16,8 +16,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import SwiftUI
 import Firebase
+import SwiftUI
 
 @main
 struct AIChatDemoApp: App {
@@ -36,6 +36,10 @@ struct AIChatDemoApp: App {
         FirebaseAILogicChatView()
           .tabItem {
             Label("Firebase AI", systemImage: "cloud")
+          }
+        FirebaseAILogicChatWithMetadataView()
+          .tabItem {
+            Label("Firebase AI (Metadata)", systemImage: "cloud")
           }
       }
     }
