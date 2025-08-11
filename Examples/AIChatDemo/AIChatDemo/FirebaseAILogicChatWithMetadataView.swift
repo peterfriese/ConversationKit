@@ -40,49 +40,26 @@ class FirebaseAILogicChatWithMetadataViewModel {
       .generativeModel(modelName: "gemini-2.5-flash")
 
     let history = [
-      ModelContent(role: "model", parts: firstMessage.content ?? "")
+      ModelContent(role: "model", parts: firstMessage.content)
     ]
     chat = model.startChat(history: history)
   }
 
-  func extractMetadata(from response: GenerateContentResponse) -> [String: AnyHashable] {
-    var metaData: [String: AnyHashable] = [:]
-    // Add standard token metadata
-    if let usage = response.usageMetadata {
-      metaData["promptTokenCount"] = usage.promptTokenCount
-      metaData["candidatesTokenCount"] = usage.candidatesTokenCount
-      metaData["thoughtsTokenCount"] = usage.thoughtsTokenCount
-      metaData["totalTokenCount"] = usage.totalTokenCount
-      // Add per-modality token details if present (as a count)
-      metaData["promptModalityCount"] = usage.promptTokensDetails.count
-      metaData["candidatesModalityCount"] = usage.candidatesTokensDetails.count
-    }
-    // Add finish reason and citation count from candidate if present
-    if let candidate = response.candidates.first {
-      metaData["finishReason"] = candidate.finishReason?.rawValue ?? ""
-      metaData["citationCount"] = candidate.citationMetadata?.citations.count ?? 0
-      if let groundingMetadata = candidate.groundingMetadata {
-        metaData["groundingChunkCount"] = groundingMetadata.groundingChunks.count
-      }
-    }
-    // Optionally show if prompt feedback is blocked
-    if let promptFeedback = response.promptFeedback, let blockReason = promptFeedback.blockReason {
-      metaData["promptBlocked"] = true
-      metaData["blockReason"] = blockReason.rawValue
-      if let blockMsg = promptFeedback.blockReasonMessage {
-        metaData["blockReasonMessage"] = blockMsg
-      }
-    }
-    return metaData
-  }
-
   func sendMessage(_ message: Message) async {
     var responseText: String
-    var metaData: [String: AnyHashable] = [:]
+    var metaData: [String: Any] = [:]
     do {
       let response = try await chat.sendMessage(message.content)
-      metaData = self.extractMetadata(from: response)
       responseText = response.text ?? ""
+      // Store the full objects in metadata for type-safe access in the view
+      metaData["usageMetadata"] = response.usageMetadata
+      
+      if let candidate = response.candidates.first {
+        metaData["finishReason"] = candidate.finishReason
+        metaData["citationMetadata"] = candidate.citationMetadata
+        metaData["groundingMetadata"] = candidate.groundingMetadata
+      }
+      metaData["promptFeedback"] = response.promptFeedback
     } catch {
       responseText =
       "I'm sorry, I don't understand that. Please try again. \(error.localizedDescription)"
@@ -112,9 +89,11 @@ struct FirebaseAILogicChatWithMetadataView: View {
         Text("Total tokens: ")
           .font(.caption2)
           .foregroundStyle(.secondary)
-        Text("\(message.metadata["totalTokenCount"] as? Int ?? 0)")
-          .font(.caption2.monospacedDigit())
-          .foregroundStyle(.primary)
+        if let usageMetadata = message.metadata["usageMetadata"] as? GenerateContentResponse.UsageMetadata {
+          Text("\(usageMetadata.totalTokenCount)")
+            .font(.caption2.monospacedDigit())
+            .foregroundStyle(.primary)
+        }
       }
       .padding(.horizontal, 12)
       .padding(.vertical, 4)
@@ -135,56 +114,57 @@ struct FirebaseAILogicChatWithMetadataView: View {
 
   @ViewBuilder
   private func metadataDebugView(for message: Message) -> some View {
-    if !message.metadata.isEmpty {
+    if let usageMetadata = message.metadata["usageMetadata"] as? GenerateContentResponse.UsageMetadata {
       VStack(alignment: .leading, spacing: 2) {
-        if let promptTokenCount = message.metadata["promptTokenCount"] {
-          Text("Prompt tokens: \(promptTokenCount as? Int ?? 0)")
-            .font(.caption2)
-            .foregroundStyle(.secondary)
-        }
-        if let candidatesTokenCount = message.metadata["candidatesTokenCount"] {
-          Text("Candidates tokens: \(candidatesTokenCount as? Int ?? 0)")
-            .font(.caption2)
-            .foregroundStyle(.secondary)
-        }
-        if let thoughtsTokenCount = message.metadata["thoughtsTokenCount"] {
-          Text("Thoughts tokens: \(thoughtsTokenCount as? Int ?? 0)")
-            .font(.caption2)
-            .foregroundStyle(.secondary)
-        }
-        if let finishReason = message.metadata["finishReason"] as? String, !finishReason.isEmpty {
-          Text("Finish reason: \(finishReason)")
-            .font(.caption2)
-            .foregroundStyle(.secondary)
-        }
-        if let citationCount = message.metadata["citationCount"] as? Int, citationCount > 0 {
-          Text("Citations: \(citationCount)")
-            .font(.caption2)
-            .foregroundStyle(.secondary)
-        }
-        if let groundingChunkCount = message.metadata["groundingChunkCount"] as? Int, groundingChunkCount > 0 {
-          Text("Grounding chunks: \(groundingChunkCount)")
-            .font(.caption2)
-            .foregroundStyle(.secondary)
-        }
-        if let promptBlocked = message.metadata["promptBlocked"] as? Bool, promptBlocked,
-           let blockReason = message.metadata["blockReason"] as? String {
-          Text("Prompt Blocked: \(blockReason)")
-            .font(.caption2)
-            .foregroundColor(.red)
-          if let blockMsg = message.metadata["blockReasonMessage"] as? String {
-            Text(blockMsg)
-              .font(.caption2)
-              .foregroundColor(.red)
-          }
-        }
+        Text("Prompt tokens: \(usageMetadata.promptTokenCount)")
+          .font(.caption2)
+          .foregroundStyle(.secondary)
+        Text("Candidates tokens: \(usageMetadata.candidatesTokenCount)")
+          .font(.caption2)
+          .foregroundStyle(.secondary)
+        Text("Thoughts tokens: \(usageMetadata.thoughtsTokenCount)")
+          .font(.caption2)
+          .foregroundStyle(.secondary)
+        Text("Total tokens: \(usageMetadata.totalTokenCount)")
+          .font(.caption2)
+          .foregroundStyle(.secondary)
       }
-      .padding(.horizontal, 8)
-      .padding(.vertical, 4)
-      .background(
-        RoundedRectangle(cornerRadius: 6)
-          .fill(Color.secondary.opacity(0.08))
-      )
+    }
+
+    if let finishReason = message.metadata["finishReason"] as? FinishReason {
+      Text("Finish reason: \(finishReason.rawValue)")
+        .font(.caption2)
+        .foregroundStyle(.secondary)
+    }
+
+    if let citationMetadata = message.metadata["citationMetadata"] as? CitationMetadata {
+      let citationCount = citationMetadata.citations.count
+      if citationCount > 0 {
+        Text("Citations: \(citationCount)")
+          .font(.caption2)
+          .foregroundStyle(.secondary)
+      }
+    }
+
+    if let groundingMetadata = message.metadata["groundingMetadata"] as? GroundingMetadata {
+      let groundingChunkCount = groundingMetadata.groundingChunks.count
+      if groundingChunkCount > 0 {
+        Text("Grounding chunks: \(groundingChunkCount)")
+          .font(.caption2)
+          .foregroundStyle(.secondary)
+      }
+    }
+
+    if let promptFeedback = message.metadata["promptFeedback"] as? PromptFeedback,
+       let blockReason = promptFeedback.blockReason {
+      Text("Prompt Blocked: \(blockReason.rawValue)")
+        .font(.caption2)
+        .foregroundColor(.red)
+      if let blockMsg = promptFeedback.blockReasonMessage {
+        Text(blockMsg)
+          .font(.caption2)
+          .foregroundColor(.red)
+      }
     }
   }
 
@@ -192,7 +172,7 @@ struct FirebaseAILogicChatWithMetadataView: View {
   private func messageContent(for message: Message) -> some View {
     VStack(alignment: .leading, spacing: 4) {
       MessageView(
-        message: message.content ?? "",
+        message: message.content,
         imageURL: message.imageURL ?? "",
         participant: message.participant,
         metadata: message.metadata
@@ -229,3 +209,4 @@ struct FirebaseAILogicChatWithMetadataView: View {
 #Preview {
   FirebaseAILogicChatWithMetadataView()
 }
+

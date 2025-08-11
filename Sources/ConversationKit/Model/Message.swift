@@ -23,15 +23,15 @@ public enum Participant {
   case user
 }
 
-public struct Message: Identifiable, Hashable {
+public struct Message: Identifiable {
   public let id: UUID = .init()
   public var content: String
   public let imageURL: String?
   public let participant: Participant
   public var pending = false
-  public var metadata: [String: AnyHashable]
+  public var metadata: [String: Any]
 
-  public init(content: String = "", imageURL: String? = nil, participant: Participant, pending: Bool = false, metadata: [String: AnyHashable] = [:]) {
+  public init(content: String = "", imageURL: String? = nil, participant: Participant, pending: Bool = false, metadata: [String: Any] = [:]) {
     self.content = content
     self.imageURL = imageURL
     self.participant = participant
@@ -41,5 +41,27 @@ public struct Message: Identifiable, Hashable {
   
   public static func pending(participant: Participant) -> Message {
     Self(content: "", participant: participant, pending: true)
+  }
+}
+
+extension Message: Equatable {
+  public static func == (lhs: Message, rhs: Message) -> Bool {
+    return lhs.id == rhs.id &&
+           lhs.content == rhs.content &&
+           lhs.imageURL == rhs.imageURL &&
+           lhs.participant == rhs.participant &&
+           lhs.pending == rhs.pending
+    // Note: metadata is intentionally NOT compared
+  }
+}
+
+extension Message: Hashable {
+  public func hash(into hasher: inout Hasher) {
+    hasher.combine(id)
+    hasher.combine(content)
+    hasher.combine(imageURL)
+    hasher.combine(participant)
+    hasher.combine(pending)
+    // Note: metadata is intentionally NOT included in hash
   }
 }

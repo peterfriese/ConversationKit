@@ -45,14 +45,14 @@ public struct MessageView: View {
   let imageURL: String?
   let fullWidth: Bool
   let participant: Participant
-  let metadata: [String: AnyHashable]
+  let metadata: [String: Any]
   
   public init(
     message: String? = nil,
     imageURL: String? = nil,
     fullWidth: Bool = false,
     participant: Participant = .user,
-    metadata: [String: AnyHashable] = [:]
+    metadata: [String: Any] = [:]
   ) {
     self.message = message
     self.imageURL = imageURL
