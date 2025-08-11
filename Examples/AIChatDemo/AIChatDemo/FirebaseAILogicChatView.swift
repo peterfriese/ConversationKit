@@ -40,27 +40,25 @@ class FirebaseAILogicChatViewModel {
       .generativeModel(modelName: "gemini-2.5-flash")
 
     let history = [
-      ModelContent(role: "model", parts: firstMessage.content ?? "")
+      ModelContent(role: "model", parts: firstMessage.content)
     ]
     chat = model.startChat(history: history)
   }
 
   func sendMessage(_ message: Message) async {
-    if let content = message.content {
-      var responseText: String
-      do {
-        let response = try await chat.sendMessage(content)
-        responseText = response.text ?? ""
-      } catch {
-        responseText =
-          "I'm sorry, I don't understand that. Please try again. \(error.localizedDescription)"
-      }
-      let response = Message(
-        content: responseText,
-        participant: .other
-      )
-      messages.append(response)
+    var responseText: String
+    do {
+      let response = try await chat.sendMessage(message.content)
+      responseText = response.text ?? ""
+    } catch {
+      responseText =
+      "I'm sorry, I don't understand that. Please try again. \(error.localizedDescription)"
     }
+    let response = Message(
+      content: responseText,
+      participant: .other
+    )
+    messages.append(response)
   }
 }
 

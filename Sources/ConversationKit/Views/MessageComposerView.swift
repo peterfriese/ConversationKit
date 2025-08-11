@@ -20,7 +20,7 @@ import SwiftUI
 
 extension EnvironmentValues {
   @Entry var onSubmitAction: () -> Void = {}
-  @Entry var attachmentActions: AnyView = AnyView(EmptyView())
+  @Entry var attachmentActions: AnyView? = nil
 }
 
 extension View {
@@ -33,17 +33,21 @@ extension View {
   }
 }
 
-struct MessageComposerView: View {
+public struct MessageComposerView: View {
   @Environment(\.onSubmitAction) private var onSubmitAction
   @Environment(\.attachmentActions) private var attachmentActions
   
   @Binding var message: String
   
-  var body: some View {
+  public init(message: Binding<String>) {
+    self._message = message
+  }
+  
+  public var body: some View {
     if #available(iOS 26.0, *) {
       GlassEffectContainer {
         HStack(alignment: .bottom) {
-          if attachmentActions != nil {
+          if let attachmentActions = attachmentActions {
             Menu {
               attachmentActions
             } label: {
@@ -74,7 +78,7 @@ struct MessageComposerView: View {
     } else {
       // provide compatible attachment actions and glass effect for iOS 18 and below
       HStack(alignment: .bottom) {
-        if attachmentActions != nil {
+        if let attachmentActions = attachmentActions {
           Menu {
             attachmentActions
           } label: {
@@ -196,3 +200,4 @@ struct MessageComposerView: View {
     .navigationBarTitleDisplayMode(.inline)
   }
 }
+

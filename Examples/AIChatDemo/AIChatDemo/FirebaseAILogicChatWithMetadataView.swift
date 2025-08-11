@@ -77,24 +77,22 @@ class FirebaseAILogicChatWithMetadataViewModel {
   }
 
   func sendMessage(_ message: Message) async {
-    if let content = message.content {
-      var responseText: String
-      var metaData: [String: AnyHashable] = [:]
-      do {
-        let response = try await chat.sendMessage(content)
-        metaData = self.extractMetadata(from: response)
-        responseText = response.text ?? ""
-      } catch {
-        responseText =
-          "I'm sorry, I don't understand that. Please try again. \(error.localizedDescription)"
-      }
-      let response = Message(
-        content: responseText,
-        participant: .other,
-        metadata: metaData
-      )
-      messages.append(response)
+    var responseText: String
+    var metaData: [String: AnyHashable] = [:]
+    do {
+      let response = try await chat.sendMessage(message.content)
+      metaData = self.extractMetadata(from: response)
+      responseText = response.text ?? ""
+    } catch {
+      responseText =
+      "I'm sorry, I don't understand that. Please try again. \(error.localizedDescription)"
     }
+    let response = Message(
+      content: responseText,
+      participant: .other,
+      metadata: metaData
+    )
+    messages.append(response)
   }
 }
 

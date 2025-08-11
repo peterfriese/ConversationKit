@@ -339,22 +339,20 @@ public struct ConversationView<Content>: View where Content: View {
             }
           }
         }
-        if let messageContent = message.content {
-          HStack {
-            if message.participant == .user {
-              Spacer()
+        HStack {
+          if message.participant == .user {
+            Spacer()
+          }
+          Markdown(message.content ?? "")
+            .padding()
+            .background {
+              Color(uiColor: message.participant == .other
+                    ? .secondarySystemBackground
+                    : .systemGray4)
             }
-            Markdown(messageContent ?? "")
-              .padding()
-              .background {
-                Color(uiColor: message.participant == .other
-                      ? .secondarySystemBackground
-                      : .systemGray4)
-              }
-              .roundedCorner(10, corners: .allCorners)
-            if message.participant == .other {
-              Spacer()
-            }
+            .roundedCorner(10, corners: .allCorners)
+          if message.participant == .other {
+            Spacer()
           }
         }
       }

@@ -25,15 +25,21 @@ public enum Participant {
 
 public struct Message: Identifiable, Hashable {
   public let id: UUID = .init()
-  public var content: String?
+  public var content: String
   public let imageURL: String?
   public let participant: Participant
-  public let metadata: [String: AnyHashable]
+  public var pending = false
+  public var metadata: [String: AnyHashable]
 
-  public init(content: String? = nil, imageURL: String? = nil, participant: Participant, metadata: [String: AnyHashable] = [:]) {
+  public init(content: String = "", imageURL: String? = nil, participant: Participant, pending: Bool = false, metadata: [String: AnyHashable] = [:]) {
     self.content = content
     self.imageURL = imageURL
     self.participant = participant
+    self.pending = pending
     self.metadata = metadata
+  }
+  
+  public static func pending(participant: Participant) -> Message {
+    Self(content: "", participant: participant, pending: true)
   }
 }
