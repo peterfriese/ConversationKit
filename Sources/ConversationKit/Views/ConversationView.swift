@@ -19,14 +19,14 @@ import SwiftUI
 import MarkdownUI
 
 extension EnvironmentValues {
-  @Entry var onSendMessageAction: (_ message: Message) async -> Void = { message in
+  @Entry var onSendMessageAction: (_ message: any Message) async -> Void = { message in
     // no-op
   }
   
 }
 
 public extension View {
-  func onSendMessage(_ action: @escaping (_ message: Message) async -> Void) -> some View {
+  func onSendMessage(_ action: @escaping (_ message: any Message) async -> Void) -> some View {
     environment(\.onSendMessageAction, action)
   }
 }
@@ -55,7 +55,7 @@ public extension View {
 ///
 /// ```swift
 /// struct ChatScreen: View {
-///     @State private var messages: [Message] = [
+///     @State private var messages: [DefaultMessage] = [
 ///         .init(content: "Hello!", participant: .other)
 ///     ]
 ///
@@ -64,7 +64,7 @@ public extension View {
 ///             .onSendMessage { userMessage in
 ///                 // Process the user's message asynchronously
 ///                 let responseText = await getResponse(for: userMessage.content ?? "")
-///                 let responseMessage = Message(content: responseText, participant: .other)
+///                 let responseMessage = DefaultMessage(content: responseText, participant: .other)
 ///                 await MainActor.run {
 ///                     messages.append(responseMessage)
 ///                 }
@@ -86,7 +86,7 @@ public extension View {
 ///
 /// ```swift
 /// struct CustomChatScreen: View {
-///     @State private var messages: [Message] = [
+///     @State private var messages: [DefaultMessage] = [
 ///         .init(content: "Hello!", participant: .other)
 ///     ]
 ///
@@ -118,11 +118,11 @@ public extension View {
 ///         }
 ///     }
 ///     
-///     func processMessage(_ message: Message) async {
+///     func processMessage(_ message: any Message) async {
 ///         // Perform async operations like API calls
 ///         let response = await chatService.getResponse(to: message.content ?? "")
 ///         await MainActor.run {
-///             messages.append(Message(content: response, participant: .other))
+///             messages.append(DefaultMessage(content: response, participant: .other))
 ///         }
 ///     }
 /// }
@@ -137,11 +137,11 @@ public extension View {
 ///     do {
 ///         let response = try await chatService.sendMessage(userMessage.content ?? "")
 ///         await MainActor.run {
-///             messages.append(Message(content: response, participant: .other))
+///             messages.append(DefaultMessage(content: response, participant: .other))
 ///         }
 ///     } catch {
 ///         await MainActor.run {
-///             messages.append(Message(content: "Error: \(error.localizedDescription)", participant: .other))
+///             messages.append(DefaultMessage(content: "Error: \(error.localizedDescription)", participant: .other))
 ///         }
 ///     }
 /// }
@@ -154,10 +154,10 @@ public extension View {
 ///
 /// - Parameter messages: A binding to an array of `Message` instances representing the conversation.
 /// - Parameter content: A closure that takes a `Message` and returns a view for rendering that message.
-public struct ConversationView<Content>: View where Content: View {
-  @Binding var messages: [Message]
+public struct ConversationView<Content, MessageType: Message>: View where Content: View {
+  @Binding var messages: [MessageType]
 
-  @State private var scrolledID: Message.ID?
+  @State private var scrolledID: MessageType.ID?
 
   @State private var message: String = ""
   @FocusState private var focusedField: FocusedField?
@@ -167,9 +167,9 @@ public struct ConversationView<Content>: View where Content: View {
 
   @Environment(\.onSendMessageAction) private var onSendMessageAction
   
-  private let content: (Message) -> Content
+  private let content: (MessageType) -> Content
   
-  public init(messages: Binding<[Message]>) where Content == MessageView {
+  public init(messages: Binding<[MessageType]>) where Content == MessageView {
     self._messages = messages
     self.content = { message in
       MessageView(message: message.content,
@@ -179,7 +179,7 @@ public struct ConversationView<Content>: View where Content: View {
   }
 
 
-  public init(messages: Binding<[Message]>, content: @escaping (Message) -> Content) {
+  public init(messages: Binding<[MessageType]>, content: @escaping (MessageType) -> Content) {
     self._messages = messages
     self.content = content
   }
@@ -216,7 +216,7 @@ public struct ConversationView<Content>: View where Content: View {
 
   @MainActor
   func submit() {
-    let userMessage = Message(content: message, participant: .user)
+    let userMessage = MessageType(content: message, imageURL: nil, participant: .user)
     message = ""
     focusedField = .message
 
@@ -228,7 +228,7 @@ public struct ConversationView<Content>: View where Content: View {
 }
 
 #Preview("Built-in chat bubbles") {
-  @Previewable @State var messages: [Message] = [
+  @Previewable @State var messages: [DefaultMessage] = [
     .init(content: "Hello, how are you?",
           imageURL: "https://picsum.photos/1080/1920",
           participant: .other),
@@ -260,7 +260,7 @@ public struct ConversationView<Content>: View where Content: View {
         // Simulate async response
         try? await Task.sleep(for: .seconds(0.5))
         await MainActor.run {
-          messages.append(Message(content: content.localizedUppercase, participant: .other))
+          messages.append(DefaultMessage(content: content.localizedUppercase, participant: .other))
         }
       }
       .navigationTitle("Chat")
@@ -269,7 +269,7 @@ public struct ConversationView<Content>: View where Content: View {
 }
 
 #Preview("Custom chat bubbles") {
-  @Previewable @State var messages: [Message] = [
+  @Previewable @State var messages: [DefaultMessage] = [
     .init(content: "Hello, how are you?",
           imageURL: "https://picsum.photos/1080/1920",
           participant: .other),
@@ -338,7 +338,7 @@ public struct ConversationView<Content>: View where Content: View {
       let content = userMessage.content ?? "(nothing at all)"
       print("You said: \(content)")
       await MainActor.run {
-        messages.append(Message(content: content.localizedUppercase, participant: .other))
+        messages.append(DefaultMessage(content: content.localizedUppercase, participant: .other))
       }
     }
     .navigationTitle("Chat")

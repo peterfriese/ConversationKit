@@ -26,6 +26,7 @@ To run the examples, open the corresponding `.xcodeproj` file in Xcode and run t
 The codebase follows standard Swift conventions and is well-documented. Key conventions include:
 
 *   **Public API:** The main entry point to the library is the `ConversationView`, which is highly customizable through view modifiers and custom rendering closures.
+*   **Data Model:** The library uses a protocol-based approach for the message data model. The `Message` protocol defines the requirements for a message object, and a `DefaultMessage` struct is provided as a default implementation. This allows developers to use their own custom message types.
 *   **Data Flow:** The `ConversationView` does not own the `messages` array. Instead, it receives a `Binding` to the array, and the parent view (or its view model) is responsible for creating and managing the array itself. When the user sends a message, the `ConversationView` calls the `onSendMessage` closure, and the parent view is responsible for appending the new message to the array. This ensures a clear and predictable data flow.
 *   **Asynchronous Operations:** The library uses `async/await` for handling message sending and processing.
 *   **Customization:** `ConversationKit` makes extensive use of SwiftUI's environment values and view modifiers to allow for deep customization of the chat interface.

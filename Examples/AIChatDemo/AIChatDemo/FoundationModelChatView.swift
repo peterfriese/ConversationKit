@@ -22,8 +22,8 @@ import SwiftUI
 
 @available(iOS 26.0, macCatalyst 26.0, *)
 struct FoundationModelChatView {
-  @State private var messages: [Message] = [
-    Message(content: "Hello! How can I help you today?", participant: .other)
+  @State private var messages: [DefaultMessage] = [
+    DefaultMessage(content: "Hello! How can I help you today?", participant: .other)
   ]
   
   let session = LanguageModelSession()
@@ -37,7 +37,9 @@ extension FoundationModelChatView: View {
         .navigationTitle("Chat")
         .navigationBarTitleDisplayMode(.inline)
         .onSendMessage { message in
-          messages.append(message)
+          if let defaultMessage = message as? DefaultMessage {
+            messages.append(defaultMessage)
+          }
           var responseText: String
           do {
             let response = try await session.respond(to: message.content ?? "")
@@ -46,7 +48,7 @@ extension FoundationModelChatView: View {
             responseText =
             "I'm sorry, I don't understand that. Please try again. \(error.localizedDescription)"
           }
-          let response = Message(content: responseText, participant: .other)
+          let response = DefaultMessage(content: responseText, participant: .other)
           messages.append(response)
         }
     }

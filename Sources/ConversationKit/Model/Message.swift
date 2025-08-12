@@ -23,7 +23,15 @@ public enum Participant {
   case user
 }
 
-public struct Message: Identifiable, Hashable {
+public protocol Message: Identifiable, Hashable {
+  var content: String? { get set }
+  var imageURL: String? { get }
+  var participant: Participant { get }
+
+  init(content: String?, imageURL: String?, participant: Participant)
+}
+
+public struct DefaultMessage: Message {
   public let id: UUID = .init()
   public var content: String?
   public let imageURL: String?
@@ -35,3 +43,4 @@ public struct Message: Identifiable, Hashable {
     self.participant = participant
   }
 }
+

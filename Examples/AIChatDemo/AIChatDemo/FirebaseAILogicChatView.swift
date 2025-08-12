@@ -22,13 +22,13 @@ import SwiftUI
 
 @Observable
 class FirebaseAILogicChatViewModel {
-  var messages: [Message] = []
+  var messages: [DefaultMessage] = []
 
   private let model: GenerativeModel
   private let chat: Chat
 
   init() {
-    let firstMessage = Message(
+    let firstMessage = DefaultMessage(
       content: "Hello! How can I help you today?",
       participant: .other
     )
@@ -45,8 +45,10 @@ class FirebaseAILogicChatViewModel {
     chat = model.startChat(history: history)
   }
 
-  func sendMessage(_ message: Message) async {
-    messages.append(message)
+  func sendMessage(_ message: any Message) async {
+    if let defaultMessage = message as? DefaultMessage {
+      messages.append(defaultMessage)
+    }
     var responseText: String
     do {
       let response = try await chat.sendMessage(message.content ?? "")
@@ -55,7 +57,7 @@ class FirebaseAILogicChatViewModel {
       responseText =
       "I'm sorry, I don't understand that. Please try again. \(error.localizedDescription)"
     }
-    let response = Message(content: responseText, participant: .other)
+    let response = DefaultMessage(content: responseText, participant: .other)
     messages.append(response)
   }
 }

@@ -41,7 +41,7 @@ import SwiftUI
 import ConversationKit
 
 struct ChatView: View {
-    @State private var messages: [Message] = []
+    @State private var messages: [DefaultMessage] = []
     
     var body: some View {
         NavigationStack {
@@ -55,13 +55,15 @@ struct ChatView: View {
         }
     }
     
-    func processMessage(_ message: Message) async {
+    func processMessage(_ message: any Message) async {
         // Append the user's message to the messages array
-        messages.append(message)
+        if let defaultMessage = message as? DefaultMessage {
+          messages.append(defaultMessage)
+        }
         // Simulate async response
         try? await Task.sleep(for: .seconds(1))
         await MainActor.run {
-            messages.append(Message(
+            messages.append(DefaultMessage(
                 content: "You said: \(message.content ?? "")",
                 participant: .other
             ))
@@ -73,7 +75,7 @@ struct ChatView: View {
 ### With Initial Messages
 
 ```swift
-@State private var messages: [Message] = [
+@State private var messages: [DefaultMessage] = [
     .init(content: "Hello! How can I help you today?", participant: .other),
     .init(content: "I'm doing great, thanks!", participant: .user),
     .init(content: "That's wonderful to hear!", participant: .other)
@@ -82,16 +84,17 @@ struct ChatView: View {
 
 ## Core Components
 
-### Message
+### The `Message` protocol
 
-The basic unit of conversation:
+The basic unit of conversation is the `Message` protocol. You can use your own types to represent messages, as long as they conform to this protocol.
 
 ```swift
-public struct Message: Identifiable, Hashable {
-    public let id: UUID = .init()
-    public var content: String?
-    public let imageURL: String?
-    public let participant: Participant
+public protocol Message: Identifiable, Hashable {
+  var content: String? { get set }
+  var imageURL: String? { get }
+  var participant: Participant { get }
+
+  init(content: String?, imageURL: String?, participant: Participant)
 }
 
 public enum Participant {
@@ -99,6 +102,8 @@ public enum Participant {
     case user
 }
 ```
+
+ConversationKit provides a default implementation of this protocol, `DefaultMessage`.
 
 ### ConversationView
 
@@ -173,7 +178,7 @@ Support for real-time streaming responses:
 ```swift
 func streamResponse() async {
     let responseText = "This is a streaming response that appears character by character."
-    var message = Message(content: "", participant: .other)
+    var message = DefaultMessage(content: "", participant: .other)
     messages.append(message)
     
     for character in responseText {
@@ -220,12 +225,12 @@ import FirebaseAI
 
 @Observable
 class FirebaseAIChatViewModel {
-    var messages: [Message] = []
+    var messages: [DefaultMessage] = []
     private let model: GenerativeModel
     private let chat: Chat
     
     init() {
-        let firstMessage = Message(
+        let firstMessage = DefaultMessage(
             content: "Hello! How can I help you today?",
             participant: .other
         )
@@ -241,8 +246,10 @@ class FirebaseAIChatViewModel {
         chat = model.startChat(history: history)
     }
     
-    func sendMessage(_ message: Message) async {
-        messages.append(message)
+    func sendMessage(_ message: any Message) async {
+        if let defaultMessage = message as? DefaultMessage {
+          messages.append(defaultMessage)
+        }
         if let content = message.content {
             var responseText: String
             do {
@@ -251,7 +258,7 @@ class FirebaseAIChatViewModel {
             } catch {
                 responseText = "I'm sorry, I don't understand that. Please try again. \(error.localizedDescription)"
             }
-            let response = Message(content: responseText, participant: .other)
+            let response = DefaultMessage(content: responseText, participant: .other)
             messages.append(response)
         }
     }
@@ -280,8 +287,8 @@ import ConversationKit
 import FoundationModels
 
 struct FoundationModelChatView: View {
-    @State private var messages: [Message] = [
-        Message(content: "Hello! How can I help you today?", participant: .other)
+    @State private var messages: [DefaultMessage] = [
+        .init(content: "Hello! How can I help you today?", participant: .other)
     ]
     let session = LanguageModelSession()
     
@@ -291,7 +298,9 @@ struct FoundationModelChatView: View {
                 .navigationTitle("AI Chat")
                 .navigationBarTitleDisplayMode(.inline)
                 .onSendMessage { message in
-                    messages.append(message)
+                    if let defaultMessage = message as? DefaultMessage {
+                      messages.append(defaultMessage)
+                    }
                     if let content = message.content {
                         var responseText: String
                         do {
@@ -300,7 +309,7 @@ struct FoundationModelChatView: View {
                         } catch {
                             responseText = "I'm sorry, I don't understand that. Please try again. \(error.localizedDescription)"
                         }
-                        let response = Message(content: responseText, participant: .other)
+                        let response = DefaultMessage(content: responseText, participant: .other)
                         messages.append(response)
                     }
                 }
@@ -318,11 +327,11 @@ Since the `onSendMessage` action is async, you can handle errors naturally:
     do {
         let response = try await chatService.sendMessage(userMessage.content ?? "")
         await MainActor.run {
-            messages.append(Message(content: response, participant: .other))
+            messages.append(DefaultMessage(content: response, participant: .other))
         }
     } catch {
         await MainActor.run {
-            messages.append(Message(
+            messages.append(DefaultMessage(
                 content: "Error: \(error.localizedDescription)",
                 participant: .other
             ))
@@ -336,13 +345,13 @@ Since the `onSendMessage` action is async, you can handle errors naturally:
 ### Text Messages
 
 ```swift
-Message(content: "Hello, how are you?", participant: .user)
+DefaultMessage(content: "Hello, how are you?", participant: .user)
 ```
 
 ### Image Messages
 
 ```swift
-Message(
+DefaultMessage(
     content: "Check out this image!",
     imageURL: "https://example.com/image.jpg",
     participant: .other
@@ -352,7 +361,7 @@ Message(
 ### Image-Only Messages
 
 ```swift
-Message(
+DefaultMessage(
     imageURL: "https://example.com/image.jpg",
     participant: .user
 )
