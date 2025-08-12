@@ -217,7 +217,6 @@ public struct ConversationView<Content>: View where Content: View {
   @MainActor
   func submit() {
     let userMessage = Message(content: message, participant: .user)
-    messages.append(userMessage)
     message = ""
     focusedField = .message
 

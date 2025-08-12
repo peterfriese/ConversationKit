@@ -56,6 +56,8 @@ struct ChatView: View {
     }
     
     func processMessage(_ message: Message) async {
+        // Append the user's message to the messages array
+        messages.append(message)
         // Simulate async response
         try? await Task.sleep(for: .seconds(1))
         await MainActor.run {
@@ -240,6 +242,7 @@ class FirebaseAIChatViewModel {
     }
     
     func sendMessage(_ message: Message) async {
+        messages.append(message)
         if let content = message.content {
             var responseText: String
             do {
@@ -288,6 +291,7 @@ struct FoundationModelChatView: View {
                 .navigationTitle("AI Chat")
                 .navigationBarTitleDisplayMode(.inline)
                 .onSendMessage { message in
+                    messages.append(message)
                     if let content = message.content {
                         var responseText: String
                         do {

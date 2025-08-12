@@ -36,7 +36,8 @@ struct ContentView: View {
   var body: some View {
     NavigationStack {
       ConversationView(messages: $messages)
-        .onSendMessage { userMessage in // consider making onSendMessage async
+        .onSendMessage { userMessage in
+          messages.append(userMessage)
           Task {
             print("You said: \(userMessage.content ?? "nothing")")
             await generateResponse(for: userMessage)

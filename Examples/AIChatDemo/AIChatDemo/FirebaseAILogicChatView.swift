@@ -46,18 +46,17 @@ class FirebaseAILogicChatViewModel {
   }
 
   func sendMessage(_ message: Message) async {
-    if let content = message.content {
-      var responseText: String
-      do {
-        let response = try await chat.sendMessage(content)
-        responseText = response.text ?? ""
-      } catch {
-        responseText =
-          "I'm sorry, I don't understand that. Please try again. \(error.localizedDescription)"
-      }
-      let response = Message(content: responseText, participant: .other)
-      messages.append(response)
+    messages.append(message)
+    var responseText: String
+    do {
+      let response = try await chat.sendMessage(message.content ?? "")
+      responseText = response.text ?? ""
+    } catch {
+      responseText =
+      "I'm sorry, I don't understand that. Please try again. \(error.localizedDescription)"
     }
+    let response = Message(content: responseText, participant: .other)
+    messages.append(response)
   }
 }
 
