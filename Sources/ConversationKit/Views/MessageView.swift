@@ -46,6 +46,12 @@ public struct MessageView: View {
   let fullWidth: Bool = false
   let participant: Participant
 
+  public init(message: String?, imageURL: String?, participant: Participant) {
+    self.message = message
+    self.imageURL = imageURL
+    self.participant = participant
+  }
+
   public var body: some View {
     HStack(alignment: .top) {
       if participant == .user {
