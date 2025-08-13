@@ -99,7 +99,7 @@ class FirebaseAILogicChatWithMetadataViewModel {
       .generativeModel(modelName: "gemini-2.5-flash")
 
     let history = [
-      ModelContent(role: "model", parts: firstMessage.content!)
+      ModelContent(role: "model", parts: firstMessage.content ?? "")
     ]
     chat = model.startChat(history: history)
   }
