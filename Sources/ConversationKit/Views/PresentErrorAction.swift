@@ -1,5 +1,5 @@
 //
-// OpenURLAction.swift
+// PresentErrorAction.swift
 // ConversationKit
 //
 // Created by Peter Friese on 12.08.25.
