@@ -59,9 +59,9 @@ public struct MessageComposerView: View {
             } label: {
               Image(systemName: "plus")
             }
+            .buttonStyle(.glass)
             .controlSize(.large)
             .buttonBorderShape(.circle)
-            .glassEffect(.regular.interactive(), in: .circle)
           }
           
           HStack(alignment: .bottom) {
