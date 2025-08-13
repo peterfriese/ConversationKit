@@ -40,17 +40,18 @@ extension FoundationModelChatView: View {
           if let defaultMessage = message as? DefaultMessage {
             messages.append(defaultMessage)
           }
-          var responseText: String
+          var responseMessage: DefaultMessage
           do {
             let response = try await session.respond(to: message.content ?? "")
-            responseText = response.content
+            let responseText = response.content
+            responseMessage = DefaultMessage(content: responseText, participant: .other)
           } catch {
-            responseText =
-            "I'm sorry, I don't understand that. Please try again. \(error.localizedDescription)"
+            let responseText = "An error has occurred. Try again later."
+            responseMessage = DefaultMessage(content: responseText, participant: .other, error: error)
           }
-          let response = DefaultMessage(content: responseText, participant: .other)
-          messages.append(response)
+          messages.append(responseMessage)
         }
+        .presentsErrorsInSheet()
     }
   }
 }

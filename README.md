@@ -93,6 +93,7 @@ public protocol Message: Identifiable, Hashable {
   var content: String? { get set }
   var imageURL: String? { get }
   var participant: Participant { get }
+  var error: Error? { get }
 
   init(content: String?, imageURL: String?, participant: Participant)
 }
@@ -320,7 +321,11 @@ struct FoundationModelChatView: View {
 
 ## Error Handling
 
-Since the `onSendMessage` action is async, you can handle errors naturally:
+`ConversationKit` provides a robust mechanism for handling and displaying errors that may occur during asynchronous operations, such as fetching a response from an AI service.
+
+### Attaching Errors to Messages
+
+The `Message` protocol includes an optional `error` property. You can create a message with an associated error and display it in the conversation history. `MessageView` will automatically render a default error UI if a message contains an error.
 
 ```swift
 .onSendMessage { userMessage in
@@ -332,13 +337,46 @@ Since the `onSendMessage` action is async, you can handle errors naturally:
     } catch {
         await MainActor.run {
             messages.append(DefaultMessage(
-                content: "Error: \(error.localizedDescription)",
-                participant: .other
+                content: "Sorry, an error occurred.",
+                participant: .other,
+                error: error
             ))
         }
     }
 }
 ```
+
+### Presenting Errors
+
+For a simpler way to present errors, you can use the `.presentsErrorsInSheet()` view modifier. This modifier encapsulates the logic of presenting an error in a sheet.
+
+**Default Presentation**
+
+By default, the modifier will present a sheet with a `Text` view containing the error's `localizedDescription`.
+
+```swift
+ConversationView(messages: $messages)
+    .onSendMessage { message in
+        // ... handle message and errors
+    }
+    .presentsErrorsInSheet()
+```
+
+**Custom Presentation**
+
+You can also provide a custom view for the sheet's content by passing a closure to the modifier:
+
+```swift
+ConversationView(messages: $messages)
+    .onSendMessage { message in
+        // ... handle message and errors
+    }
+    .presentsErrorsInSheet { error in
+        MyCustomErrorView(error: error)
+    }
+```
+
+For more advanced scenarios, such as presenting an alert or logging the error, you can use the `presentErrorAction` environment value directly.
 
 ## Message Types
 
@@ -375,6 +413,7 @@ ConversationKit provides several environment values for customization:
 - `onSubmitAction`: Closure for handling message submission
 - `disableAttachments`: Boolean to disable attachment functionality
 - `attachmentActions`: Custom attachment menu actions
+- `presentErrorAction`: A closure to present an error to the user.
 
 ## License
 

@@ -26,6 +26,7 @@ struct ChatMessage: Message {
   var content: String?
   var imageURL: String?
   var participant: Participant
+  var error: (any Error)?
   
   let usageMetadata: GenerateContentResponse.UsageMetadata?
   let finishReason: FinishReason?
@@ -36,6 +37,7 @@ struct ChatMessage: Message {
   init(content: String? = nil,
        imageURL: String? = nil,
        participant: Participant,
+       error: (any Error)? = nil,
        usageMetadata: GenerateContentResponse.UsageMetadata? = nil,
        finishReason: FinishReason? = nil,
        citationMetadata: CitationMetadata? = nil,
@@ -52,7 +54,15 @@ struct ChatMessage: Message {
   }
 
   init(content: String?, imageURL: String?, participant: Participant) {
-    self.init(content: content, imageURL: imageURL, participant: participant, usageMetadata: nil, finishReason: nil, citationMetadata: nil, groundingMetadata: nil, promptFeedback: nil)
+    self.init(content: content,
+              imageURL: imageURL,
+              participant: participant,
+              error: nil,
+              usageMetadata: nil,
+              finishReason: nil,
+              citationMetadata: nil,
+              groundingMetadata: nil,
+              promptFeedback: nil)
   }
 }
 

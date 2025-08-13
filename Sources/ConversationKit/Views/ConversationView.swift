@@ -169,18 +169,21 @@ public struct ConversationView<Content, MessageType: Message>: View where Conten
   
   private let content: (MessageType) -> Content
   
-  public init(messages: Binding<[MessageType]>) where Content == MessageView {
+  public init(messages: Binding<[MessageType]>, userPrompt: String? = "") where Content == MessageView {
     self._messages = messages
+    self.message = userPrompt ?? ""
     self.content = { message in
       MessageView(message: message.content,
                   imageURL: message.imageURL,
-                  participant: message.participant)
+                  participant: message.participant,
+                  error: message.error)
     }
   }
 
 
-  public init(messages: Binding<[MessageType]>, content: @escaping (MessageType) -> Content) {
+  public init(messages: Binding<[MessageType]>, userPrompt: String? = "", content: @escaping (MessageType) -> Content) {
     self._messages = messages
+    self.message = userPrompt ?? ""
     self.content = content
   }
 

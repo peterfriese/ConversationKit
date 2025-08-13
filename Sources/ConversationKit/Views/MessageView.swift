@@ -41,15 +41,19 @@ extension View {
 }
 
 public struct MessageView: View {
+  @Environment(\.presentErrorAction) var presentErrorAction
+  
   let message: String?
   let imageURL: String?
   let fullWidth: Bool = false
   let participant: Participant
+  let error: Error?
 
-  public init(message: String?, imageURL: String?, participant: Participant) {
+  public init(message: String?, imageURL: String?, participant: Participant, error: Error? = nil) {
     self.message = message
     self.imageURL = imageURL
     self.participant = participant
+    self.error = error
   }
 
   public var body: some View {
@@ -62,29 +66,38 @@ public struct MessageView: View {
           .font(.title)
       }
       VStack(alignment: participant == .user ? .trailing : .leading) {
-        if let imageURL {
-          if let url = URL(string: imageURL) {
-            Spacer()
-            AsyncImage(url: url) { phase in
-              if let image = phase.image {
-                image
-                  .resizable()
-                  .aspectRatio(contentMode: .fill)
-              } else if phase.error != nil {
-                Image(systemName: "icloud.slash")
-              } else {
-                ProgressView()
-              }
+        if let error {
+          HStack {
+            Text("An error occurred.")
+            Button("More information", systemImage: "info.circle") {
+              presentErrorAction?(error)
             }
-//            .frame(width: .infinity, height: .infinity, alignment: .center)
-            .cornerRadius(8.0)
+            .labelStyle(.iconOnly)
           }
         }
-        if let message {
-          Markdown(message)
-//          Text(message)
+        else {
+          if let imageURL {
+            if let url = URL(string: imageURL) {
+              Spacer()
+              AsyncImage(url: url) { phase in
+                if let image = phase.image {
+                  image
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                } else if phase.error != nil {
+                  Image(systemName: "icloud.slash")
+                } else {
+                  ProgressView()
+                }
+              }
+              .cornerRadius(8.0)
+            }
+          }
+          if let message {
+            Markdown(message)
+          }
         }
-      }
+      } 
       .padding()
       .if(fullWidth) { view in
         view.frame(maxWidth: .infinity, alignment: .leading)

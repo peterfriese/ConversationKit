@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		889CF9BD2E1C5BED000EE62F /* ConversationKit in Frameworks */ = {isa = PBXBuildFile; productRef = 889CF9BC2E1C5BED000EE62F /* ConversationKit */; };
 		889CF9C42E1C6219000EE62F /* FirebaseAI in Frameworks */ = {isa = PBXBuildFile; productRef = 889CF9C32E1C6219000EE62F /* FirebaseAI */; };
+		88BBBBEB2E4B52E6005A4F9C /* ConversationKit in Frameworks */ = {isa = PBXBuildFile; productRef = 88BBBBEA2E4B52E6005A4F9C /* ConversationKit */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -28,6 +29,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				88BBBBEB2E4B52E6005A4F9C /* ConversationKit in Frameworks */,
 				889CF9BD2E1C5BED000EE62F /* ConversationKit in Frameworks */,
 				889CF9C42E1C6219000EE62F /* FirebaseAI in Frameworks */,
 			);
@@ -74,6 +76,7 @@
 			packageProductDependencies = (
 				889CF9BC2E1C5BED000EE62F /* ConversationKit */,
 				889CF9C32E1C6219000EE62F /* FirebaseAI */,
+				88BBBBEA2E4B52E6005A4F9C /* ConversationKit */,
 			);
 			productName = AIChatDemo;
 			productReference = 889CF9AD2E1C5BB4000EE62F /* AIChatDemo.app */;
@@ -105,7 +108,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				889CF9C22E1C6219000EE62F /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
-				88156EF52E397722004CE19F /* XCLocalSwiftPackageReference "../../../ConversationKit" */,
+				88BBBBE92E4B52E6005A4F9C /* XCLocalSwiftPackageReference "../../../ConversationKit-protocol" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 889CF9AE2E1C5BB4000EE62F /* Products */;
@@ -347,9 +350,9 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		88156EF52E397722004CE19F /* XCLocalSwiftPackageReference "../../../ConversationKit" */ = {
+		88BBBBE92E4B52E6005A4F9C /* XCLocalSwiftPackageReference "../../../ConversationKit-protocol" */ = {
 			isa = XCLocalSwiftPackageReference;
-			relativePath = ../../../ConversationKit;
+			relativePath = "../../../ConversationKit-protocol";
 		};
 /* End XCLocalSwiftPackageReference section */
 
@@ -373,6 +376,10 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 889CF9C22E1C6219000EE62F /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseAI;
+		};
+		88BBBBEA2E4B52E6005A4F9C /* ConversationKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = ConversationKit;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
