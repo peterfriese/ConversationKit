@@ -23,15 +23,53 @@ public enum Participant {
   case user
 }
 
-public struct Message: Identifiable, Hashable {
+public protocol Message: Identifiable, Hashable {
+  var content: String? { get set }
+  var imageURL: String? { get }
+  var participant: Participant { get }
+  var error: Error? { get }
+
+  init(content: String?, imageURL: String?, participant: Participant)
+}
+
+public struct DefaultMessage: Message {
   public let id: UUID = .init()
   public var content: String?
   public let imageURL: String?
   public let participant: Participant
-
-  public init(content: String? = nil, imageURL: String? = nil, participant: Participant) {
+  public let error: (any Error)?
+  
+  public init(content: String? = nil, imageURL: String? = nil, participant: Participant, error: (any Error)? = nil) {
     self.content = content
     self.imageURL = imageURL
     self.participant = participant
+    self.error = error
+  }
+  
+  // Protocol-required initializer
+  public init(content: String?, imageURL: String?, participant: Participant) {
+    self.content = content
+    self.imageURL = imageURL
+    self.participant = participant
+    self.error = nil
+  }
+}
+
+// Implement Equatable and Hashable for DefaultMessage (ignore error)
+extension DefaultMessage {
+  public static func == (lhs: DefaultMessage, rhs: DefaultMessage) -> Bool {
+    lhs.id == rhs.id &&
+    lhs.content == rhs.content &&
+    lhs.imageURL == rhs.imageURL &&
+    lhs.participant == rhs.participant
+    // intentionally ignore `error`
+  }
+
+  public func hash(into hasher: inout Hasher) {
+    hasher.combine(id)
+    hasher.combine(content)
+    hasher.combine(imageURL)
+    hasher.combine(participant)
+    // intentionally ignore `error`
   }
 }

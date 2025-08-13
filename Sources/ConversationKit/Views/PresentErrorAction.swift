@@ -1,8 +1,8 @@
 //
-// ConversationKit.swift
+// PresentErrorAction.swift
 // ConversationKit
 //
-// Created by Peter Friese on 04.07.25.
+// Created by Peter Friese on 12.08.25.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,3 +15,21 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
+import SwiftUI
+
+extension EnvironmentValues {
+  @Entry public var presentErrorAction: PresentErrorAction?
+}
+
+public struct PresentErrorAction {
+  private var handler: (Error) -> Void
+  
+  public init(handler: @escaping (Error) -> Void) {
+    self.handler = handler
+  }
+
+  public func callAsFunction(_ error: Error) {
+    handler(error)
+  }
+}

@@ -38,14 +38,18 @@ extension View {
   }
 }
 
-struct MessageComposerView: View {
+public struct MessageComposerView: View {
   @Environment(\.onSubmitAction) private var onSubmitAction
   @Environment(\.disableAttachments) private var disableAttachments
   @Environment(\.attachmentActions) private var attachmentActions
   
   @Binding var message: String
   
-  var body: some View {
+  public init(message: Binding<String>) {
+    self._message = message
+  }
+  
+  public var body: some View {
     if #available(iOS 26.0, *) {
       GlassEffectContainer {
         HStack(alignment: .bottom) {

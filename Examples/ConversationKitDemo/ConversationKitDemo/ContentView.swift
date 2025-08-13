@@ -21,7 +21,7 @@ import ConversationKit
 
 struct ContentView: View {
   @State
-  var messages: [Message] = [
+  var messages: [DefaultMessage] = [
     .init(content: "Hello, how are you?", participant: .other),
     .init(content: "Well, I am fine, how are you?", participant: .user),
     .init(content: "Not too bad. Not too bad after all.", participant: .other),
@@ -36,7 +36,10 @@ struct ContentView: View {
   var body: some View {
     NavigationStack {
       ConversationView(messages: $messages)
-        .onSendMessage { userMessage in // consider making onSendMessage async
+        .onSendMessage { userMessage in
+          if let defaultMessage = userMessage as? DefaultMessage {
+            messages.append(defaultMessage)
+          }
           Task {
             print("You said: \(userMessage.content ?? "nothing")")
             await generateResponse(for: userMessage)
@@ -53,11 +56,11 @@ struct ContentView: View {
     }
   }
 
-  func generateResponse(for message: Message) async {
+  func generateResponse(for message: any Message) async {
     let text = "Culpa *amet* irure aliquip qui deserunt ullamco tempor do irure anim amet do incididunt. Tempor et dolor qui. Aliqua **anim** aliqua elit in. Veniam veniam magna aliquip. Anim eu et excepteur voluptate labore reprehenderit exercitation voluptate fugiat dolor reprehenderit tempor esse et amet."
 
     var generatedText = ""
-    var message = Message(content: generatedText, participant: .other)
+    var message = DefaultMessage(content: generatedText, participant: .other)
     messages.append(message) // Assuming you have an array 'messages' defined
 
     let chunkSize = 3 // Size of each chunk

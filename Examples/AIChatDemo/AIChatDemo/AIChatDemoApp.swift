@@ -38,6 +38,11 @@ struct AIChatDemoApp: App {
           .tabItem {
             Label("Firebase AI", systemImage: "cloud")
           }
+        
+        FirebaseAILogicChatWithMetadataView()
+          .tabItem {
+            Label("Firebase AI (meta)", systemImage: "cloud")
+          }
       }
     }
   }
