@@ -25,6 +25,7 @@ struct FoundationModelChatView {
   @State private var messages: [DefaultMessage] = [
     DefaultMessage(content: "Hello! How can I help you today?", participant: .other)
   ]
+  @State private var errorWrapper: ErrorWrapper?
   
   let session = LanguageModelSession()
 }
@@ -51,7 +52,27 @@ extension FoundationModelChatView: View {
           }
           messages.append(responseMessage)
         }
-        .presentsErrorsInSheet()
+        .onError { error in
+          errorWrapper = ErrorWrapper(error: error)
+        }
+        .sheet(item: $errorWrapper) { wrapper in
+          NavigationStack {
+            VStack {
+              Text(wrapper.error.localizedDescription)
+                .padding()
+              Spacer()
+            }
+            .navigationTitle("Error details")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+              ToolbarItem(placement: .cancellationAction) {
+                Button("Dismiss", systemImage: "xmark") {
+                  errorWrapper = nil
+                }
+              }
+            }
+          }
+        }
     }
   }
 }

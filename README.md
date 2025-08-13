@@ -348,35 +348,45 @@ The `Message` protocol includes an optional `error` property. You can create a m
 
 ### Presenting Errors
 
-For a simpler way to present errors, you can use the `.presentsErrorsInSheet()` view modifier. This modifier encapsulates the logic of presenting an error in a sheet.
+To handle errors presented by `ConversationKit` views (for example, when a user taps the info button on a message with an error), use the `.onError(perform:)` view modifier. This modifier allows you to catch the error and present it using any standard SwiftUI presentation mechanism.
 
-**Default Presentation**
-
-By default, the modifier will present a sheet with a `Text` view containing the error's `localizedDescription`.
+For convenience when using presentation modifiers like `.sheet(item:)`, `ConversationKit` provides an `ErrorWrapper` struct that makes any `Error` identifiable.
 
 ```swift
-ConversationView(messages: $messages)
-    .onSendMessage { message in
-        // ... handle message and errors
+struct MyChatView: View {
+    @State private var messages: [DefaultMessage] = []
+    @State private var errorWrapper: ErrorWrapper?
+
+    var body: some View {
+        ConversationView(messages: $messages)
+            .onSendMessage { message in
+                // ... async logic that might throw an error
+            }
+            .onError { error in
+                errorWrapper = ErrorWrapper(error: error)
+            }
+            .sheet(item: $errorWrapper) { wrapper in
+                NavigationStack {
+                    VStack {
+                        Text("An Error Occurred")
+                            .font(.headline)
+                            .padding()
+                        Text(wrapper.error.localizedDescription)
+                        Spacer()
+                    }
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("Dismiss") {
+                                errorWrapper = nil
+                            }
+                            .labelStyle(.titleOnly)
+                        }
+                    }
+                }
+            }
     }
-    .presentsErrorsInSheet()
+}
 ```
-
-**Custom Presentation**
-
-You can also provide a custom view for the sheet's content by passing a closure to the modifier:
-
-```swift
-ConversationView(messages: $messages)
-    .onSendMessage { message in
-        // ... handle message and errors
-    }
-    .presentsErrorsInSheet { error in
-        MyCustomErrorView(error: error)
-    }
-```
-
-For more advanced scenarios, such as presenting an alert or logging the error, you can use the `presentErrorAction` environment value directly.
 
 ## Message Types
 
