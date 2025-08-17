@@ -74,7 +74,7 @@ public struct MessageComposerView: View {
             attachmentPreview
           
             HStack(alignment: .bottom) {
-              TextField("Enter a message", text: $userPrompt, axis: .vertical)
+              TextField("Enter a message", text: $message, axis: .vertical)
                 .frame(minHeight: 32)
                 .padding(EdgeInsets(top: 7, leading: 16, bottom: 7, trailing: 0))
                 .onSubmit(of: .text) { onSubmitAction() }
@@ -116,7 +116,7 @@ public struct MessageComposerView: View {
           attachmentPreview
 
           HStack(alignment: .bottom) {
-            TextField("Enter a message", text: $userPrompt, axis: .vertical)
+            TextField("Enter a message", text: $message, axis: .vertical)
               .frame(minHeight: 32)
               .padding(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 0))
               .onSubmit(of: .text) { onSubmitAction() }
