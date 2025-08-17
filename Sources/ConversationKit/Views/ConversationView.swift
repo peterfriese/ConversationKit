@@ -173,10 +173,11 @@ public struct ConversationView<Content, MessageType: Message>: View where Conten
     self._messages = messages
     self.message = userPrompt ?? ""
     self.content = { message in
-      MessageView(message: message.content,
-                  imageURL: message.imageURL,
-                  participant: message.participant,
-                  error: message.error)
+      let imageURL = (message as? DefaultMessage)?.imageURL
+      return MessageView(message: message.content,
+                        imageURL: imageURL,
+                        participant: message.participant,
+                        error: message.error)
     }
   }
 
@@ -219,7 +220,7 @@ public struct ConversationView<Content, MessageType: Message>: View where Conten
 
   @MainActor
   func submit() {
-    let userMessage = MessageType(content: message, imageURL: nil, participant: .user)
+    let userMessage = MessageType(content: message, participant: .user)
     message = ""
     focusedField = .message
 
@@ -233,19 +234,19 @@ public struct ConversationView<Content, MessageType: Message>: View where Conten
 #Preview("Built-in chat bubbles") {
   @Previewable @State var messages: [DefaultMessage] = [
     .init(content: "Hello, how are you?",
-          imageURL: "https://picsum.photos/1080/1920",
-          participant: .other),
+          participant: .other,
+          imageURL: "https://picsum.photos/1080/1920"),
     .init(content: "Well, I am fine, how are you?",
-          imageURL: "https://picsum.photos/100/100",
-          participant: .user),
+          participant: .user,
+          imageURL: "https://picsum.photos/100/100"),
     .init(content: "Not too bad. Not too bad after all.", 
           participant: .other),
-    .init(imageURL: "https://picsum.photos/100/100",
-          participant: .user),
+    .init(participant: .user,
+          imageURL: "https://picsum.photos/100/100"),
     .init(content: "Laborum ea ad anim magna.", participant: .other),
     .init(content: "Esse aliquip laboris irure est voluptate aliquip non duis aute eu. Occaecat irure incididunt aute aute do sunt labore nisi esse nostrud amet labore enim mollit occaecat. Occaecat incididunt consectetur sint dolor deserunt exercitation mollit id culpa deserunt fugiat pariatur pariatur ullamco. Ex aliqua sit commodo enim qui commodo aliqua sint dolor laboris magna consequat adipisicing sunt.",
-          imageURL: "https://picsum.photos/100/100",
-          participant: .user)
+          participant: .user,
+          imageURL: "https://picsum.photos/100/100")
   ]
   NavigationStack {
     ConversationView(messages: $messages)
@@ -274,19 +275,19 @@ public struct ConversationView<Content, MessageType: Message>: View where Conten
 #Preview("Custom chat bubbles") {
   @Previewable @State var messages: [DefaultMessage] = [
     .init(content: "Hello, how are you?",
-          imageURL: "https://picsum.photos/1080/1920",
-          participant: .other),
+          participant: .other,
+          imageURL: "https://picsum.photos/1080/1920"),
     .init(content: "Well, I am fine, how are you?",
-          imageURL: "https://picsum.photos/100/100",
-          participant: .user),
+          participant: .user,
+          imageURL: "https://picsum.photos/100/100"),
     .init(content: "Not too bad. Not too bad after all.",
           participant: .other),
-    .init(imageURL: "https://picsum.photos/100/100",
-          participant: .user),
+    .init(participant: .user,
+          imageURL: "https://picsum.photos/100/100"),
     .init(content: "Laborum ea ad anim magna.", participant: .other),
     .init(content: "Esse aliquip laboris irure est voluptate aliquip non duis aute eu. Occaecat irure incididunt aute aute do sunt labore nisi esse nostrud amet labore enim mollit occaecat. Occaecat incididunt consectetur sint dolor deserunt exercitation mollit id culpa deserunt fugiat pariatur pariatur ullamco. Ex aliqua sit commodo enim qui commodo aliqua sint dolor laboris magna consequat adipisicing sunt.",
-          imageURL: "https://picsum.photos/100/100",
-          participant: .user)
+          participant: .user,
+          imageURL: "https://picsum.photos/100/100")
   ]
   NavigationStack {
     ConversationView(messages: $messages) { message in

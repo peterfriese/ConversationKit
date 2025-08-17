@@ -91,11 +91,10 @@ The basic unit of conversation is the `Message` protocol. You can use your own t
 ```swift
 public protocol Message: Identifiable, Hashable {
   var content: String? { get set }
-  var imageURL: String? { get }
   var participant: Participant { get }
   var error: Error? { get }
 
-  init(content: String?, imageURL: String?, participant: Participant)
+  init(content: String?, participant: Participant)
 }
 
 public enum Participant {
