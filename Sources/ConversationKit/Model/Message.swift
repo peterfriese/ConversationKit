@@ -64,7 +64,7 @@ extension DefaultMessage {
     lhs.id == rhs.id &&
     lhs.content == rhs.content &&
     lhs.imageURL == rhs.imageURL &&
-    lhs.participant == rhs.participant &&
+    lhs.participant == rhs.participant
     // intentionally ignore `error`
   }
 
