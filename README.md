@@ -93,6 +93,7 @@ public protocol Message: Identifiable, Hashable {
   var content: String? { get set }
   var participant: Participant { get }
   var error: Error? { get }
+  var imageURL: String? { get }
 
   init(content: String?, participant: Participant)
 }

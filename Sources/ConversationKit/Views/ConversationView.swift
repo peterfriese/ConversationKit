@@ -173,7 +173,7 @@ public struct ConversationView<Content, MessageType: Message>: View where Conten
     self._messages = messages
     self.message = userPrompt ?? ""
     self.content = { message in
-      let imageURL = (message as? DefaultMessage)?.imageURL
+      let imageURL = message.imageURL
       return MessageView(message: message.content,
                         imageURL: imageURL,
                         participant: message.participant,

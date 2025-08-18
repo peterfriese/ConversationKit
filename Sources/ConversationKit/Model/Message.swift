@@ -27,8 +27,13 @@ public protocol Message: Identifiable, Hashable {
   var content: String? { get set }
   var participant: Participant { get }
   var error: Error? { get }
+  var imageURL: String? { get }
 
   init(content: String?, participant: Participant)
+}
+
+public extension Message {
+  public var imageURL: String? { nil }
 }
 
 public struct DefaultMessage: Message {
@@ -38,7 +43,7 @@ public struct DefaultMessage: Message {
   public let error: (any Error)?
   public var imageURL: String? = nil
   
-  public init(content: String? = nil, participant: Participant, error: (any Error)? = nil, imageURL: String? = nil) {
+  public init(content: String? = nil, imageURL: String? = nil, participant: Participant, error: (any Error)? = nil) {
     self.content = content
     self.imageURL = imageURL
     self.participant = participant
@@ -58,14 +63,16 @@ extension DefaultMessage {
   public static func == (lhs: DefaultMessage, rhs: DefaultMessage) -> Bool {
     lhs.id == rhs.id &&
     lhs.content == rhs.content &&
-    lhs.participant == rhs.participant
-    // intentionally ignore `error` and `imageURL`
+    lhs.imageURL == rhs.imageURL &&
+    lhs.participant == rhs.participant &&
+    // intentionally ignore `error`
   }
 
   public func hash(into hasher: inout Hasher) {
     hasher.combine(id)
     hasher.combine(content)
+    hasher.combine(imageURL)
     hasher.combine(participant)
-    // intentionally ignore `error` and `imageURL`
+    // intentionally ignore `error`
   }
 }
