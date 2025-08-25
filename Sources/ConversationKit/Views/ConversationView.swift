@@ -219,7 +219,7 @@ public struct ConversationView<Content, MessageType: Message>: View where Conten
 
   @MainActor
   func submit() {
-    let userMessage = MessageType(content: message, participant: .user)
+    let userMessage = MessageType(content: message, imageURL: nil, participant: .user)
     message = ""
     focusedField = .message
 

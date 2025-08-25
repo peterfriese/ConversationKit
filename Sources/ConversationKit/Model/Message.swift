@@ -25,23 +25,19 @@ public enum Participant {
 
 public protocol Message: Identifiable, Hashable {
   var content: String? { get set }
+  var imageURL: String? { get }
   var participant: Participant { get }
   var error: Error? { get }
-  var imageURL: String? { get }
 
-  init(content: String?, participant: Participant)
-}
-
-public extension Message {
-  public var imageURL: String? { nil }
+  init(content: String?, imageURL: String?, participant: Participant)
 }
 
 public struct DefaultMessage: Message {
   public let id: UUID = .init()
   public var content: String?
+  public let imageURL: String?
   public let participant: Participant
   public let error: (any Error)?
-  public var imageURL: String? = nil
   
   public init(content: String? = nil, imageURL: String? = nil, participant: Participant, error: (any Error)? = nil) {
     self.content = content
@@ -51,8 +47,9 @@ public struct DefaultMessage: Message {
   }
   
   // Protocol-required initializer
-  public init(content: String?, participant: Participant) {
+  public init(content: String?, imageURL: String?, participant: Participant) {
     self.content = content
+    self.imageURL = imageURL
     self.participant = participant
     self.error = nil
   }
