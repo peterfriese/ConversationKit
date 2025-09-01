@@ -108,7 +108,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				889CF9C22E1C6219000EE62F /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
-				88BBBBE92E4B52E6005A4F9C /* XCLocalSwiftPackageReference "../../../ConversationKit-protocol" */,
+				88BBBBE92E4B52E6005A4F9C /* XCLocalSwiftPackageReference "../../" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 889CF9AE2E1C5BB4000EE62F /* Products */;
@@ -350,9 +350,9 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		88BBBBE92E4B52E6005A4F9C /* XCLocalSwiftPackageReference "../../../ConversationKit-protocol" */ = {
+		88BBBBE92E4B52E6005A4F9C /* XCLocalSwiftPackageReference "../../" */ = {
 			isa = XCLocalSwiftPackageReference;
-			relativePath = "../../../ConversationKit-protocol";
+			relativePath = ../../;
 		};
 /* End XCLocalSwiftPackageReference section */
 

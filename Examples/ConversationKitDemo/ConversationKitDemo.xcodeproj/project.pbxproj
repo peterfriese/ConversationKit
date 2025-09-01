@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		886B819C2E65FCA2001F5F75 /* ConversationKit in Frameworks */ = {isa = PBXBuildFile; productRef = 886B819B2E65FCA2001F5F75 /* ConversationKit */; };
 		889F4BE22E16D3A1006001CB /* ConversationKit in Frameworks */ = {isa = PBXBuildFile; productRef = 889F4BE12E16D3A1006001CB /* ConversationKit */; };
 		88B46D212E4B51B7002219A9 /* ConversationKit in Frameworks */ = {isa = PBXBuildFile; productRef = 88B46D202E4B51B7002219A9 /* ConversationKit */; };
 /* End PBXBuildFile section */
@@ -28,6 +29,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				886B819C2E65FCA2001F5F75 /* ConversationKit in Frameworks */,
 				88B46D212E4B51B7002219A9 /* ConversationKit in Frameworks */,
 				889F4BE22E16D3A1006001CB /* ConversationKit in Frameworks */,
 			);
@@ -74,6 +76,7 @@
 			packageProductDependencies = (
 				889F4BE12E16D3A1006001CB /* ConversationKit */,
 				88B46D202E4B51B7002219A9 /* ConversationKit */,
+				886B819B2E65FCA2001F5F75 /* ConversationKit */,
 			);
 			productName = ConversationKitDemo;
 			productReference = 889D737F2E16D348009579C4 /* ConversationKitDemo.app */;
@@ -104,7 +107,7 @@
 			mainGroup = 889D73762E16D348009579C4;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				88B46D1F2E4B51B7002219A9 /* XCLocalSwiftPackageReference "../../../ConversationKit-protocol" */,
+				886B819A2E65FCA2001F5F75 /* XCLocalSwiftPackageReference "../../" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 889D73802E16D348009579C4 /* Products */;
@@ -350,13 +353,17 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		88B46D1F2E4B51B7002219A9 /* XCLocalSwiftPackageReference "../../../ConversationKit-protocol" */ = {
+		886B819A2E65FCA2001F5F75 /* XCLocalSwiftPackageReference "../../" */ = {
 			isa = XCLocalSwiftPackageReference;
-			relativePath = "../../../ConversationKit-protocol";
+			relativePath = ../../;
 		};
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		886B819B2E65FCA2001F5F75 /* ConversationKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = ConversationKit;
+		};
 		889F4BE12E16D3A1006001CB /* ConversationKit */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = ConversationKit;
