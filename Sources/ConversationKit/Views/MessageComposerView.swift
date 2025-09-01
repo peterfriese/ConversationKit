@@ -22,6 +22,7 @@ extension EnvironmentValues {
   @Entry var onSubmitAction: () -> Void = {}
   @Entry var disableAttachments: Bool = false
   @Entry var attachmentActions: AnyView = AnyView(EmptyView())
+  @Entry var attachmentPreview: AnyView = AnyView(EmptyView())
 }
 
 extension View {
@@ -36,13 +37,18 @@ extension View {
   public func attachmentActions<Content: View>(@ViewBuilder content: () -> Content) -> some View {
     environment(\.attachmentActions, AnyView(content()))
   }
+
+  public func attachmentPreview<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+    environment(\.attachmentPreview, AnyView(content()))
+  }
 }
 
 public struct MessageComposerView: View {
   @Environment(\.onSubmitAction) private var onSubmitAction
   @Environment(\.disableAttachments) private var disableAttachments
   @Environment(\.attachmentActions) private var attachmentActions
-  
+  @Environment(\.attachmentPreview) private var attachmentPreview
+
   @Binding var message: String
   
   public init(message: Binding<String>) {
@@ -63,18 +69,22 @@ public struct MessageComposerView: View {
             .controlSize(.large)
             .buttonBorderShape(.circle)
           }
+
+          VStack {
+            attachmentPreview
           
-          HStack(alignment: .bottom) {
-            TextField("Enter a message", text: $message, axis: .vertical)
-              .frame(minHeight: 32)
-              .padding(EdgeInsets(top: 7, leading: 16, bottom: 7, trailing: 0))
-              .onSubmit(of: .text) { onSubmitAction() }
-            
-            Button(action: { onSubmitAction() }) {
-              Image(systemName: "arrow.up")
+            HStack(alignment: .bottom) {
+              TextField("Enter a message", text: $message, axis: .vertical)
+                .frame(minHeight: 32)
+                .padding(EdgeInsets(top: 7, leading: 16, bottom: 7, trailing: 0))
+                .onSubmit(of: .text) { onSubmitAction() }
+
+              Button(action: { onSubmitAction() }) {
+                Image(systemName: "arrow.up")
+              }
+              .buttonStyle(.borderedProminent)
+              .padding(EdgeInsets(top: 7, leading: 0, bottom: 7, trailing: 7))
             }
-            .buttonStyle(.borderedProminent)
-            .padding(EdgeInsets(top: 7, leading: 0, bottom: 7, trailing: 7))
           }
           .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 20.0))
           .offset(x: -5.0, y: 0.0)
@@ -101,20 +111,24 @@ public struct MessageComposerView: View {
           )
           .padding(.trailing, 8)
         }
-        
-        HStack(alignment: .bottom) {
-          TextField("Enter a message", text: $message, axis: .vertical)
-            .frame(minHeight: 32)
-            .padding(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 0))
-            .onSubmit(of: .text) { onSubmitAction() }
-          
-          Button(action: { onSubmitAction() }) {
-            Image(systemName: "arrow.up")
+
+        VStack {
+          attachmentPreview
+
+          HStack(alignment: .bottom) {
+            TextField("Enter a message", text: $message, axis: .vertical)
+              .frame(minHeight: 32)
+              .padding(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 0))
+              .onSubmit(of: .text) { onSubmitAction() }
+
+            Button(action: { onSubmitAction() }) {
+              Image(systemName: "arrow.up")
+            }
+            .buttonStyle(.borderedProminent)
+            .buttonBorderShape(.circle)
+            .controlSize(.regular)
+            .padding(EdgeInsets(top: 6, leading: 0, bottom: 6, trailing: 7))
           }
-          .buttonStyle(.borderedProminent)
-          .buttonBorderShape(.circle)
-          .controlSize(.regular)
-          .padding(EdgeInsets(top: 6, leading: 0, bottom: 6, trailing: 7))
         }
         .background(.regularMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 22))
