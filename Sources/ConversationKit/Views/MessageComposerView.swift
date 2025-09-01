@@ -22,7 +22,6 @@ extension EnvironmentValues {
   @Entry var onSubmitAction: () -> Void = {}
   @Entry var disableAttachments: Bool = false
   @Entry var attachmentActions: AnyView = AnyView(EmptyView())
-  @Entry var attachmentPreview: AnyView = AnyView(EmptyView())
 }
 
 extension View {
@@ -37,22 +36,19 @@ extension View {
   public func attachmentActions<Content: View>(@ViewBuilder content: () -> Content) -> some View {
     environment(\.attachmentActions, AnyView(content()))
   }
-
-  public func attachmentPreview<Content: View>(@ViewBuilder content: () -> Content) -> some View {
-    environment(\.attachmentPreview, AnyView(content()))
-  }
 }
 
-public struct MessageComposerView: View {
+public struct MessageComposerView<AttachmentType: Attachment>: View {
   @Environment(\.onSubmitAction) private var onSubmitAction
   @Environment(\.disableAttachments) private var disableAttachments
   @Environment(\.attachmentActions) private var attachmentActions
-  @Environment(\.attachmentPreview) private var attachmentPreview
 
   @Binding var message: String
+  @Binding var attachments: [AttachmentType]
   
-  public init(message: Binding<String>) {
+  public init(message: Binding<String>, attachments: Binding<[AttachmentType]>) {
     self._message = message
+    self._attachments = attachments
   }
   
   public var body: some View {
@@ -71,8 +67,16 @@ public struct MessageComposerView: View {
           }
 
           VStack {
-            attachmentPreview
-          
+            if !attachments.isEmpty {
+              VStack {
+                AttachmentPreviewScrollView(attachments: $attachments)
+                  .padding(.top, 8)
+                Divider()
+                  .padding(.horizontal, 8)
+              }
+              .padding(.bottom, -8)
+            }
+
             HStack(alignment: .bottom) {
               TextField("Enter a message", text: $message, axis: .vertical)
                 .frame(minHeight: 32)
@@ -86,6 +90,7 @@ public struct MessageComposerView: View {
               .padding(EdgeInsets(top: 7, leading: 0, bottom: 7, trailing: 7))
             }
           }
+          .clipShape(.rect(cornerRadius: 20.0))
           .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 20.0))
           .offset(x: -5.0, y: 0.0)
         }
@@ -113,12 +118,20 @@ public struct MessageComposerView: View {
         }
 
         VStack {
-          attachmentPreview
+          if !attachments.isEmpty {
+            VStack {
+              AttachmentPreviewScrollView(attachments: $attachments)
+                .padding(.top, 8)
+              Divider()
+                .padding(.horizontal, 8)
+            }
+            .padding(.bottom, -8)
+          }
 
           HStack(alignment: .bottom) {
             TextField("Enter a message", text: $message, axis: .vertical)
               .frame(minHeight: 32)
-              .padding(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 0))
+              .padding(EdgeInsets(top: 6, leading: 8, bottom: 6, trailing: 0))
               .onSubmit(of: .text) { onSubmitAction() }
 
             Button(action: { onSubmitAction() }) {
@@ -143,81 +156,21 @@ public struct MessageComposerView: View {
   }
 }
 
-#Preview("Short message") {
-  @Previewable @State var message = "Why, hello!"
-  @Previewable @State var foo = false
-
-  NavigationStack {
-    VStack(spacing: 0) {
-      ScrollView {
-        VStack(alignment: .leading, spacing: 10) {
-          HStack {
-            Text("Hello there!")
-              .padding(10)
-              .background(Color.blue.opacity(0.8))
-              .cornerRadius(10)
-              .foregroundColor(.white)
-            Spacer()
-          }
-
-          Spacer()
-        }
-        .padding(.horizontal, 8)
-      }
-
-      MessageComposerView(message: $message)
-        .padding(.bottom, 8)
-        .padding(.horizontal, 8)
-        .disableAttachments()
-        // Example of providing custom attachment actions
-        .attachmentActions {
-            Button(action: {
-              print("You tapped the custom action 1!")
-              foo.toggle()
-            }) {
-              Label("Custom Action 1", systemImage: foo ? "star" : "star.slash")
-            }
-            Button(action: {
-              print("You tapped the custom action 2!")
-            }) {
-                Label("Custom Action 2", systemImage: "heart")
-            }
-        }
-    }
-    .navigationTitle("Chat")
-    .navigationBarTitleDisplayMode(.inline)
+extension MessageComposerView where AttachmentType == EmptyAttachment {
+  public init(message: Binding<String>) {
+    self._message = message
+    self._attachments = .constant([])
   }
 }
 
-#Preview("Long message") {
-  @Previewable @State var message =
-    """
-      Chatting has become a staple of modern communication. It’s quick, easy, and often more convenient than a phone call. People can share thoughts, jokes, and updates in real-time, no matter the distance.
-    """
+#Preview("With Attachments") {
+  @Previewable @State var message = "Hello, world!"
+  @Previewable @State var attachments = [
+    ImageAttachment(image: Image(systemName: "photo")),
+    ImageAttachment(image: Image(systemName: "camera")),
+    ImageAttachment(image: Image(systemName: "mic"))
+  ]
 
-  NavigationStack {
-    VStack(spacing: 0) {
-      ScrollView {
-        VStack(alignment: .leading, spacing: 10) {
-          HStack {
-            Text("Hello there!")
-              .padding(10)
-              .background(Color.blue.opacity(0.8))
-              .cornerRadius(10)
-              .foregroundColor(.white)
-            Spacer()
-          }
-
-          Spacer()
-        }
-        .padding(.horizontal, 8)
-      }
-
-      MessageComposerView(message: $message)
-        .padding(.bottom, 8)
-        .padding(.horizontal, 8)
-    }
-    .navigationTitle("Chat")
-    .navigationBarTitleDisplayMode(.inline)
-  }
+  MessageComposerView(message: $message, attachments: $attachments)
+    .padding()
 }

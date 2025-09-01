@@ -18,6 +18,7 @@
 
 import SwiftUI
 import ConversationKit
+import PhotosUI
 
 struct ContentView: View {
   @State
@@ -32,10 +33,14 @@ struct ContentView: View {
           participant: .user)
     
   ]
+  
+  @State var attachments = [ImageAttachment]()
+  @State private var selectedItems = [PhotosPickerItem]()
+  @State private var showingPhotoPicker = false
 
   var body: some View {
     NavigationStack {
-      ConversationView(messages: $messages)
+      ConversationView(messages: $messages, attachments: $attachments)
         .onSendMessage { userMessage in
           if let defaultMessage = userMessage as? DefaultMessage {
             messages.append(defaultMessage)
@@ -46,16 +51,36 @@ struct ContentView: View {
           }
         }
         .attachmentActions {
-          Button("Image", systemImage: "photo.on.rectangle.angled") {
+          Button("Photos", systemImage: "photo.on.rectangle.angled") {
+            showingPhotoPicker = true
           }
           Button("Camera", systemImage: "camera") {
+            showingPhotoPicker = true
           }
         }
+        .photosPicker(
+          isPresented: $showingPhotoPicker,
+          selection: $selectedItems,
+          maxSelectionCount: 5,
+          matching: .images
+        )
         .navigationTitle("Chat")
         .navigationBarTitleDisplayMode(.inline)
     }
+    .onChange(of: selectedItems) {
+      Task {
+        for item in selectedItems {
+          if let data = try? await item.loadTransferable(type: Data.self) {
+            if let uiImage = UIImage(data: data) {
+              attachments.append(ImageAttachment(image: Image(uiImage: uiImage)))
+            }
+          }
+        }
+        selectedItems.removeAll()
+      }
+    }
   }
-
+  
   func generateResponse(for message: any Message) async {
     let text = "Culpa *amet* irure aliquip qui deserunt ullamco tempor do irure anim amet do incididunt. Tempor et dolor qui. Aliqua **anim** aliqua elit in. Veniam veniam magna aliquip. Anim eu et excepteur voluptate labore reprehenderit exercitation voluptate fugiat dolor reprehenderit tempor esse et amet."
 
