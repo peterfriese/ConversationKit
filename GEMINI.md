@@ -1,34 +1,78 @@
-# Project Overview
+# Component: ConversationKit
 
-This is a SwiftUI library called `ConversationKit` that provides a customizable chat interface for iOS applications. It supports text and image messages, Markdown rendering, and asynchronous message handling.
+## Component Overview
 
-The library is structured as a Swift package and has a single dependency, `swift-markdown-ui`, for rendering Markdown in messages.
+This component is the core of the `ConversationKit` library. It provides a customizable chat interface for iOS applications, built with SwiftUI. It's a native iOS component designed to be easily integrated into any SwiftUI application. The primary technology stack is Swift and SwiftUI.
 
-## Building and Running
+## Key Files and Structure
 
-To use `ConversationKit`, add it as a package dependency to your Xcode project:
+The component is organized into two main directories: `Model` and `Views`.
+
+*   **`Model/Message.swift`**: Defines the data model for the chat interface. It includes the `Message` protocol and a default implementation, `DefaultMessage`. This protocol-based approach allows developers to use their own custom message types.
+*   **`Views/ConversationView.swift`**: This is the main entry point to the library. It's a SwiftUI view that displays the conversation thread and the message composer. It's highly customizable through view modifiers and custom rendering closures.
+*   **`Views/MessageComposerView.swift`**: This view provides the text input field, the send button, and the attachment menu.
+*   **`Views/MessageView.swift`**: This is the default view for rendering a single message.
+*   **`Views/ErrorWrapper.swift`**, **`Views/OnErrorModifier.swift`**, and **`Views/PresentErrorAction.swift`**: These files provide a robust error handling mechanism.
+*   **`Views/Utilities.swift`**: Contains utility extensions and views.
+
+## Dependencies and Relationships
+
+This component has one external dependency:
+
+*   **`swift-markdown-ui`**: Used for rendering Markdown in messages.
+
+It doesn't have any internal dependencies on other components within this project.
+
+## Technical Details
+
+*   **Building and Running**: To use this component, add it as a package dependency to your Xcode project.
+*   **Testing**: The project has a dedicated test target, `ConversationKitTests`, for unit tests.
+*   **Architectural Patterns**: The component follows standard Swift and SwiftUI conventions. It uses a protocol-based approach for the message data model and makes extensive use of SwiftUI's environment values and view modifiers for customization.
+
+## Usage and Integration
+
+The main way to use this component is by embedding the `ConversationView` in a SwiftUI view hierarchy. The `ConversationView` takes a `Binding` to an array of `Message` objects and an `onSendMessage` closure to handle user input.
+
+Here's a basic usage example:
 
 ```swift
-dependencies: [
-    .package(url: "https://github.com/peterfriese/ConversationKit", from: "1.0.0")
-]
+import SwiftUI
+import ConversationKit
+
+struct ChatView: View {
+    @State private var messages: [DefaultMessage] = []
+
+    var body: some View {
+        NavigationStack {
+            ConversationView(messages: $messages)
+                .onSendMessage { userMessage in
+                    // Handle the sent message asynchronously
+                    await processMessage(userMessage)
+                }
+                .navigationTitle("Chat")
+                .navigationBarTitleDisplayMode(.inline)
+        }
+    }
+
+    func processMessage(_ message: any Message) async {
+        // Append the user's message to the messages array
+        if let defaultMessage = message as? DefaultMessage {
+          messages.append(defaultMessage)
+        }
+        // Simulate async response
+        try? await Task.sleep(for: .seconds(1))
+        await MainActor.run {
+            messages.append(DefaultMessage(
+                content: "You said: \(message.content ?? "")",
+                participant: .other
+            ))
+        }
+    }
+}
 ```
 
-The project includes two example applications in the `Examples` directory:
+## Important Notes
 
-*   `AIChatDemo`: Demonstrates how to integrate `ConversationKit` with AI services like Firebase AI and Foundation Models.
-*   `ConversationKitDemo`: A simple example that shows the basic usage of the `ConversationView`.
-
-To run the examples, open the corresponding `.xcodeproj` file in Xcode and run the app on the simulator or a physical device.
-
-## Development Conventions
-
-The codebase follows standard Swift conventions and is well-documented. Key conventions include:
-
-*   **Public API:** The main entry point to the library is the `ConversationView`, which is highly customizable through view modifiers and custom rendering closures.
-*   **Data Model:** The library uses a protocol-based approach for the message data model. The `Message` protocol defines the requirements for a message object, and a `DefaultMessage` struct is provided as a default implementation. This allows developers to use their own custom message types.
-*   **Data Flow:** The `ConversationView` does not own the `messages` array. Instead, it receives a `Binding` to the array, and the parent view (or its view model) is responsible for creating and managing the array itself. When the user sends a message, the `ConversationView` calls the `onSendMessage` closure, and the parent view is responsible for appending the new message to the array. This ensures a clear and predictable data flow.
-*   **Error Handling:** The `Message` protocol includes an optional `error` property, allowing errors to be attached to messages and displayed in the UI. A canonical `.onError(perform:)` view modifier is provided to catch these errors, which can then be presented using standard SwiftUI presentation modifiers (e.g., `.sheet(item:)`). An `ErrorWrapper` is provided to make errors identifiable.
-*   **Asynchronous Operations:** The library uses `async/await` for handling message sending and processing.
-*   **Customization:** `ConversationKit` makes extensive use of SwiftUI's environment values and view modifiers to allow for deep customization of the chat interface.
-*   **Testing:** The project has a dedicated test target, `ConversationKitTests`, for unit tests.
+*   The `ConversationView` does not own the `messages` array. The parent view is responsible for creating and managing the array.
+*   The library uses `async/await` for handling message sending and processing.
+*   The `Message` protocol includes an optional `error` property, allowing errors to be attached to messages and displayed in the UI.
