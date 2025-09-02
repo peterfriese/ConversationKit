@@ -19,10 +19,13 @@
 import ConversationKit
 import FirebaseAI
 import SwiftUI
+import PhotosUI
 
 @Observable
 class FirebaseAILogicChatViewModel {
   var messages: [DefaultMessage] = []
+  var attachments = [ImageAttachment]()
+  var selectedItems = [PhotosPickerItem]()
 
   private let model: GenerativeModel
   private let chat: Chat
@@ -51,7 +54,25 @@ class FirebaseAILogicChatViewModel {
     }
     var responseText: String
     do {
-      let response = try await chat.sendMessage(message.content ?? "")
+      // Convert attachments (UIImage) into InlineDataPart which conforms to Part/PartsRepresentable.
+      let imageParts: [InlineDataPart] = attachments.compactMap { attachment in
+        // Prefer JPEG to reduce size; fall back to PNG if JPEG encoding fails.
+        if let jpegData = attachment.image.jpegData(compressionQuality: 0.85) {
+          return InlineDataPart(data: jpegData, mimeType: "image/jpeg")
+        } else if let pngData = attachment.image.pngData() {
+          return InlineDataPart(data: pngData, mimeType: "image/png")
+        } else {
+          return nil
+        }
+      }
+
+      // Build a single message with images and text. String is PartsRepresentable via TextPart.
+      // Use the variadic sendMessage overload by passing an array (which itself conforms to PartsRepresentable).
+      let parts: [PartsRepresentable] = imageParts + [message.content ?? ""]
+      withAnimation {
+        attachments.removeAll()
+      }
+      let response = try await chat.sendMessage(parts)
       responseText = response.text ?? ""
     } catch {
       responseText =
@@ -64,22 +85,40 @@ class FirebaseAILogicChatViewModel {
 
 struct FirebaseAILogicChatView: View {
   @State private var viewModel = FirebaseAILogicChatViewModel()
+  @State private var showingPhotoPicker = false
 
   var body: some View {
     NavigationStack {
-      ConversationView(messages: $viewModel.messages)
+      ConversationView(messages: $viewModel.messages, attachments: $viewModel.attachments)
         .attachmentActions {
-          Button(action: {}) {
-            Label("Photos", systemImage: "photo.on.rectangle.angled")
-          }
-          Button(action: {}) {
-            Label("Camera", systemImage: "camera")
+          Button("Photos", systemImage: "photo.on.rectangle.angled") {
+            showingPhotoPicker = true
           }
         }
         .navigationTitle("Chat")
         .navigationBarTitleDisplayMode(.inline)
         .onSendMessage { message in
           await viewModel.sendMessage(message)
+        }
+        .photosPicker(
+          isPresented: $showingPhotoPicker,
+          selection: $viewModel.selectedItems,
+          maxSelectionCount: 5,
+          matching: .images
+        )
+        .onChange(of: viewModel.selectedItems) {
+          Task {
+            for item in viewModel.selectedItems {
+              if let data = try? await item.loadTransferable(type: Data.self) {
+                if let uiImage = UIImage(data: data) {
+                  viewModel.attachments.append(
+                    ImageAttachment(image: uiImage)
+                  )
+                }
+              }
+            }
+            viewModel.selectedItems.removeAll()
+          }
         }
     }
   }

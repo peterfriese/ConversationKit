@@ -20,9 +20,9 @@ import SwiftUI
 
 public struct ImageAttachment: Attachment {
   public let id = UUID()
-  public let image: Image
+  public let image: UIImage
 
-  public init(image: Image) {
+  public init(image: UIImage) {
     self.image = image
   }
 

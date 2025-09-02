@@ -40,9 +40,9 @@ struct AttachmentPreviewScrollView<AttachmentType: Attachment>: View {
 #Preview {
   struct PreviewWrapper: View {
     @State var attachments = [
-      ImageAttachment(image: Image(systemName: "photo")),
-      ImageAttachment(image: Image(systemName: "camera")),
-      ImageAttachment(image: Image(systemName: "mic"))
+      ImageAttachment(image: UIImage(systemName: "photo")!),
+      ImageAttachment(image: UIImage(systemName: "camera")!),
+      ImageAttachment(image: UIImage(systemName: "mic")!)
     ]
 
     var body: some View {

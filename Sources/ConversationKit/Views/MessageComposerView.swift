@@ -166,9 +166,9 @@ extension MessageComposerView where AttachmentType == EmptyAttachment {
 #Preview("With Attachments") {
   @Previewable @State var message = "Hello, world!"
   @Previewable @State var attachments = [
-    ImageAttachment(image: Image(systemName: "photo")),
-    ImageAttachment(image: Image(systemName: "camera")),
-    ImageAttachment(image: Image(systemName: "mic"))
+    ImageAttachment(image: UIImage(systemName: "photo")!),
+    ImageAttachment(image: UIImage(systemName: "camera")!),
+    ImageAttachment(image: UIImage(systemName: "mic")!)
   ]
 
   MessageComposerView(message: $message, attachments: $attachments)

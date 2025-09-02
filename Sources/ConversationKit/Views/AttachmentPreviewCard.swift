@@ -31,7 +31,7 @@ public struct AttachmentPreviewCard<AttachmentType: Attachment>: View {
     ZStack(alignment: .topTrailing) {
       Group {
         if let imageAttachment = attachment as? ImageAttachment {
-          imageAttachment.image
+          Image(uiImage: imageAttachment.image)
             .resizable()
             .aspectRatio(contentMode: .fill)
         }
@@ -70,7 +70,7 @@ struct ConcentricClipShapeModifier: ViewModifier {
 }
 
 #Preview {
-  AttachmentPreviewCard(attachment: ImageAttachment(image: Image(systemName: "photo"))) {
+  AttachmentPreviewCard(attachment: ImageAttachment(image: UIImage(systemName: "photo")!)) {
     print("Delete action tapped")
   }
 }
