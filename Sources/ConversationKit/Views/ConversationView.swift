@@ -213,8 +213,11 @@ public struct ConversationView<Content, MessageType: Message, AttachmentType: At
   @MainActor
   func submit() {
     let userMessage = MessageType(content: message, imageURL: nil, participant: .user)
-    message = ""
-    focusedField = .message
+    
+    withAnimation {
+      message = ""
+      focusedField = .message
+    }
 
     Task {
       await onSendMessageAction(userMessage)

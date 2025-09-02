@@ -42,8 +42,12 @@ struct ContentView: View {
     NavigationStack {
       ConversationView(messages: $messages, attachments: $attachments)
         .onSendMessage { userMessage in
+          let attachments = self.attachments
           if let defaultMessage = userMessage as? DefaultMessage {
             messages.append(defaultMessage)
+          }
+          withAnimation {
+            self.attachments.removeAll()
           }
           Task {
             print("You said: \(userMessage.content ?? "nothing")")
