@@ -49,7 +49,6 @@ struct ContentView: View {
     NavigationStack {
       ConversationView(messages: $messages, attachments: $attachments)
         .onSendMessage { userMessage in
-          let attachments = self.attachments
           if let defaultMessage = userMessage as? DefaultMessage {
             messages.append(defaultMessage)
           }
@@ -77,12 +76,16 @@ struct ContentView: View {
         .onChange(of: selectedItems) {
           Task {
             for item in selectedItems {
-              if let data = try? await item.loadTransferable(type: Data.self) {
-                if let uiImage = UIImage(data: data) {
-                  attachments.append(
-                    ImageAttachment(image: uiImage)
-                  )
+              do {
+                if let data = try await item.loadTransferable(type: Data.self) {
+                  if let uiImage = UIImage(data: data) {
+                    attachments.append(
+                      ImageAttachment(image: uiImage)
+                    )
+                  }
                 }
+              } catch {
+                print("Failed to load image attachment: \(error.localizedDescription)")
               }
             }
             selectedItems.removeAll()

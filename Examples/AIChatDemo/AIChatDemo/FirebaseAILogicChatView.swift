@@ -109,12 +109,16 @@ struct FirebaseAILogicChatView: View {
         .onChange(of: viewModel.selectedItems) {
           Task {
             for item in viewModel.selectedItems {
-              if let data = try? await item.loadTransferable(type: Data.self) {
-                if let uiImage = UIImage(data: data) {
-                  viewModel.attachments.append(
-                    ImageAttachment(image: uiImage)
-                  )
+              do {
+                if let data = try await item.loadTransferable(type: Data.self) {
+                  if let uiImage = UIImage(data: data) {
+                    viewModel.attachments.append(
+                      ImageAttachment(image: uiImage)
+                    )
+                  }
                 }
+              } catch {
+                print("Failed to load image attachment: \(error.localizedDescription)")
               }
             }
             viewModel.selectedItems.removeAll()

@@ -22,8 +22,4 @@ public struct EmptyAttachment: Attachment {
   public var id = UUID()
   
   public init() { }
-  
-  public var preview: some View {
-    EmptyView()
-  }
 }
