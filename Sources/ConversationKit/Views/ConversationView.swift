@@ -154,8 +154,9 @@ public extension View {
 ///
 /// - Parameter messages: A binding to an array of `Message` instances representing the conversation.
 /// - Parameter content: A closure that takes a `Message` and returns a view for rendering that message.
-public struct ConversationView<Content, MessageType: Message>: View where Content: View {
+public struct ConversationView<Content, MessageType: Message, AttachmentType: Attachment>: View where Content: View {
   @Binding var messages: [MessageType]
+  @Binding var attachments: [AttachmentType]
 
   @State private var scrolledID: MessageType.ID?
 
@@ -169,20 +170,12 @@ public struct ConversationView<Content, MessageType: Message>: View where Conten
   
   private let content: (MessageType) -> Content
   
-  public init(messages: Binding<[MessageType]>, userPrompt: String? = "") where Content == MessageView {
+  public init(messages: Binding<[MessageType]>,
+              attachments: Binding<[AttachmentType]>,
+              userPrompt: String? = "",
+              @ViewBuilder content: @escaping (MessageType) -> Content) {
     self._messages = messages
-    self.message = userPrompt ?? ""
-    self.content = { message in
-      MessageView(message: message.content,
-                  imageURL: message.imageURL,
-                  participant: message.participant,
-                  error: message.error)
-    }
-  }
-
-
-  public init(messages: Binding<[MessageType]>, userPrompt: String? = "", content: @escaping (MessageType) -> Content) {
-    self._messages = messages
+    self._attachments = attachments
     self.message = userPrompt ?? ""
     self.content = content
   }
@@ -205,7 +198,7 @@ public struct ConversationView<Content, MessageType: Message>: View where Conten
       .scrollDismissesKeyboard(.interactively)
       .scrollPosition(id: $scrolledID, anchor: .top)
 
-      MessageComposerView(message: $message)
+      MessageComposerView(message: $message, attachments: $attachments)
         .padding(.bottom, 10) // keep distance from keyboard
         .focused($focusedField, equals: .message)
         .onSubmitAction {
@@ -220,8 +213,11 @@ public struct ConversationView<Content, MessageType: Message>: View where Conten
   @MainActor
   func submit() {
     let userMessage = MessageType(content: message, imageURL: nil, participant: .user)
-    message = ""
-    focusedField = .message
+    
+    withAnimation {
+      message = ""
+      focusedField = .message
+    }
 
     Task {
       await onSendMessageAction(userMessage)
@@ -229,6 +225,46 @@ public struct ConversationView<Content, MessageType: Message>: View where Conten
   }
 
 }
+
+extension ConversationView where Content == MessageView {
+  public init(messages: Binding<[MessageType]>,
+              attachments: Binding<[AttachmentType]>,
+              userPrompt: String? = "") {
+    self.init(messages: messages,
+              attachments: attachments,
+              userPrompt: userPrompt,
+              content: { message in
+      MessageView(message: message.content,
+                  imageURL: message.imageURL,
+                  participant: message.participant,
+                  error: message.error)
+    })
+  }
+}
+
+extension ConversationView where AttachmentType == EmptyAttachment {
+  public init(messages: Binding<[MessageType]>, userPrompt: String? = "") where Content == MessageView {
+    self.init(messages: messages,
+              attachments: .constant([]),
+              userPrompt: userPrompt,
+              content: { message in
+      MessageView(message: message.content,
+                  imageURL: message.imageURL,
+                  participant: message.participant,
+                  error: message.error)
+    })
+  }
+  
+  public init(messages: Binding<[MessageType]>,
+              userPrompt: String? = "",
+              @ViewBuilder content: @escaping (MessageType) -> Content) {
+    self.init(messages: messages,
+              attachments: .constant([]),
+              userPrompt: userPrompt,
+              content: content)
+  }
+}
+
 
 #Preview("Built-in chat bubbles") {
   @Previewable @State var messages: [DefaultMessage] = [

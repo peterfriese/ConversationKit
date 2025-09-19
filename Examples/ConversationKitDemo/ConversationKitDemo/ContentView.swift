@@ -16,8 +16,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import SwiftUI
 import ConversationKit
+import PhotosUI
+import SwiftUI
 
 struct ContentView: View {
   @State
@@ -25,20 +26,34 @@ struct ContentView: View {
     .init(content: "Hello, how are you?", participant: .other),
     .init(content: "Well, I am fine, how are you?", participant: .user),
     .init(content: "Not too bad. Not too bad after all.", participant: .other),
-    .init(content: "Laboris officia aliqua eiusmod deserunt pariatur aliquip cillum proident excepteur qui pariatur consequat aute occaecat deserunt.", participant: .user),
+    .init(
+      content:
+        "Laboris officia aliqua eiusmod deserunt pariatur aliquip cillum proident excepteur qui pariatur consequat aute occaecat deserunt.",
+      participant: .user
+    ),
     .init(content: "Laborum ea ad anim magna.", participant: .other),
-    .init(content: "Esse aliquip laboris irure est voluptate aliquip non duis aute eu. Occaecat irure incididunt aute aute do sunt labore nisi esse nostrud amet labore enim mollit occaecat. Occaecat incididunt consectetur sint dolor deserunt exercitation mollit id culpa deserunt fugiat pariatur pariatur ullamco. Ex aliqua sit commodo enim qui commodo aliqua sint dolor laboris magna consequat adipisicing sunt.",
-          imageURL: "https://picsum.photos/100/100",
-          participant: .user)
-    
+    .init(
+      content:
+        "Esse aliquip laboris irure est voluptate aliquip non duis aute eu. Occaecat irure incididunt aute aute do sunt labore nisi esse nostrud amet labore enim mollit occaecat. Occaecat incididunt consectetur sint dolor deserunt exercitation mollit id culpa deserunt fugiat pariatur pariatur ullamco. Ex aliqua sit commodo enim qui commodo aliqua sint dolor laboris magna consequat adipisicing sunt.",
+      imageURL: "https://picsum.photos/100/100",
+      participant: .user
+    ),
+
   ]
+
+  @State var attachments = [ImageAttachment]()
+  @State private var selectedItems = [PhotosPickerItem]()
+  @State private var showingPhotoPicker = false
 
   var body: some View {
     NavigationStack {
-      ConversationView(messages: $messages)
+      ConversationView(messages: $messages, attachments: $attachments)
         .onSendMessage { userMessage in
           if let defaultMessage = userMessage as? DefaultMessage {
             messages.append(defaultMessage)
+          }
+          withAnimation {
+            self.attachments.removeAll()
           }
           Task {
             print("You said: \(userMessage.content ?? "nothing")")
@@ -46,35 +61,64 @@ struct ContentView: View {
           }
         }
         .attachmentActions {
-          Button("Image", systemImage: "photo.on.rectangle.angled") {
-          }
-          Button("Camera", systemImage: "camera") {
+          Button("Photos", systemImage: "photo.on.rectangle.angled") {
+            showingPhotoPicker = true
           }
         }
         .navigationTitle("Chat")
         .navigationBarTitleDisplayMode(.inline)
+        .photosPicker(
+          isPresented: $showingPhotoPicker,
+          selection: $selectedItems,
+          maxSelectionCount: 5,
+          matching: .images
+        )
+        .onChange(of: selectedItems) {
+          Task {
+            for item in selectedItems {
+              do {
+                if let data = try await item.loadTransferable(type: Data.self) {
+                  if let uiImage = UIImage(data: data) {
+                    attachments.append(
+                      ImageAttachment(image: uiImage)
+                    )
+                  }
+                }
+              } catch {
+                print("Failed to load image attachment: \(error.localizedDescription)")
+              }
+            }
+            selectedItems.removeAll()
+          }
+        }
     }
   }
 
   func generateResponse(for message: any Message) async {
-    let text = "Culpa *amet* irure aliquip qui deserunt ullamco tempor do irure anim amet do incididunt. Tempor et dolor qui. Aliqua **anim** aliqua elit in. Veniam veniam magna aliquip. Anim eu et excepteur voluptate labore reprehenderit exercitation voluptate fugiat dolor reprehenderit tempor esse et amet."
+    let text =
+      "Culpa *amet* irure aliquip qui deserunt ullamco tempor do irure anim amet do incididunt. Tempor et dolor qui. Aliqua **anim** aliqua elit in. Veniam veniam magna aliquip. Anim eu et excepteur voluptate labore reprehenderit exercitation voluptate fugiat dolor reprehenderit tempor esse et amet."
 
     var generatedText = ""
     var message = DefaultMessage(content: generatedText, participant: .other)
-    messages.append(message) // Assuming you have an array 'messages' defined
+    messages.append(message)  // Assuming you have an array 'messages' defined
 
-    let chunkSize = 3 // Size of each chunk
+    let chunkSize = 3  // Size of each chunk
 
     do {
       for chunkStart in stride(from: 0, to: text.count, by: chunkSize) {
         let chunkEnd = min(chunkStart + chunkSize, text.count)
-        let chunk = text[text.index(text.startIndex, offsetBy: chunkStart)..<text.index(text.startIndex, offsetBy: chunkEnd)]
+        let chunk = text[
+          text.index(
+            text.startIndex,
+            offsetBy: chunkStart
+          )..<text.index(text.startIndex, offsetBy: chunkEnd)
+        ]
 
         generatedText.append(String(chunk))
         message.content = generatedText
-        messages[messages.count - 1] = message // Update the last message
+        messages[messages.count - 1] = message  // Update the last message
 
-        let randomDelay = Double.random(in: 0.2...0.4) // Adjust delay for chunks
+        let randomDelay = Double.random(in: 0.2...0.4)  // Adjust delay for chunks
         try await Task.sleep(nanoseconds: UInt64(randomDelay * 100_000_000))
       }
     } catch {
