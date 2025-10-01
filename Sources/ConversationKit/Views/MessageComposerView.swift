@@ -21,7 +21,7 @@ import SwiftUI
 extension EnvironmentValues {
   @Entry var onSubmitAction: () -> Void = {}
   @Entry var disableAttachments: Bool = false
-  @Entry var attachmentActions: AnyView = AnyView(EmptyView())
+  @Entry var attachmentActions: AnyView? = nil
 }
 
 extension View {
@@ -55,7 +55,7 @@ public struct MessageComposerView<AttachmentType: Attachment>: View {
     if #available(iOS 26.0, *) {
       GlassEffectContainer {
         HStack(alignment: .bottom) {
-          if !disableAttachments {
+          if !disableAttachments, let attachmentActions {
             Menu {
               attachmentActions
             } label: {
@@ -99,7 +99,7 @@ public struct MessageComposerView<AttachmentType: Attachment>: View {
     } else {
       // provide compatible attachment actions and glass effect for iOS 18 and below
       HStack(alignment: .bottom) {
-        if !disableAttachments {
+        if !disableAttachments, let attachmentActions {
           Menu {
             attachmentActions
           } label: {
@@ -172,5 +172,17 @@ extension MessageComposerView where AttachmentType == EmptyAttachment {
   ]
 
   MessageComposerView(message: $message, attachments: $attachments)
+    .attachmentActions {
+        Button(action: { }) {
+            Label("Photos", systemImage: "photo.on.rectangle.angled")
+        }
+    }
     .padding()
+}
+
+#Preview("Without Attachments") {
+    @Previewable @State var message = "Hello, world!"
+
+    MessageComposerView(message: $message)
+
 }
