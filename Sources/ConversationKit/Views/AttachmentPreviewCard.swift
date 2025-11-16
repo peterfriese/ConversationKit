@@ -29,19 +29,7 @@ public struct AttachmentPreviewCard<AttachmentType: Attachment>: View {
   
   public var body: some View {
     ZStack(alignment: .topTrailing) {
-      Group {
-        if let imageAttachment = attachment as? ImageAttachment {
-          Image(uiImage: imageAttachment.image)
-            .resizable()
-            .aspectRatio(contentMode: .fill)
-        }
-        else {
-          Rectangle()
-            .fill(Color.gray)
-        }
-      }
-      .frame(width: 100, height: 100)
-      .modifier(ConcentricClipShapeModifier())
+      AnyView(attachment.previewView())
       
       Button(action: onDelete) {
         Image(systemName: "xmark.circle.fill")
@@ -53,8 +41,8 @@ public struct AttachmentPreviewCard<AttachmentType: Attachment>: View {
   }
 }
 
-struct ConcentricClipShapeModifier: ViewModifier {
-  func body(content: Content) -> some View {
+public struct ConcentricClipShapeModifier: ViewModifier {
+  public func body(content: Content) -> some View {
     if #available(iOS 26.0, *) {
       content
         .clipShape(.rect(corners: .concentric(minimum: 12), isUniform: false))

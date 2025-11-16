@@ -23,3 +23,10 @@ public struct EmptyAttachment: Attachment {
   
   public init() { }
 }
+
+extension EmptyAttachment {
+  @ViewBuilder
+  public func previewView() -> any View {
+    EmptyView()
+  }
+}
