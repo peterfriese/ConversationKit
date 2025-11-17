@@ -29,7 +29,7 @@ public struct AttachmentPreviewCard<AttachmentType: Attachment>: View {
   
   public var body: some View {
     ZStack(alignment: .topTrailing) {
-      AnyView(attachment.previewView())
+      attachment.previewView()
       
       Button(action: onDelete) {
         Image(systemName: "xmark.circle.fill")
