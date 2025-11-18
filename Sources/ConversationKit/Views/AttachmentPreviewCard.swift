@@ -18,7 +18,7 @@
 
 import SwiftUI
 
-public struct AttachmentPreviewCard<AttachmentType: Attachment>: View {
+public struct AttachmentPreviewCard<AttachmentType: Attachment & View>: View {
   var attachment: AttachmentType
   var onDelete: () -> Void
   
@@ -29,7 +29,7 @@ public struct AttachmentPreviewCard<AttachmentType: Attachment>: View {
   
   public var body: some View {
     ZStack(alignment: .topTrailing) {
-      attachment.previewView()
+      attachment
       
       Button(action: onDelete) {
         Image(systemName: "xmark.circle.fill")

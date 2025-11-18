@@ -24,9 +24,8 @@ public struct EmptyAttachment: Attachment {
   public init() { }
 }
 
-extension EmptyAttachment {
-  @ViewBuilder
-  public func previewView() -> any View {
+extension EmptyAttachment: View {
+  public var body: some View {
     EmptyView()
   }
 }
