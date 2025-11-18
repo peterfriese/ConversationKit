@@ -93,7 +93,7 @@ public protocol Message: Identifiable, Hashable {
   var content: String? { get set }
   var imageURL: String? { get }
   var participant: Participant { get }
-  var error: Error? { get }
+  var error: (any Error)? { get }
 
   init(content: String?, imageURL: String?, participant: Participant)
 }
@@ -108,20 +108,35 @@ ConversationKit provides a default implementation of this protocol, `DefaultMess
 
 ### ConversationView
 
-The main chat interface with two initializers:
+The main chat interface. It can be initialized in a few ways:
 
-1. **Built-in rendering** (default):
-```swift
-ConversationView(messages: $messages)
-```
-
-2. **Custom rendering**:
-```swift
-ConversationView(messages: $messages) { message in
-    // Your custom message view
-    CustomMessageView(message: message)
-}
-```
+1.  **With `DefaultMessage` and attachments**:
+    ```swift
+    ConversationView(
+        messages: $messages,
+        attachments: $attachments,
+        userPrompt: $userPrompt
+    )
+    ```
+2.  **With a custom message type and attachments**:
+    ```swift
+    ConversationView<MyCustomMessage>(
+        messages: $messages,
+        attachments: $attachments,
+        userPrompt: $userPrompt
+    )
+    ```
+3.  **With custom message rendering**:
+    ```swift
+    ConversationView(
+        messages: $messages,
+        attachments: $attachments,
+        userPrompt: $userPrompt
+    ) { message in
+        // Your custom message view
+        CustomMessageView(message: message)
+    }
+    ```
 
 ## Advanced Usage
 
@@ -210,6 +225,8 @@ ConversationView(messages: $messages)
 ```
 
 ### Disable Attachments
+
+You can disable the attachments button by applying the `.disableAttachments()` modifier to the `ConversationView`. This will hide the button in the `MessageComposerView`.
 
 ```swift
 ConversationView(messages: $messages)
