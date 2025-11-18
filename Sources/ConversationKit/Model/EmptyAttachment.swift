@@ -23,3 +23,9 @@ public struct EmptyAttachment: Attachment {
   
   public init() { }
 }
+
+extension EmptyAttachment: View {
+  public var body: some View {
+    EmptyView()
+  }
+}

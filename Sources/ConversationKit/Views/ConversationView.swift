@@ -154,7 +154,7 @@ public extension View {
 ///
 /// - Parameter messages: A binding to an array of `Message` instances representing the conversation.
 /// - Parameter content: A closure that takes a `Message` and returns a view for rendering that message.
-public struct ConversationView<Content, MessageType: Message, AttachmentType: Attachment>: View where Content: View {
+public struct ConversationView<Content, MessageType: Message, AttachmentType: Attachment & View>: View where Content: View {
   @Binding var messages: [MessageType]
   @Binding var attachments: [AttachmentType]
 

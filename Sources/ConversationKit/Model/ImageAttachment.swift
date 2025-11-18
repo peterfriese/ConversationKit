@@ -34,3 +34,13 @@ public struct ImageAttachment: Attachment {
     hasher.combine(id)
   }
 }
+
+extension ImageAttachment: View {
+  public var body: some View {
+    Image(uiImage: image)
+      .resizable()
+      .aspectRatio(contentMode: .fill)
+      .frame(width: 100, height: 100)
+      .modifier(ConcentricClipShapeModifier())
+  }
+}

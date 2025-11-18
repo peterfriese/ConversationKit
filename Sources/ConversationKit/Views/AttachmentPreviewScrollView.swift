@@ -18,7 +18,7 @@
 
 import SwiftUI
 
-struct AttachmentPreviewScrollView<AttachmentType: Attachment>: View {
+struct AttachmentPreviewScrollView<AttachmentType: Attachment & View>: View {
   @Binding var attachments: [AttachmentType]
 
   var body: some View {

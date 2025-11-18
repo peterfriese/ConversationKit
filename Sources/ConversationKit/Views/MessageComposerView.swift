@@ -38,7 +38,7 @@ extension View {
   }
 }
 
-public struct MessageComposerView<AttachmentType: Attachment>: View {
+public struct MessageComposerView<AttachmentType: Attachment & View>: View {
   @Environment(\.onSubmitAction) private var onSubmitAction
   @Environment(\.disableAttachments) private var disableAttachments
   @Environment(\.attachmentActions) private var attachmentActions
