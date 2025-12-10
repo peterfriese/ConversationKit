@@ -48,17 +48,21 @@ public struct ConcentricClipShapeModifier: ViewModifier {
       content
         .clipShape(.rect(corners: .concentric(minimum: 12), isUniform: false))
     } else {
-#endif // swift(>=6.2)
-      content
-        .clipShape(RoundedRectangle(cornerRadius: 8))
-        .overlay(
-          RoundedRectangle(cornerRadius: 8)
-            .stroke(Color(.separator), lineWidth: 0.5)
-        )
+      clipShapeLegacy(content: content)
     }
-#if swift(>=6.2)
-  }
+#else
+    clipShapeLegacy(content: content)
 #endif // swift(>=6.2)
+  }
+
+  private func clipShapeLegacy(content: Content) -> some View {
+    content
+      .clipShape(RoundedRectangle(cornerRadius: 8))
+      .overlay(
+        RoundedRectangle(cornerRadius: 8)
+          .stroke(Color(.separator), lineWidth: 0.5)
+      )
+  }
 }
 
 #Preview {
