@@ -45,13 +45,14 @@ public struct MessageComposerView<AttachmentType: Attachment & View>: View {
 
   @Binding var message: String
   @Binding var attachments: [AttachmentType]
-  
+
   public init(message: Binding<String>, attachments: Binding<[AttachmentType]>) {
     self._message = message
     self._attachments = attachments
   }
-  
+
   public var body: some View {
+#if swift(>=6.2)
     if #available(iOS 26.0, *) {
       GlassEffectContainer {
         HStack(alignment: .bottom) {
@@ -97,6 +98,7 @@ public struct MessageComposerView<AttachmentType: Attachment & View>: View {
       }
       .padding([.horizontal, .bottom], 8)
     } else {
+#endif // swift(>=6.2)
       // provide compatible attachment actions and glass effect for iOS 18 and below
       HStack(alignment: .bottom) {
         if !disableAttachments, let attachmentActions {
@@ -127,7 +129,7 @@ public struct MessageComposerView<AttachmentType: Attachment & View>: View {
             }
             .padding(.bottom, -8)
           }
-
+          
           HStack(alignment: .bottom) {
             TextField("Enter a message", text: $message, axis: .vertical)
               .frame(minHeight: 32)
@@ -153,7 +155,9 @@ public struct MessageComposerView<AttachmentType: Attachment & View>: View {
       .padding(.top, 8)
       .padding([.horizontal, .bottom], 16)
     }
+#if swift(>=6.2)
   }
+#endif // swift(>=6.2)
 }
 
 extension MessageComposerView where AttachmentType == EmptyAttachment {
