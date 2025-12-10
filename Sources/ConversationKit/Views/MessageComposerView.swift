@@ -52,7 +52,7 @@ public struct MessageComposerView<AttachmentType: Attachment & View>: View {
   }
 
   public var body: some View {
-#if swift(>=6.2)
+#if compiler(>=6.2)
     if #available(iOS 26.0, *) {
       GlassEffectContainer {
         HStack(alignment: .bottom) {
@@ -102,7 +102,7 @@ public struct MessageComposerView<AttachmentType: Attachment & View>: View {
     }
 #else
     attachmentActionsLegacy()
-#endif // swift(>=6.2)
+#endif // compiler(>=6.2)
   }
 
   /// Returns attachment actions with a glass effect for iOS 18 and below.
