@@ -43,17 +43,25 @@ public struct AttachmentPreviewCard<AttachmentType: Attachment & View>: View {
 
 public struct ConcentricClipShapeModifier: ViewModifier {
   public func body(content: Content) -> some View {
+#if compiler(>=6.2)
     if #available(iOS 26.0, *) {
       content
-        .clipShape(.rect(corners: .concentric(minimum: 12), isUniform: false))
+        .clipShape(.rect(corners: Edge.Corner.Style.concentric(minimum: 12), isUniform: false))
     } else {
-      content
-        .clipShape(RoundedRectangle(cornerRadius: 8))
-        .overlay(
-          RoundedRectangle(cornerRadius: 8)
-            .stroke(Color(.separator), lineWidth: 0.5)
-        )
+      clipShapeLegacy(content: content)
     }
+#else
+    clipShapeLegacy(content: content)
+#endif // compiler(>=6.2)
+  }
+
+  private func clipShapeLegacy(content: Content) -> some View {
+    content
+      .clipShape(RoundedRectangle(cornerRadius: 8))
+      .overlay(
+        RoundedRectangle(cornerRadius: 8)
+          .stroke(Color(.separator), lineWidth: 0.5)
+      )
   }
 }
 

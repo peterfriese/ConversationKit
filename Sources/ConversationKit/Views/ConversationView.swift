@@ -358,7 +358,7 @@ extension ConversationView where AttachmentType == EmptyAttachment {
             if message.participant == .user {
               Spacer()
             }
-            Markdown(messageContent ?? "")
+            Markdown(messageContent)
               .padding()
               .background {
                 Color(uiColor: message.participant == .other

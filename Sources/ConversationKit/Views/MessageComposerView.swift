@@ -45,13 +45,14 @@ public struct MessageComposerView<AttachmentType: Attachment & View>: View {
 
   @Binding var message: String
   @Binding var attachments: [AttachmentType]
-  
+
   public init(message: Binding<String>, attachments: Binding<[AttachmentType]>) {
     self._message = message
     self._attachments = attachments
   }
-  
+
   public var body: some View {
+#if compiler(>=6.2)
     if #available(iOS 26.0, *) {
       GlassEffectContainer {
         HStack(alignment: .bottom) {
@@ -97,62 +98,69 @@ public struct MessageComposerView<AttachmentType: Attachment & View>: View {
       }
       .padding([.horizontal, .bottom], 8)
     } else {
-      // provide compatible attachment actions and glass effect for iOS 18 and below
-      HStack(alignment: .bottom) {
-        if !disableAttachments, let attachmentActions {
-          Menu {
-            attachmentActions
-          } label: {
-            Image(systemName: "plus")
-              .foregroundColor(.primary)
-          }
-          .controlSize(.large)
-          .frame(width: 44, height: 44)
-          .background(.regularMaterial)
-          .clipShape(Circle())
-          .overlay(
-            Circle()
-              .stroke(Color(.separator), lineWidth: 0.5)
-          )
-          .padding(.trailing, 8)
+      attachmentActionsLegacy()
+    }
+#else
+    attachmentActionsLegacy()
+#endif // compiler(>=6.2)
+  }
+
+  /// Returns attachment actions with a glass effect for iOS 18 and below.
+  private func attachmentActionsLegacy() -> some View {
+    HStack(alignment: .bottom) {
+      if !disableAttachments, let attachmentActions {
+        Menu {
+          attachmentActions
+        } label: {
+          Image(systemName: "plus")
+            .foregroundColor(.primary)
         }
-
-        VStack {
-          if !attachments.isEmpty {
-            VStack {
-              AttachmentPreviewScrollView(attachments: $attachments)
-                .padding(.top, 8)
-              Divider()
-                .padding(.horizontal, 8)
-            }
-            .padding(.bottom, -8)
-          }
-
-          HStack(alignment: .bottom) {
-            TextField("Enter a message", text: $message, axis: .vertical)
-              .frame(minHeight: 32)
-              .padding(EdgeInsets(top: 6, leading: 8, bottom: 6, trailing: 0))
-              .onSubmit(of: .text) { onSubmitAction() }
-
-            Button(action: { onSubmitAction() }) {
-              Image(systemName: "arrow.up")
-            }
-            .buttonStyle(.borderedProminent)
-            .buttonBorderShape(.circle)
-            .controlSize(.regular)
-            .padding(EdgeInsets(top: 6, leading: 0, bottom: 6, trailing: 7))
-          }
-        }
+        .controlSize(.large)
+        .frame(width: 44, height: 44)
         .background(.regularMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 22))
+        .clipShape(Circle())
         .overlay(
-          RoundedRectangle(cornerRadius: 22)
+          Circle()
             .stroke(Color(.separator), lineWidth: 0.5)
         )
+        .padding(.trailing, 8)
       }
-      .padding(.top, 8)
-      .padding([.horizontal, .bottom], 16)
+
+      VStack {
+        if !attachments.isEmpty {
+          VStack {
+            AttachmentPreviewScrollView(attachments: $attachments)
+              .padding(.top, 8)
+            Divider()
+              .padding(.horizontal, 8)
+          }
+          .padding(.bottom, -8)
+        }
+
+        HStack(alignment: .bottom) {
+          TextField("Enter a message", text: $message, axis: .vertical)
+            .frame(minHeight: 32)
+            .padding(EdgeInsets(top: 6, leading: 8, bottom: 6, trailing: 0))
+            .onSubmit(of: .text) { onSubmitAction() }
+
+          Button(action: { onSubmitAction() }) {
+            Image(systemName: "arrow.up")
+          }
+          .buttonStyle(.borderedProminent)
+          .buttonBorderShape(.circle)
+          .controlSize(.regular)
+          .padding(EdgeInsets(top: 6, leading: 0, bottom: 6, trailing: 7))
+        }
+      }
+      .background(.regularMaterial)
+      .clipShape(RoundedRectangle(cornerRadius: 22))
+      .overlay(
+        RoundedRectangle(cornerRadius: 22)
+          .stroke(Color(.separator), lineWidth: 0.5)
+      )
     }
+    .padding(.top, 8)
+    .padding([.horizontal, .bottom], 16)
   }
 }
 
