@@ -303,7 +303,9 @@ extension ConversationView where AttachmentType == EmptyAttachment {
         }
       }
       .navigationTitle("Chat")
+      #if os(iOS)
       .navigationBarTitleDisplayMode(.inline)
+      #endif
   }
 }
 
@@ -361,9 +363,9 @@ extension ConversationView where AttachmentType == EmptyAttachment {
             Markdown(messageContent)
               .padding()
               .background {
-                Color(uiColor: message.participant == .other
-                      ? .secondarySystemBackground
-                      : .systemGray4)
+                message.participant == .other
+                      ? Color.platformSecondaryBackground
+                      : Color.platformGray4
               }
               .roundedCorner(10, corners: .allCorners)
             if message.participant == .other {
@@ -381,6 +383,8 @@ extension ConversationView where AttachmentType == EmptyAttachment {
       }
     }
     .navigationTitle("Chat")
+    #if os(iOS)
     .navigationBarTitleDisplayMode(.inline)
+    #endif
   }
 }

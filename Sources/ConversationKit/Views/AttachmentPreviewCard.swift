@@ -44,7 +44,7 @@ public struct AttachmentPreviewCard<AttachmentType: Attachment & View>: View {
 public struct ConcentricClipShapeModifier: ViewModifier {
   public func body(content: Content) -> some View {
 #if compiler(>=6.2)
-    if #available(iOS 26.0, *) {
+    if #available(iOS 26.0, macOS 26.0, *) {
       content
         .clipShape(.rect(corners: Edge.Corner.Style.concentric(minimum: 12), isUniform: false))
     } else {
@@ -60,13 +60,13 @@ public struct ConcentricClipShapeModifier: ViewModifier {
       .clipShape(RoundedRectangle(cornerRadius: 8))
       .overlay(
         RoundedRectangle(cornerRadius: 8)
-          .stroke(Color(.separator), lineWidth: 0.5)
+          .stroke(Color.platformSeparator, lineWidth: 0.5)
       )
   }
 }
 
 #Preview {
-  AttachmentPreviewCard(attachment: ImageAttachment(image: UIImage(systemName: "photo")!)) {
+  AttachmentPreviewCard(attachment: ImageAttachment(image: PlatformImage.systemSymbol("photo")!)) {
     print("Delete action tapped")
   }
 }
