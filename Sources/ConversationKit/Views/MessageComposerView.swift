@@ -52,9 +52,9 @@ public struct MessageComposerView<AttachmentType: Attachment & View>: View {
   }
 
   public var body: some View {
-    // We compose the standard elements cleanly, and use modifiers to progressively 
-    // disclose the complex, platform-specific iOS pill / glass aesthetics.
     HStack(alignment: .bottom) {
+      
+      // Plus button sits OUTSIDE the text pill on both iOS and macOS now
       if !disableAttachments, let attachmentActions {
         Menu {
           attachmentActions
@@ -62,8 +62,12 @@ public struct MessageComposerView<AttachmentType: Attachment & View>: View {
           Image(systemName: "plus")
             #if os(iOS)
             .foregroundColor(.primary)
+            #else
+            .foregroundColor(.secondary)
+            .font(.system(size: 15, weight: .medium))
             #endif
         }
+        .menuStyle(.borderlessButton)
         #if os(iOS)
         .controlSize(.large)
         .frame(width: 44, height: 44)
@@ -73,9 +77,12 @@ public struct MessageComposerView<AttachmentType: Attachment & View>: View {
         .padding(.trailing, 8)
         #else
         .menuIndicator(.hidden)
-        .fixedSize()
-        .padding(.trailing, 8)
-        .padding(.bottom, 8)
+        .frame(width: 32, height: 32)
+        .background(Color.platformSecondaryBackground)
+        .clipShape(Circle())
+        .overlay(Circle().stroke(Color.platformSeparator, lineWidth: 0.5))
+        .padding(.trailing, 6)
+        .padding(.bottom, 2) // Reset to standard bottom padding to align with the text field baseline
         #endif
       }
 
@@ -90,14 +97,15 @@ public struct MessageComposerView<AttachmentType: Attachment & View>: View {
           .padding(.bottom, -8)
         }
 
-        HStack(alignment: .bottom) {
+        HStack(alignment: .center) {
           TextField("Enter a message", text: $message, axis: .vertical)
             #if os(iOS)
             .frame(minHeight: 32)
-            .padding(EdgeInsets(top: 6, leading: 8, bottom: 6, trailing: 0))
+            .padding(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 0))
             #else
             .textFieldStyle(.plain)
-            .padding(EdgeInsets(top: 10, leading: 12, bottom: 10, trailing: 0))
+            // Asymmetrical padding to push the text UP optically, offsetting AppKit's intrinsic baseline spacing
+            .padding(EdgeInsets(top: 7, leading: 12, bottom: 9, trailing: 0))
             #endif
             .onSubmit(of: .text) { onSubmitAction() }
 
@@ -115,10 +123,11 @@ public struct MessageComposerView<AttachmentType: Attachment & View>: View {
           #else
           .buttonStyle(.plain)
           .foregroundColor(.white)
-          .padding(6)
+          // Specifically control the frame to be exactly 32x32, matching the + button
+          .frame(width: 32, height: 32)
           .background(Color.accentColor)
           .clipShape(Circle())
-          .padding(EdgeInsets(top: 6, leading: 0, bottom: 6, trailing: 8))
+          .padding(EdgeInsets(top: 2, leading: 0, bottom: 2, trailing: 2))
           #endif
         }
       }
