@@ -61,10 +61,10 @@ public struct MessageComposerView<AttachmentType: Attachment & View>: View {
         } label: {
           Image(systemName: "plus")
             #if os(iOS)
-            .foregroundColor(.primary)
+            .foregroundStyle(.primary)
             #else
-            .foregroundColor(.secondary)
-            .font(.system(size: 15, weight: .medium))
+            .foregroundStyle(.secondary)
+            .font(.callout.weight(.medium))
             #endif
         }
         .menuStyle(.borderlessButton)
@@ -112,7 +112,7 @@ public struct MessageComposerView<AttachmentType: Attachment & View>: View {
           Button(action: { onSubmitAction() }) {
             Image(systemName: "arrow.up")
               #if os(macOS)
-              .font(.system(size: 14, weight: .bold))
+              .font(.subheadline.weight(.bold))
               #endif
           }
           #if os(iOS)
@@ -122,7 +122,7 @@ public struct MessageComposerView<AttachmentType: Attachment & View>: View {
           .padding(EdgeInsets(top: 6, leading: 0, bottom: 6, trailing: 7))
           #else
           .buttonStyle(.plain)
-          .foregroundColor(.white)
+          .foregroundStyle(.white)
           // Specifically control the frame to be exactly 32x32, matching the + button
           .frame(width: 32, height: 32)
           .background(Color.accentColor)
