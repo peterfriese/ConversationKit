@@ -49,13 +49,11 @@ struct ContentView: View {
     NavigationStack {
       ConversationView(messages: $messages, attachments: $attachments)
         .onSendMessage { userMessage in
-          await MainActor.run {
-            if let defaultMessage = userMessage as? DefaultMessage {
-              messages.append(defaultMessage)
-            }
-            withAnimation {
-              self.attachments.removeAll()
-            }
+          if let defaultMessage = userMessage as? DefaultMessage {
+            messages.append(defaultMessage)
+          }
+          withAnimation {
+            self.attachments.removeAll()
           }
           
           let content = userMessage.content ?? ""
