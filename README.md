@@ -13,7 +13,7 @@ ConversationKit is a SwiftUI library that provides an elegant and easy-to-use ch
 - 📱 **Modern iOS design** with glass effects (iOS 17+)
 - 🔄 **Real-time message streaming** support
 - 📎 **Attachment actions** with customizable menu
-- 🎯 **Gemini-style scrolling** (anchors to user messages)
+- 🎯 **Gemini-style "Push and Pin" scrolling** (native SwiftUI clamping logic)
 - ⚙️ **Progressive disclosure APIs** for custom actions, disclaimers, and FABs
 - 🛑 **Interruptible generation** (built-in stop button support)
 
@@ -210,11 +210,13 @@ ConversationView(messages: $messages) { message in
 }
 ```
 
-### Message Streaming & Optimistic UI
+### Message Streaming & The "Push and Pin" UX
 
-ConversationKit features a custom, "Sticky Top" scrolling paradigm designed specifically for AI chatbots. When a user sends a message, it is anchored cleanly to the top of the visible area, and the AI's response streams beneath it seamlessly, allowing the text to grow organically downwards out of view without violently jumping or auto-scrolling the user away from the text they are actively reading.
+ConversationKit features a custom, physics-driven scrolling paradigm designed specifically for AI chatbots. When a user sends a short message, it rests naturally at the bottom above the composer. As the AI begins generating its response directly below, the expanding text smoothly *pushes* the user's message upward natively. The exact moment the user's message touches the top navigation bar, the ScrollView natively *pins* it in place, allowing the rest of the massive generated response to flow organically downwards out of view!
 
-**Important Note:** To deliver this butter-smooth scroll physics, ConversationKit utilizes an **Optimistic UI state**. It instantly adds the user's message to the layout internally the exact millisecond the Send button is tapped. You still *must* append the user's message to your own `messages` array inside your `onSendMessage` closure (as documented below). The SDK natively deduplicates your actual message against its optimistic placeholder instantly without any visual jank.
+This relies entirely on SwiftUI's brilliant internal layout clamping, removing the need for fragile `GeometryReader` clutches, and ensures the user is never violently auto-scrolled away from the text they are reading.
+
+**Important Note:** To deliver this butter-smooth scroll physics, ConversationKit utilizes an **Optimistic UI state**. It instantly adds the user's message to the layout internally the exact millisecond the Send button is tapped to perfectly sync with the keyboard dismissal animation. You still *must* append the user's message to your own `messages` array inside your `onSendMessage` closure (as documented below). The SDK automatically deduplicates your actual message against its optimistic placeholder without any visual jumps.
 
 Support for real-time streaming responses is fully native:
 

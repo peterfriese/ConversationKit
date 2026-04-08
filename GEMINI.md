@@ -31,15 +31,19 @@ It doesn't have any internal dependencies on other components within this projec
 
 ## SwiftUI Scroll Physics & Concurrency
 
-`ConversationKit` implements a specialized "Sticky Top" scrolling UX matching modern conversational AI interfaces. When the user sends a message, it anchors perfectly to the top of the visible screen as the keyboard dismisses, creating room for the AI's generated response to stream down below without chasing it into an endless void.
+`ConversationKit` implements a highly specialized, native scrolling UX matching modern conversational AI interfaces. When the user sends a message, it doesn't violently snap to the top. Instead, it rests comfortably above the text input field. As the AI begins generating its response directly below, the new text smoothly *pushes* the user's message upward until it hits the top navigation bar, at which point it securely *pins* in place, allowing the rest of the generated response to flow downwards off the screen.
 
-To achieve this, the underlying layout engine must receive the user's new message in the exact same render transaction as the keyboard dismissal. Because the SDK intentionally *does not own* the messages array (preventing it from directly appending messages), relying on developers to asynchronously append their messages inside the `async` `onSendMessage` closure caused a 1-frame micro-delay that completely broke the `.top` scroll clamping physics on iOS 17+.
+To achieve this "Push and Pin" behavior entirely within SwiftUI's native declarative layout engine (without fragile `GeometryReader` clutches), we explicitly tell `.scrollPosition` to target the user's message with `anchor: .top`.
+**The "Happy Accident":** By default, SwiftUI physically refuses to push short content lists all the way to the top of a ScrollView. So, the `.top` anchor gracefully fails, leaving the short message at the bottom. As the AI response adds tokens and the content height finally exceeds the screen frame, SwiftUI is finally able to satisfy the `.top` anchor constraint, natively pinning the user's message exactly where it should be!
 
-The SDK resolves this conflict via an **Optimistic UI anchor strategy**. When a message is sent:
-1. `ConversationView` instantly captures it into a local `@State` variable (`optimisticUserMessage`).
-2. A computed property (`displayedMessages`) merges this local message with the developer's array, forcing a synchronous layout update that natively anchors the scroll position perfectly as the keyboard vanishes.
-3. A background `@MainActor` `Task` is then spawned, yielding execution and preventing UI deadlocks while the developer performs their async array updates or network calls in `onSendMessage`.
-4. As the developer appends the actual message, `displayedMessages` natively deduplicates it against the optimistic copy, resulting in a flawless scroll anchor transition without breaking the core architectural rule of array ownership.
+**Concurrency Optimization (Optimistic UI)**
+To make this work fluidly, the layout engine must process the new user message in the exact same render transaction as the keyboard dismissal. Because the SDK intentionally *does not own* the messages array, relying on developers to asynchronously append their messages inside the `async` `onSendMessage` closure caused a 1-frame layout micro-delay that completely broke the `.top` physics.
+
+The SDK resolves this conflict via an **Optimistic UI anchor strategy**:
+1. `ConversationView` instantly captures the sent message into a local `@State` variable (`optimisticUserMessage`).
+2. A computed property (`displayedMessages`) merges this local message with the developer's array, forcing a synchronous layout update that sets up the `.top` target exactly as the keyboard vanishes.
+3. A background `@MainActor` `Task` is spawned, yielding execution to allow the layout engine to render the scroll animation, preventing UI deadlocks while the developer performs their async array updates or network calls.
+4. As the developer appends the actual message, `displayedMessages` natively deduplicates it against the optimistic copy, resulting in flawless scroll physics while strictly maintaining the "SDK does not own the array" architectural rule.
 
 ## Usage and Integration
 

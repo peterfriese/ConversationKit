@@ -25,13 +25,14 @@ This document outlines the Product Requirements and Technical Architecture for r
 *   **Custom Styling:** If a developer provides a custom `content` ViewBuilder closure to `ConversationView`, the default styling is bypassed entirely.
 *   **Loading State:** If an AI message (`participant == .other`) is added to the model with `content == nil` (or empty), the UI must render a loading indicator (e.g., ProgressView/sparkle) at that message's location.
 
-**2.2.2 Scrolling Behavior (The "Sticky Top" Paradigm)**
+**2.2.2 Scrolling Behavior (The "Push and Pin" Paradigm)**
 *   **Send Action:** 
     1.  Keyboard immediately dismisses.
-    2.  `ScrollView` automatically scrolls so the *newly sent user message* is anchored to the **top** of the visible area.
-*   **Streaming Content:** As the AI response streams in, it renders below the anchored user message. If the AI message grows longer than the screen height, it expands downward out of view. The view does *not* automatically chase the bottom of the text.
+    2.  `ScrollView` targets the *newly sent user message* with an `anchor: .top`. However, due to native SwiftUI content-clamping, if the chat is short, the message rests naturally at the bottom above the composer rather than artificially snapping to the absolute top of the screen.
+*   **Streaming Content:** As the AI response streams in, it expands downward. The growing content naturally *pushes* the user's anchored message upwards.
+*   **The Pin:** The exact moment the total height of the content exceeds the screen's height, SwiftUI's layout engine can finally satisfy the `anchor: .top` constraint. The user's message seamlessly pins to the top navigation bar, and the remaining AI response continues to grow out the bottom out of view.
 *   **Manual Override:** Any manual scrolling gesture by the user instantly breaks the top anchor, allowing free, user-directed scrolling.
-*   **Subsequent Turns:** The next user message resets the behavior, anchoring the new message to the top.
+*   **Subsequent Turns:** The next user message resets the behavior, anchoring the new message with `.top`.
 
 **2.2.3 Auxiliary Views (Progressive Disclosure)**
 *   **Message Actions:** AI messages must support an optional action bar beneath the text (e.g., Thumbs Up/Down, Regenerate, Copy).
@@ -59,10 +60,12 @@ The internal `body` of `ConversationView` will be restructured to support precis
 
 ### 3.2 State & Data Flow (No API Breakage Strategy)
 
-**The "Optimistic UI" Anchor Strategy for Scroll Physics:**
-*   To achieve perfect "Sticky Top" scrolling physics when a user taps Send, the layout engine must invalidate in the exact same transaction as the keyboard dismissal.
-*   However, the SDK explicitly *does not own the array*, which means it cannot directly append the new message. Relying on the developer to do it asynchronously via `.onSendMessage` introduces a micro-delay that completely breaks the scroll anchor physics on iOS 17+.
-*   **Resolution:** `ConversationView` maintains a local `@State private var optimisticUserMessage`. When the user taps send, this local state is populated instantly, triggering a flawless layout recomputation alongside the keyboard dismissal. The actual developer array catches up asynchronously a millisecond later. A computed property `displayedMessages` automatically deduplicates the real message against the optimistic one based on their UUIDs, creating a seamless handoff with zero visual jank or API breakage.
+**The "Push and Pin" Anchor Strategy for Scroll Physics:**
+*   To achieve perfect conversational AI scrolling physics when a user taps Send, the layout engine must invalidate in the exact same transaction as the keyboard dismissal.
+*   The goal is to let the user's message appear near the bottom, be *pushed up* by the AI's generated response, and then permanently *pin to the top* of the screen once the response grows too long.
+*   **Resolution:** `ConversationView` maintains a local `@State private var optimisticUserMessage`. When the user taps send, this local state is populated instantly. It tells the `ScrollView` to target this message with `anchor: .top`. 
+*   **The "Happy Accident":** SwiftUI's layout clamping physically refuses to push short content to the top. So, the message naturally rests at the bottom. As the AI streams text, the total height grows, physically pushing the anchored message upwards until it hits the top edge, at which point SwiftUI finally satisfies the `.top` anchor constraint and locks it in place!
+*   The actual developer array catches up asynchronously a millisecond later via `onSendMessageAction`, and `displayedMessages` deduplicates it seamlessly.
 
 **Loading Indicator:**
 *   The SDK relies on the developer to immediately append a placeholder `Message` (where `participant == .other` and `content == nil`) before starting the async network request.
