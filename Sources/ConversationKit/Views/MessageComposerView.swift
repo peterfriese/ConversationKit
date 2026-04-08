@@ -38,6 +38,14 @@ extension View {
   }
 }
 
+private enum ComposerMetrics {
+  #if os(iOS)
+  static let buttonSize: CGFloat = 44
+  #else
+  static let buttonSize: CGFloat = 32
+  #endif
+}
+
 public struct MessageComposerView<AttachmentType: Attachment & View>: View {
   @Environment(\.onSubmitAction) private var onSubmitAction
   @Environment(\.disableAttachments) private var disableAttachments
@@ -70,14 +78,14 @@ public struct MessageComposerView<AttachmentType: Attachment & View>: View {
         .menuStyle(.borderlessButton)
         #if os(iOS)
         .controlSize(.large)
-        .frame(width: 44, height: 44)
+        .frame(width: ComposerMetrics.buttonSize, height: ComposerMetrics.buttonSize)
         .background(.regularMaterial)
         .clipShape(Circle())
         .overlay(Circle().stroke(Color.platformSeparator, lineWidth: 0.5))
         .padding(.trailing, 8)
         #else
         .menuIndicator(.hidden)
-        .frame(width: 32, height: 32)
+        .frame(width: ComposerMetrics.buttonSize, height: ComposerMetrics.buttonSize)
         .background(Color.platformSecondaryBackground)
         .clipShape(Circle())
         .overlay(Circle().stroke(Color.platformSeparator, lineWidth: 0.5))
@@ -123,8 +131,8 @@ public struct MessageComposerView<AttachmentType: Attachment & View>: View {
           #else
           .buttonStyle(.plain)
           .foregroundStyle(.white)
-          // Specifically control the frame to be exactly 32x32, matching the + button
-          .frame(width: 32, height: 32)
+          // Specifically control the frame to match the + button
+          .frame(width: ComposerMetrics.buttonSize, height: ComposerMetrics.buttonSize)
           .background(Color.accentColor)
           .clipShape(Circle())
           .padding(EdgeInsets(top: 2, leading: 0, bottom: 2, trailing: 2))
