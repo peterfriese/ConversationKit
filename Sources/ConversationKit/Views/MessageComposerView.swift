@@ -38,6 +38,14 @@ extension View {
   }
 }
 
+private enum ComposerMetrics {
+  #if os(iOS)
+  static let buttonSize: CGFloat = 44
+  #else
+  static let buttonSize: CGFloat = 32
+  #endif
+}
+
 public struct MessageComposerView<AttachmentType: Attachment & View>: View {
   @Environment(\.onSubmitAction) private var onSubmitAction
   @Environment(\.disableAttachments) private var disableAttachments
@@ -52,78 +60,38 @@ public struct MessageComposerView<AttachmentType: Attachment & View>: View {
   }
 
   public var body: some View {
-#if compiler(>=6.2)
-    if #available(iOS 26.0, macOS 26.0, *) {
-      GlassEffectContainer {
-        HStack(alignment: .bottom) {
-          if !disableAttachments, let attachmentActions {
-            Menu {
-              attachmentActions
-            } label: {
-              Image(systemName: "plus")
-            }
-            .buttonStyle(.glass)
-            .controlSize(.large)
-            .buttonBorderShape(.circle)
-          }
-
-          VStack {
-            if !attachments.isEmpty {
-              VStack {
-                AttachmentPreviewScrollView(attachments: $attachments)
-                  .padding(.top, 8)
-                Divider()
-                  .padding(.horizontal, 8)
-              }
-              .padding(.bottom, -8)
-            }
-
-            HStack(alignment: .bottom) {
-              TextField("Enter a message", text: $message, axis: .vertical)
-                .frame(minHeight: 32)
-                .padding(EdgeInsets(top: 7, leading: 16, bottom: 7, trailing: 0))
-                .onSubmit(of: .text) { onSubmitAction() }
-
-              Button(action: { onSubmitAction() }) {
-                Image(systemName: "arrow.up")
-              }
-              .buttonStyle(.borderedProminent)
-              .padding(EdgeInsets(top: 7, leading: 0, bottom: 7, trailing: 7))
-            }
-          }
-          .clipShape(.rect(cornerRadius: 20.0))
-          .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 20.0))
-          .offset(x: -5.0, y: 0.0)
-        }
-      }
-      .padding([.horizontal, .bottom], 8)
-    } else {
-      attachmentActionsLegacy()
-    }
-#else
-    attachmentActionsLegacy()
-#endif // compiler(>=6.2)
-  }
-
-  /// Returns attachment actions with a glass effect for iOS 18 and below.
-  private func attachmentActionsLegacy() -> some View {
     HStack(alignment: .bottom) {
+      
+      // Plus button sits OUTSIDE the text pill on both iOS and macOS now
       if !disableAttachments, let attachmentActions {
         Menu {
           attachmentActions
         } label: {
           Image(systemName: "plus")
-            .foregroundColor(.primary)
+            #if os(iOS)
+            .foregroundStyle(.primary)
+            #else
+            .foregroundStyle(.secondary)
+            .font(.callout.weight(.medium))
+            #endif
         }
+        .menuStyle(.borderlessButton)
+        #if os(iOS)
         .controlSize(.large)
-        .frame(width: 44, height: 44)
+        .frame(width: ComposerMetrics.buttonSize, height: ComposerMetrics.buttonSize)
         .background(.regularMaterial)
         .clipShape(Circle())
-        .overlay(
-          Circle()
-            .stroke(Color.platformSeparator, lineWidth: 0.5)
-        )
+        .overlay(Circle().stroke(Color.platformSeparator, lineWidth: 0.5))
         .padding(.trailing, 8)
+        #else
+        .menuIndicator(.hidden)
+        .frame(width: ComposerMetrics.buttonSize, height: ComposerMetrics.buttonSize)
+        .background(Color.platformSecondaryBackground)
+        .clipShape(Circle())
+        .overlay(Circle().stroke(Color.platformSeparator, lineWidth: 0.5))
+        .padding(.trailing, 6)
+        .padding(.bottom, 2) // Reset to standard bottom padding to align with the text field baseline
+        #endif
       }
 
       VStack {
@@ -137,30 +105,95 @@ public struct MessageComposerView<AttachmentType: Attachment & View>: View {
           .padding(.bottom, -8)
         }
 
-        HStack(alignment: .bottom) {
+        HStack(alignment: .center) {
           TextField("Enter a message", text: $message, axis: .vertical)
+            #if os(iOS)
             .frame(minHeight: 32)
-            .padding(EdgeInsets(top: 6, leading: 8, bottom: 6, trailing: 0))
+            .padding(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 0))
+            #else
+            .textFieldStyle(.plain)
+            // Asymmetrical padding to push the text UP optically, offsetting AppKit's intrinsic baseline spacing
+            .padding(EdgeInsets(top: 7, leading: 12, bottom: 9, trailing: 0))
+            #endif
             .onSubmit(of: .text) { onSubmitAction() }
 
           Button(action: { onSubmitAction() }) {
             Image(systemName: "arrow.up")
+              #if os(macOS)
+              .font(.subheadline.weight(.bold))
+              #endif
           }
+          #if os(iOS)
           .buttonStyle(.borderedProminent)
           .buttonBorderShape(.circle)
           .controlSize(.regular)
           .padding(EdgeInsets(top: 6, leading: 0, bottom: 6, trailing: 7))
+          #else
+          .buttonStyle(.plain)
+          .foregroundStyle(.white)
+          // Specifically control the frame to match the + button
+          .frame(width: ComposerMetrics.buttonSize, height: ComposerMetrics.buttonSize)
+          .background(Color.accentColor)
+          .clipShape(Circle())
+          .padding(EdgeInsets(top: 2, leading: 0, bottom: 2, trailing: 2))
+          #endif
         }
       }
+      .modifier(ComposerInputBackgroundModifier())
+    }
+    .modifier(ComposerGlassEffectModifier())
+    #if os(iOS)
+    .padding(.top, 8)
+    .padding([.horizontal, .bottom], 16)
+    #else
+    .padding()
+    #endif
+  }
+}
+
+// MARK: - Progressive Disclosure Modifiers
+
+/// Applies the platform-appropriate background to the text input/attachment area
+private struct ComposerInputBackgroundModifier: ViewModifier {
+  func body(content: Content) -> some View {
+    #if os(iOS)
+    content
       .background(.regularMaterial)
       .clipShape(RoundedRectangle(cornerRadius: 22))
       .overlay(
         RoundedRectangle(cornerRadius: 22)
           .stroke(Color.platformSeparator, lineWidth: 0.5)
       )
+    #else
+    content
+      .background(Color.platformSecondaryBackground)
+      .clipShape(RoundedRectangle(cornerRadius: 18))
+      .overlay(
+        RoundedRectangle(cornerRadius: 18)
+          .stroke(Color.platformSeparator, lineWidth: 0.5)
+      )
+    #endif
+  }
+}
+
+/// Progressively discloses the iOS 26+ GlassEffectContainer only where appropriate
+private struct ComposerGlassEffectModifier: ViewModifier {
+  func body(content: Content) -> some View {
+    #if os(iOS)
+    #if compiler(>=6.2)
+    if #available(iOS 26.0, *) {
+      GlassEffectContainer {
+        content
+      }
+    } else {
+      content
     }
-    .padding(.top, 8)
-    .padding([.horizontal, .bottom], 16)
+    #else
+    content
+    #endif
+    #else
+    content
+    #endif
   }
 }
 

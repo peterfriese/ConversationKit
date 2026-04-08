@@ -66,7 +66,9 @@ struct ContentView: View {
           }
         }
         .navigationTitle("Chat")
+        #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
+        #endif
         .photosPicker(
           isPresented: $showingPhotoPicker,
           selection: $selectedItems,
@@ -78,9 +80,9 @@ struct ContentView: View {
             for item in selectedItems {
               do {
                 if let data = try await item.loadTransferable(type: Data.self) {
-                  if let uiImage = UIImage(data: data) {
+                  if let platformImage = PlatformImage(data: data) {
                     attachments.append(
-                      ImageAttachment(image: uiImage)
+                      ImageAttachment(image: platformImage)
                     )
                   }
                 }
