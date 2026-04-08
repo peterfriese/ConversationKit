@@ -20,6 +20,8 @@ import SwiftUI
 
 extension EnvironmentValues {
   @Entry var onSubmitAction: () -> Void = {}
+  @Entry var onStopAction: () -> Void = {}
+  @Entry var isGenerating: Bool = false
   @Entry var disableAttachments: Bool = false
   @Entry var attachmentActions: AnyView? = nil
 }
@@ -27,6 +29,14 @@ extension EnvironmentValues {
 extension View {
   public func onSubmitAction(_ action: @escaping () -> Void) -> some View {
     environment(\.onSubmitAction, action)
+  }
+  
+  public func onStopAction(_ action: @escaping () -> Void) -> some View {
+    environment(\.onStopAction, action)
+  }
+  
+  public func isGenerating(_ isGenerating: Bool) -> some View {
+    environment(\.isGenerating, isGenerating)
   }
   
   public func disableAttachments(_ disable: Bool = true) -> some View {
@@ -48,6 +58,8 @@ private enum ComposerMetrics {
 
 public struct MessageComposerView<AttachmentType: Attachment & View>: View {
   @Environment(\.onSubmitAction) private var onSubmitAction
+  @Environment(\.onStopAction) private var onStopAction
+  @Environment(\.isGenerating) private var isGenerating
   @Environment(\.disableAttachments) private var disableAttachments
   @Environment(\.attachmentActions) private var attachmentActions
 
@@ -106,6 +118,8 @@ public struct MessageComposerView<AttachmentType: Attachment & View>: View {
         }
 
         HStack(alignment: .center) {
+          let canSubmit = !message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !attachments.isEmpty
+          
           TextField("Enter a message", text: $message, axis: .vertical)
             #if os(iOS)
             .frame(minHeight: 32)
@@ -115,14 +129,28 @@ public struct MessageComposerView<AttachmentType: Attachment & View>: View {
             // Asymmetrical padding to push the text UP optically, offsetting AppKit's intrinsic baseline spacing
             .padding(EdgeInsets(top: 7, leading: 12, bottom: 9, trailing: 0))
             #endif
-            .onSubmit(of: .text) { onSubmitAction() }
+            .onSubmit(of: .text) {
+              if isGenerating {
+                onStopAction()
+              } else if canSubmit {
+                onSubmitAction()
+              }
+            }
 
-          Button(action: { onSubmitAction() }) {
-            Image(systemName: "arrow.up")
+          Button(action: {
+            if isGenerating {
+              onStopAction()
+            } else if canSubmit {
+              onSubmitAction()
+            }
+          }) {
+            Image(systemName: isGenerating ? "stop.fill" : "arrow.up")
               #if os(macOS)
               .font(.subheadline.weight(.bold))
               #endif
           }
+          .disabled(!isGenerating && !canSubmit)
+          .opacity(!isGenerating && !canSubmit ? 0.5 : 1.0)
           #if os(iOS)
           .buttonStyle(.borderedProminent)
           .buttonBorderShape(.circle)

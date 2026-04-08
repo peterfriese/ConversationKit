@@ -38,6 +38,11 @@ This document outlines the Product Requirements and Technical Architecture for r
 *   **Disclaimer Text:** A customizable disclaimer must appear **only** beneath the most recent AI message in the thread.
 *   **Scroll to Bottom FAB:** A small, customizable Floating Action Button appears in the bottom trailing corner when the user is scrolled away from the bottom. Tapping it jumps to the newest content.
 
+**2.2.4 Message Composer Experience**
+*   **Empty State:** The "Send" button is visually disabled and inactive if the message input is empty (and no attachments are provided).
+*   **Generation State (Send/Stop):** When a user sends a message, the `ConversationView` must track the execution of the `onSendMessageAction` closure. While this closure is executing, the composer's "Send" button must transform into a "Stop" button (`stop.fill`). 
+*   **Cancellation:** Tapping the Stop button calls `cancel()` on the executing `Task`. This implements a "Zero API Breakage" stop mechanism by relying entirely on standard Swift Cooperative Cancellation. Developers using the SDK must ensure their networking/streaming code checks `Task.isCancelled` to make the stop button effective.
+
 ---
 
 ## 3. Architecture & Design Document
@@ -52,11 +57,17 @@ The internal `body` of `ConversationView` will be restructured to support precis
     *   *Implementation detail:* Depending on minimum iOS version targets, this involves `onScrollPhaseChange` (iOS 18+) or preference keys/geometry readers tracking scroll offset changes.
 3.  **`MessageView` (Default Renderer):** Will be updated to handle the `UnevenRoundedRectangle` shape for `.user` and the loading indicator logic for `.other` when `content` is nil.
 
-### 3.2 State & Data Flow (No API Breakage Loading Strategy)
+### 3.2 State & Data Flow (No API Breakage Strategy)
 
-To implement the loading indicator without breaking the `onSendMessageAction` signature:
+**Loading Indicator:**
 *   The SDK relies on the developer to immediately append a placeholder `Message` (where `participant == .other` and `content == nil`) before starting the async network request.
-*   `ConversationView` simply reacts to this state naturally.
+*   `ConversationView` simply reacts to this state natively to render the loading dots.
+
+**Send/Stop Button & Task Cancellation:**
+*   `ConversationView` maintains a `@State private var sendingTask: Task<Void, Never>?`.
+*   When a message is sent, the task is captured: `sendingTask = Task { await onSendMessageAction(...) }`.
+*   An Environment value (`isGenerating`) is passed down to `MessageComposerView` based on whether `sendingTask` is non-nil.
+*   The Stop button triggers `sendingTask?.cancel()`. Because cancellation is cooperative, the `onSendMessage` block must properly utilize `try Task.checkCancellation()` to halt the stream.
 
 ### 3.3 Progressive Disclosure API Design
 

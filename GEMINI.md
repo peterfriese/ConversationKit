@@ -77,3 +77,4 @@ struct ChatView: View {
 *   The library uses `async/await` for handling message sending and processing.
 *   The `Message` protocol includes an optional `error` property, allowing errors to be attached to messages and displayed in the UI.
 *   **Loading Indicators:** To display a loading state, simply append an AI (`.other`) message with a `nil` or empty `content`. `ConversationView` natively renders a loading view for this state without API breakage.
+*   **Generation State (Send/Stop):** The composer's "Send" button will be disabled if the text field is empty. When `onSendMessage` executes, the "Send" button transforms into a "Stop" button. Tapping it calls `Task.cancel()` on the executing task. End-developers must rely on Swift's cooperative cancellation by checking `try Task.checkCancellation()` within any streaming loops to make the stop button functional.

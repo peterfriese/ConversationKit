@@ -55,14 +55,13 @@ struct ContentView: View {
           withAnimation {
             self.attachments.removeAll()
           }
-          Task {
-            let content = userMessage.content ?? ""
-            print("You said: \(content)")
-            if content.localizedCaseInsensitiveContains("long") {
-              await generateLongResponse()
-            } else {
-              await generateResponse(for: userMessage)
-            }
+          
+          let content = userMessage.content ?? ""
+          print("You said: \(content)")
+          if content.localizedCaseInsensitiveContains("long") {
+            await generateLongResponse()
+          } else {
+            await generateResponse(for: userMessage)
           }
         }
         .attachmentActions {
@@ -127,6 +126,8 @@ struct ContentView: View {
 
         let randomDelay = Double.random(in: 0.2...0.4)  // Adjust delay for chunks
         try await Task.sleep(nanoseconds: UInt64(randomDelay * 100_000_000))
+        
+        try Task.checkCancellation()
       }
     } catch {
       // Handle errors if needed
@@ -170,6 +171,13 @@ struct ContentView: View {
 
         let randomDelay = Double.random(in: 0.05...0.1)
         try? await Task.sleep(for: .seconds(randomDelay))
+        
+        // This is strictly required for the new "Stop" button feature to work cooperatively
+        do {
+          try Task.checkCancellation()
+        } catch {
+          return // Stop streaming if cancelled
+        }
       }
     }
   }

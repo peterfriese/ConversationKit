@@ -15,7 +15,7 @@ ConversationKit is a SwiftUI library that provides an elegant and easy-to-use ch
 - 📎 **Attachment actions** with customizable menu
 - 🎯 **Gemini-style scrolling** (anchors to user messages)
 - ⚙️ **Progressive disclosure APIs** for custom actions, disclaimers, and FABs
-- ⌨️ **Keyboard-aware** input handling
+- 🛑 **Interruptible generation** (built-in stop button support)
 
 ## Requirements
 
@@ -138,6 +138,28 @@ The main chat interface. It can be initialized in a few ways:
         CustomMessageView(message: message)
     }
     ```
+
+### Interrupting Generation (Stop Button)
+
+When the user sends a message, `ConversationView` automatically tracks the execution of your `onSendMessage` block. During this time, the "Send" button is replaced by a "Stop" button.
+
+To make the stop button work properly, your async code must be aware of Swift's cooperative cancellation. You can do this by using APIs that automatically throw `CancellationError` (like `URLSession`), or by checking manually during streaming operations:
+
+```swift
+.onSendMessage { message in
+    messages.append(message)
+    
+    // Example: A custom async stream
+    let stream = await myAIService.streamResponse(message)
+    
+    for try await chunk in stream {
+        // This line is required for the "Stop" button to cancel the stream
+        try Task.checkCancellation() 
+        
+        messages.last?.content?.append(chunk)
+    }
+}
+```
 
 ## Advanced Usage
 

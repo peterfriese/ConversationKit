@@ -45,6 +45,8 @@ public struct ConversationView<Content, MessageType: Message, AttachmentType: At
   @State private var isAutoScrollingTop: Bool = false
   @State private var autoScrollTargetID: MessageType.ID?
   @State private var isAtBottom: Bool = false
+  
+  @State private var sendingTask: Task<Void, Never>?
 
   @State private var message: String = ""
   @FocusState private var focusedField: FocusedField?
@@ -154,6 +156,10 @@ public struct ConversationView<Content, MessageType: Message, AttachmentType: At
       MessageComposerView(message: $message, attachments: $attachments)
         .padding(.bottom, 10) // keep distance from keyboard
         .focused($focusedField, equals: .message)
+        .isGenerating(sendingTask != nil)
+        .onStopAction {
+          sendingTask?.cancel()
+        }
         .onSubmitAction {
           submit()
         }
@@ -175,7 +181,8 @@ public struct ConversationView<Content, MessageType: Message, AttachmentType: At
       focusedField = nil // Dismiss keyboard
     }
 
-    Task {
+    sendingTask = Task {
+      defer { sendingTask = nil }
       await onSendMessageAction(userMessage)
     }
   }
