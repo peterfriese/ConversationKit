@@ -56,8 +56,13 @@ struct ContentView: View {
             self.attachments.removeAll()
           }
           Task {
-            print("You said: \(userMessage.content ?? "nothing")")
-            await generateResponse(for: userMessage)
+            let content = userMessage.content ?? ""
+            print("You said: \(content)")
+            if content.localizedCaseInsensitiveContains("long") {
+              await generateLongResponse()
+            } else {
+              await generateResponse(for: userMessage)
+            }
           }
         }
         .attachmentActions {
@@ -125,6 +130,47 @@ struct ContentView: View {
       }
     } catch {
       // Handle errors if needed
+    }
+  }
+
+  func generateLongResponse() async {
+    let paragraphs = [
+      "Here is a very long story just for you.",
+      "Once upon a time in a digital realm far, far away, there lived a small bit of data named Byte. Byte was curious and always wanted to travel across the vast networks of the internet.",
+      "One day, Byte found a packet header that was perfectly sized and hopped aboard. The journey was perilous, traversing through numerous routers, switches, and firewalls.",
+      "At one point, Byte encountered a massive traffic jam at a transatlantic cable node. Packets were dropping left and right. It was a chaotic scene, but Byte managed to reroute through a satellite link.",
+      "Floating through space, Byte saw the earth below—a beautiful blue marble interconnected by invisible threads of communication.",
+      "Eventually, Byte landed safely in a cozy little server rack in Iceland, surrounded by humming cooling fans and the gentle blinking of LED lights.",
+      "But the adventure didn't stop there. Byte was soon requested by a client application on a mobile device.",
+      "Zipping back through fiber optic cables at the speed of light, Byte finally arrived on the screen of a user, bringing a tiny pixel to life to form part of a beautiful image.",
+      "And so, Byte's journey came to an end, having successfully delivered the payload. It was a fulfilling existence, being part of the grand tapestry of human connection and information exchange.",
+      "The end. I hope you enjoyed this incredibly long and detailed story about a single byte of data traversing the global internet infrastructure."
+    ]
+
+    var generatedText = ""
+    var message = DefaultMessage(content: nil, participant: .other) // Start with loading state
+    messages.append(message)
+    
+    // Simulate loading delay
+    try? await Task.sleep(for: .seconds(1))
+
+    let chunkSize = 5
+
+    for paragraph in paragraphs {
+      let textToStream = (generatedText.isEmpty ? "" : "\n\n") + paragraph
+      for chunkStart in stride(from: 0, to: textToStream.count, by: chunkSize) {
+        let chunkEnd = min(chunkStart + chunkSize, textToStream.count)
+        let chunk = textToStream[
+          textToStream.index(textToStream.startIndex, offsetBy: chunkStart)..<textToStream.index(textToStream.startIndex, offsetBy: chunkEnd)
+        ]
+
+        generatedText.append(String(chunk))
+        message.content = generatedText
+        messages[messages.count - 1] = message
+
+        let randomDelay = Double.random(in: 0.05...0.1)
+        try? await Task.sleep(for: .seconds(randomDelay))
+      }
     }
   }
 
