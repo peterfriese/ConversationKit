@@ -29,6 +29,18 @@ It doesn't have any internal dependencies on other components within this projec
 *   **Testing**: The project has a dedicated test target, `ConversationKitTests`, for unit tests.
 *   **Architectural Patterns**: The component follows standard Swift and SwiftUI conventions. It uses a protocol-based approach for the message data model and makes extensive use of SwiftUI's environment values and view modifiers for customization, adopting a Progressive Disclosure API design for advanced styling like `.messageActions`, `.conversationDisclaimer`, and `.scrollToBottomButtonStyle`.
 
+## SwiftUI Scroll Physics & Concurrency
+
+`ConversationKit` implements a specialized "Sticky Top" scrolling UX matching modern conversational AI interfaces. When the user sends a message, it anchors perfectly to the top of the visible screen as the keyboard dismisses, creating room for the AI's generated response to stream down below without chasing it into an endless void.
+
+To achieve this, the underlying layout engine must receive the user's new message in the exact same render transaction as the keyboard dismissal. Because the SDK intentionally *does not own* the messages array (preventing it from directly appending messages), relying on developers to asynchronously append their messages inside the `async` `onSendMessage` closure caused a 1-frame micro-delay that completely broke the `.top` scroll clamping physics on iOS 17+.
+
+The SDK resolves this conflict via an **Optimistic UI anchor strategy**. When a message is sent:
+1. `ConversationView` instantly captures it into a local `@State` variable (`optimisticUserMessage`).
+2. A computed property (`displayedMessages`) merges this local message with the developer's array, forcing a synchronous layout update that natively anchors the scroll position perfectly as the keyboard vanishes.
+3. A background `@MainActor` `Task` is then spawned, yielding execution and preventing UI deadlocks while the developer performs their async array updates or network calls in `onSendMessage`.
+4. As the developer appends the actual message, `displayedMessages` natively deduplicates it against the optimistic copy, resulting in a flawless scroll anchor transition without breaking the core architectural rule of array ownership.
+
 ## Usage and Integration
 
 The main way to use this component is by embedding the `ConversationView` in a SwiftUI view hierarchy. The `ConversationView` takes a `Binding` to an array of `Message` objects and an `onSendMessage` closure to handle user input.

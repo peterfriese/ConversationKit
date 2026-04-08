@@ -59,6 +59,11 @@ The internal `body` of `ConversationView` will be restructured to support precis
 
 ### 3.2 State & Data Flow (No API Breakage Strategy)
 
+**The "Optimistic UI" Anchor Strategy for Scroll Physics:**
+*   To achieve perfect "Sticky Top" scrolling physics when a user taps Send, the layout engine must invalidate in the exact same transaction as the keyboard dismissal.
+*   However, the SDK explicitly *does not own the array*, which means it cannot directly append the new message. Relying on the developer to do it asynchronously via `.onSendMessage` introduces a micro-delay that completely breaks the scroll anchor physics on iOS 17+.
+*   **Resolution:** `ConversationView` maintains a local `@State private var optimisticUserMessage`. When the user taps send, this local state is populated instantly, triggering a flawless layout recomputation alongside the keyboard dismissal. The actual developer array catches up asynchronously a millisecond later. A computed property `displayedMessages` automatically deduplicates the real message against the optimistic one based on their UUIDs, creating a seamless handoff with zero visual jank or API breakage.
+
 **Loading Indicator:**
 *   The SDK relies on the developer to immediately append a placeholder `Message` (where `participant == .other` and `content == nil`) before starting the async network request.
 *   `ConversationView` simply reacts to this state natively to render the loading dots.

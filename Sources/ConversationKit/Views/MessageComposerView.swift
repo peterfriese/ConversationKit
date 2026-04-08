@@ -26,24 +26,30 @@ extension EnvironmentValues {
   @Entry var attachmentActions: AnyView? = nil
 }
 
-extension View {
-  public func onSubmitAction(_ action: @escaping () -> Void) -> some View {
+public extension View {
+  /// Defines the closure executed when the user taps the send button (or hits return).
+  func onSubmitAction(_ action: @escaping () -> Void) -> some View {
     environment(\.onSubmitAction, action)
   }
   
-  public func onStopAction(_ action: @escaping () -> Void) -> some View {
+  /// Defines the closure executed when the user taps the stop button during active generation.
+  /// Used to cooperatively cancel the background task running the submit action.
+  func onStopAction(_ action: @escaping () -> Void) -> some View {
     environment(\.onStopAction, action)
   }
   
-  public func isGenerating(_ isGenerating: Bool) -> some View {
+  /// Injects the current background execution state to toggle the Send button into a Stop button.
+  func isGenerating(_ isGenerating: Bool) -> some View {
     environment(\.isGenerating, isGenerating)
   }
   
-  public func disableAttachments(_ disable: Bool = true) -> some View {
+  /// Disables the attachment (+) button inside the `MessageComposerView`.
+  func disableAttachments(_ disable: Bool = true) -> some View {
     environment(\.disableAttachments, disable)
   }
   
-  public func attachmentActions<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+  /// Defines a custom set of buttons to be displayed when the attachment (+) button is tapped.
+  func attachmentActions<Content: View>(@ViewBuilder content: () -> Content) -> some View {
     environment(\.attachmentActions, AnyView(content()))
   }
 }

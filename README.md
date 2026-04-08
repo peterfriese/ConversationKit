@@ -210,9 +210,13 @@ ConversationView(messages: $messages) { message in
 }
 ```
 
-### Message Streaming
+### Message Streaming & Optimistic UI
 
-Support for real-time streaming responses:
+ConversationKit features a custom, "Sticky Top" scrolling paradigm designed specifically for AI chatbots. When a user sends a message, it is anchored cleanly to the top of the visible area, and the AI's response streams beneath it seamlessly, allowing the text to grow organically downwards out of view without violently jumping or auto-scrolling the user away from the text they are actively reading.
+
+**Important Note:** To deliver this butter-smooth scroll physics, ConversationKit utilizes an **Optimistic UI state**. It instantly adds the user's message to the layout internally the exact millisecond the Send button is tapped. You still *must* append the user's message to your own `messages` array inside your `onSendMessage` closure (as documented below). The SDK natively deduplicates your actual message against its optimistic placeholder instantly without any visual jank.
+
+Support for real-time streaming responses is fully native:
 
 ```swift
 func streamResponse() async {

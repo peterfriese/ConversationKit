@@ -56,6 +56,8 @@ public struct DefaultScrollToBottomButtonStyle: ScrollToBottomButtonStyle {
         .background(Circle().fill(Color.platformSecondaryBackground))
         .shadow(radius: 4, y: 2)
     }
+    // Required to strip away default background push-button bezel styling on macOS.
+    // iOS is completely unaffected as standard image buttons do not have a bezel.
     .buttonStyle(.plain)
     .padding()
   }

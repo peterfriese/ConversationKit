@@ -46,9 +46,18 @@ public struct ConversationView<Content, MessageType: Message, AttachmentType: At
   @State private var autoScrollTargetID: MessageType.ID?
   @State private var isAtBottom: Bool = false
   
+  /// The task currently executing the `onSendMessage` action. Used to show the Stop button.
   @State private var sendingTask: Task<Void, Never>?
+  
+  /// A temporary copy of the user's message used to instantly update the UI.
+  /// SwiftUI's `.scrollPosition` requires the layout to update synchronously with keyboard dismissal
+  /// for perfect "Sticky Top" physics. However, the SDK does not own the `messages` array, meaning
+  /// we must wait for the developer to append the message via the async `onSendMessage` action, which delays layout.
+  /// To fix this, we hold the message here optimistically to trick the layout engine into correct physics,
+  /// then seamlessly swap it out once the developer's data catches up.
   @State private var optimisticUserMessage: MessageType?
   
+  /// A dynamically computed list combining the developer's source of truth with our optimistic state.
   private var displayedMessages: [MessageType] {
     if let opt = optimisticUserMessage, !messages.contains(where: { $0.id == opt.id }) {
       return messages + [opt]
@@ -187,7 +196,8 @@ public struct ConversationView<Content, MessageType: Message, AttachmentType: At
     
     // Set the optimistic message synchronously so it immediately appears in the layout
     // for perfect "Sticky Top" scrolling physics when the keyboard dismisses.
-    // It will be seamlessly replaced by the developer's actual message update.
+    // It will be seamlessly replaced by the developer's actual message update since
+    // `displayedMessages` deduplicates by ID.
     optimisticUserMessage = userMessage
     
     withAnimation {
@@ -195,6 +205,10 @@ public struct ConversationView<Content, MessageType: Message, AttachmentType: At
       focusedField = nil // Dismiss keyboard
     }
 
+    // Wrap the developer's closure execution in a background task. 
+    // We mark it @MainActor so it yields execution immediately to allow the layout 
+    // physics animation above to finish, but keeps any state updates they perform safely 
+    // bound to the main thread by default to prevent deadlocks.
     sendingTask = Task { @MainActor in
       defer { 
         self.sendingTask = nil 
