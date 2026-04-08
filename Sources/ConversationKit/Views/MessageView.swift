@@ -20,59 +20,6 @@
 import SwiftUI
 import MarkdownUI
 
-/// Cross-platform corner specification replacing UIRectCorner.
-struct RectCorner: OptionSet, Sendable {
-  let rawValue: Int
-  static let topLeft = RectCorner(rawValue: 1 << 0)
-  static let topRight = RectCorner(rawValue: 1 << 1)
-  static let bottomLeft = RectCorner(rawValue: 1 << 2)
-  static let bottomRight = RectCorner(rawValue: 1 << 3)
-  static let allCorners: RectCorner = [.topLeft, .topRight, .bottomLeft, .bottomRight]
-}
-
-/// Cross-platform rounded corner shape using pure SwiftUI Path.
-struct RoundedCorner: Shape {
-  var radius: CGFloat = .infinity
-  var corners: RectCorner = .allCorners
-
-  func path(in rect: CGRect) -> Path {
-    let tl = corners.contains(.topLeft) ? radius : 0
-    let tr = corners.contains(.topRight) ? radius : 0
-    let bl = corners.contains(.bottomLeft) ? radius : 0
-    let br = corners.contains(.bottomRight) ? radius : 0
-
-    var path = Path()
-    path.move(to: CGPoint(x: rect.minX + tl, y: rect.minY))
-    path.addLine(to: CGPoint(x: rect.maxX - tr, y: rect.minY))
-    path.addArc(
-      tangent1End: CGPoint(x: rect.maxX, y: rect.minY),
-      tangent2End: CGPoint(x: rect.maxX, y: rect.minY + tr),
-      radius: tr)
-    path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY - br))
-    path.addArc(
-      tangent1End: CGPoint(x: rect.maxX, y: rect.maxY),
-      tangent2End: CGPoint(x: rect.maxX - br, y: rect.maxY),
-      radius: br)
-    path.addLine(to: CGPoint(x: rect.minX + bl, y: rect.maxY))
-    path.addArc(
-      tangent1End: CGPoint(x: rect.minX, y: rect.maxY),
-      tangent2End: CGPoint(x: rect.minX, y: rect.maxY - bl),
-      radius: bl)
-    path.addLine(to: CGPoint(x: rect.minX, y: rect.minY + tl))
-    path.addArc(
-      tangent1End: CGPoint(x: rect.minX, y: rect.minY),
-      tangent2End: CGPoint(x: rect.minX + tl, y: rect.minY),
-      radius: tl)
-    return path
-  }
-}
-
-extension View {
-  func roundedCorner(_ radius: CGFloat, corners: RectCorner) -> some View {
-    clipShape(RoundedCorner(radius: radius, corners: corners))
-  }
-}
-
 public struct MessageView: View {
   @Environment(\.presentErrorAction) var presentErrorAction
 
@@ -95,8 +42,9 @@ public struct MessageView: View {
         Spacer()
       }
       else {
-        Image(systemName: "cloud.circle.fill")
-          .font(.title)
+        Image(systemName: "sparkles")
+          .font(.title2)
+          .foregroundColor(.accentColor)
       }
       VStack(alignment: participant == .user ? .trailing : .leading) {
         if let error {
@@ -107,6 +55,7 @@ public struct MessageView: View {
             }
             .labelStyle(.iconOnly)
           }
+          .padding()
         }
         else {
           if let imageURL {
@@ -126,30 +75,62 @@ public struct MessageView: View {
               .cornerRadius(8.0)
             }
           }
-          if let message {
+          if let message, !message.isEmpty {
             Markdown(message)
+              .if(participant == .user) { view in
+                view.padding()
+              }
+          } else if participant == .other {
+            // Loading state for AI messages
+            TypingIndicator()
           }
         }
       }
-      .padding()
       .if(fullWidth) { view in
         view.frame(maxWidth: .infinity, alignment: .leading)
       }
-      .background {
-        participant == .other
-          ? Color.platformSecondaryBackground
-          : Color.platformGray4
+      .if(participant == .user) { view in
+        view
+          .background(Color.platformGray4)
+          .clipShape(UnevenRoundedRectangle(
+            topLeadingRadius: 20,
+            bottomLeadingRadius: 20,
+            bottomTrailingRadius: 8,
+            topTrailingRadius: 20
+          ))
       }
-      .roundedCorner(8, corners: participant == .other ? .topLeft : .topRight)
-      .roundedCorner(20, corners: participant == .other ? [.topRight, .bottomLeft, .bottomRight] : [.topLeft, .bottomLeft, .bottomRight])
       if participant == .other {
         Spacer()
       }
-      else {
-        Image(systemName: "person.circle.fill")
-          .font(.title)
-      }
     }
     .listRowSeparator(.hidden)
+  }
+}
+
+struct TypingIndicator: View {
+  @State private var offset: CGFloat = 0
+
+  var body: some View {
+    HStack(spacing: 4) {
+      Circle()
+        .fill(Color.secondary)
+        .frame(width: 6, height: 6)
+        .offset(y: offset)
+        .animation(.easeInOut(duration: 0.5).repeatForever().delay(0.0), value: offset)
+      Circle()
+        .fill(Color.secondary)
+        .frame(width: 6, height: 6)
+        .offset(y: offset)
+        .animation(.easeInOut(duration: 0.5).repeatForever().delay(0.2), value: offset)
+      Circle()
+        .fill(Color.secondary)
+        .frame(width: 6, height: 6)
+        .offset(y: offset)
+        .animation(.easeInOut(duration: 0.5).repeatForever().delay(0.4), value: offset)
+    }
+    .padding(.vertical, 8)
+    .onAppear {
+      offset = -4
+    }
   }
 }

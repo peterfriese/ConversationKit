@@ -13,7 +13,8 @@ ConversationKit is a SwiftUI library that provides an elegant and easy-to-use ch
 - 📱 **Modern iOS design** with glass effects (iOS 17+)
 - 🔄 **Real-time message streaming** support
 - 📎 **Attachment actions** with customizable menu
-- 🎯 **Auto-scrolling** to latest messages
+- 🎯 **Gemini-style scrolling** (anchors to user messages)
+- ⚙️ **Progressive disclosure APIs** for custom actions, disclaimers, and FABs
 - ⌨️ **Keyboard-aware** input handling
 
 ## Requirements

@@ -27,7 +27,7 @@ It doesn't have any internal dependencies on other components within this projec
 
 *   **Building and Running**: To use this component, add it as a package dependency to your Xcode project.
 *   **Testing**: The project has a dedicated test target, `ConversationKitTests`, for unit tests.
-*   **Architectural Patterns**: The component follows standard Swift and SwiftUI conventions. It uses a protocol-based approach for the message data model and makes extensive use of SwiftUI's environment values and view modifiers for customization.
+*   **Architectural Patterns**: The component follows standard Swift and SwiftUI conventions. It uses a protocol-based approach for the message data model and makes extensive use of SwiftUI's environment values and view modifiers for customization, adopting a Progressive Disclosure API design for advanced styling like `.messageActions`, `.conversationDisclaimer`, and `.scrollToBottomButtonStyle`.
 
 ## Usage and Integration
 
@@ -76,3 +76,4 @@ struct ChatView: View {
 *   The `ConversationView` does not own the `messages` array. The parent view is responsible for creating and managing the array.
 *   The library uses `async/await` for handling message sending and processing.
 *   The `Message` protocol includes an optional `error` property, allowing errors to be attached to messages and displayed in the UI.
+*   **Loading Indicators:** To display a loading state, simply append an AI (`.other`) message with a `nil` or empty `content`. `ConversationView` natively renders a loading view for this state without API breakage.
