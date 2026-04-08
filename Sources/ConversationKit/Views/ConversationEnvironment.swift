@@ -56,6 +56,7 @@ public struct DefaultScrollToBottomButtonStyle: ScrollToBottomButtonStyle {
         .background(Circle().fill(Color.platformSecondaryBackground))
         .shadow(radius: 4, y: 2)
     }
+    .buttonStyle(.plain)
     .padding()
   }
 }
