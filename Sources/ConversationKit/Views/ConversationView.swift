@@ -181,9 +181,9 @@ public struct ConversationView<Content, MessageType: Message, AttachmentType: At
       focusedField = nil // Dismiss keyboard
     }
 
-    sendingTask = Task {
-      defer { sendingTask = nil }
+    sendingTask = Task { @MainActor in
       await onSendMessageAction(userMessage)
+      self.sendingTask = nil
     }
   }
 

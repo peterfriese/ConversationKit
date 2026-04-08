@@ -49,11 +49,13 @@ struct ContentView: View {
     NavigationStack {
       ConversationView(messages: $messages, attachments: $attachments)
         .onSendMessage { userMessage in
-          if let defaultMessage = userMessage as? DefaultMessage {
-            messages.append(defaultMessage)
-          }
-          withAnimation {
-            self.attachments.removeAll()
+          await MainActor.run {
+            if let defaultMessage = userMessage as? DefaultMessage {
+              messages.append(defaultMessage)
+            }
+            withAnimation {
+              self.attachments.removeAll()
+            }
           }
           
           let content = userMessage.content ?? ""
@@ -100,6 +102,7 @@ struct ContentView: View {
     }
   }
 
+  @MainActor
   func generateResponse(for message: any Message) async {
     let text =
       "Culpa *amet* irure aliquip qui deserunt ullamco tempor do irure anim amet do incididunt. Tempor et dolor qui. Aliqua **anim** aliqua elit in. Veniam veniam magna aliquip. Anim eu et excepteur voluptate labore reprehenderit exercitation voluptate fugiat dolor reprehenderit tempor esse et amet."
@@ -134,6 +137,7 @@ struct ContentView: View {
     }
   }
 
+  @MainActor
   func generateLongResponse() async {
     let paragraphs = [
       "Here is a very long story just for you.",
