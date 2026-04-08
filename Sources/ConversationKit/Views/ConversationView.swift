@@ -25,6 +25,17 @@ extension EnvironmentValues {
 }
 
 public extension View {
+  /// Defines the action to be executed when the user sends a new message.
+  ///
+  /// This action is executed asynchronously in a background task managed by `ConversationView`.
+  /// While this task runs, the composer's "Send" button becomes a "Stop" button.
+  ///
+  /// - Important: `ConversationView` utilizes an Optimistic UI state to ensure flawless layout
+  ///   anchor physics when the keyboard dismisses. It instantly displays the user's message locally.
+  ///   When this action fires, you **must** append the provided `message` instance to your array to
+  ///   permanently store it. The exact `id` of the `message` parameter must be preserved; if you copy
+  ///   the content into a different model with a new UUID, the internal deduplication will fail and
+  ///   the message will briefly appear twice.
   func onSendMessage(_ action: @escaping (_ message: any Message) async -> Void) -> some View {
     environment(\.onSendMessageAction, action)
   }
@@ -38,8 +49,6 @@ public struct ConversationView<Content, MessageType: Message, AttachmentType: At
     case message(MessageType.ID)
     case bottomMarker
   }
-
-  @State private var scrolledID: ConversationScrollID?
   
   // Custom scroll tracking
   @State private var isAutoScrollingTop: Bool = false
@@ -59,8 +68,15 @@ public struct ConversationView<Content, MessageType: Message, AttachmentType: At
   
   /// A dynamically computed list combining the developer's source of truth with our optimistic state.
   private var displayedMessages: [MessageType] {
-    if let opt = optimisticUserMessage, !messages.contains(where: { $0.id == opt.id }) {
-      return messages + [opt]
+    if let opt = optimisticUserMessage {
+      // O(1) fast path: The developer almost certainly appended the message to the end of the array.
+      if let last = messages.last, last.id == opt.id {
+        return messages
+      }
+      // O(N) fallback path just in case the array is sorted differently.
+      if !messages.contains(where: { $0.id == opt.id }) {
+        return messages + [opt]
+      }
     }
     return messages
   }
@@ -128,7 +144,6 @@ public struct ConversationView<Content, MessageType: Message, AttachmentType: At
         .scrollTargetBehavior(.viewAligned)
         .scrollBounceBehavior(.always)
         .scrollDismissesKeyboard(.interactively)
-        .scrollPosition(id: $scrolledID, anchor: .top)
         .simultaneousGesture(
           DragGesture().onChanged { _ in
             // Stop sticky top anchoring if the user touches/scrolls the view
@@ -145,7 +160,6 @@ public struct ConversationView<Content, MessageType: Message, AttachmentType: At
             isAutoScrollingTop = true
             autoScrollTargetID = lastMessage.id
             withAnimation {
-              scrolledID = .message(lastMessage.id)
               proxy.scrollTo(ConversationScrollID.message(lastMessage.id), anchor: .top)
             }
           } 

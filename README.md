@@ -216,7 +216,8 @@ ConversationKit features a custom, physics-driven scrolling paradigm designed sp
 
 This relies entirely on SwiftUI's brilliant internal layout clamping, removing the need for fragile `GeometryReader` clutches, and ensures the user is never violently auto-scrolled away from the text they are reading.
 
-**Important Note:** To deliver this butter-smooth scroll physics, ConversationKit utilizes an **Optimistic UI state**. It instantly adds the user's message to the layout internally the exact millisecond the Send button is tapped to perfectly sync with the keyboard dismissal animation. You still *must* append the user's message to your own `messages` array inside your `onSendMessage` closure (as documented below). The SDK automatically deduplicates your actual message against its optimistic placeholder without any visual jumps.
+**Important Note:** To deliver this butter-smooth scroll physics, ConversationKit utilizes an **Optimistic UI state**. It instantly adds the user's message to the layout internally the exact millisecond the Send button is tapped to perfectly sync with the keyboard dismissal animation. You still *must* append the user's message to your own `messages` array inside your `onSendMessage` closure (as documented below). The SDK automatically deduplicates your actual message against its optimistic placeholder.
+> **Critical UUID Constraint:** When mapping the user's message into your array, you *must* preserve the exact `message.id` provided to you in the `.onSendMessage` closure. If you create a new Message with a brand new UUID instead, the deduplication engine will fail and the message will momentarily jump or appear twice.
 
 Support for real-time streaming responses is fully native:
 

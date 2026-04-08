@@ -45,6 +45,8 @@ The SDK resolves this conflict via an **Optimistic UI anchor strategy**:
 3. A background `@MainActor` `Task` is spawned, yielding execution to allow the layout engine to render the scroll animation, preventing UI deadlocks while the developer performs their async array updates or network calls.
 4. As the developer appends the actual message, `displayedMessages` natively deduplicates it against the optimistic copy, resulting in flawless scroll physics while strictly maintaining the "SDK does not own the array" architectural rule.
 
+> **Important API Contract Note:** The deduplication logic in step 4 relies explicitly on the `id` of the user's message. When the developer's `.onSendMessage` closure executes, they *must* append the exact `message` instance provided by the closure, or map it into a new model using the identical `message.id`. If they map the text into a completely new object with a randomly generated UUID, the deduplication engine will fail to recognize them as the same message, causing the message to briefly appear twice on screen before the optimistic placeholder expires.
+
 ## Usage and Integration
 
 The main way to use this component is by embedding the `ConversationView` in a SwiftUI view hierarchy. The `ConversationView` takes a `Binding` to an array of `Message` objects and an `onSendMessage` closure to handle user input.
