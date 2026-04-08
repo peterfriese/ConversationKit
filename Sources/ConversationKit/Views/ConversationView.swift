@@ -40,6 +40,11 @@ public struct ConversationView<Content, MessageType: Message, AttachmentType: At
   }
 
   @State private var scrolledID: ConversationScrollID?
+  
+  // Custom scroll tracking
+  @State private var isAutoScrollingTop: Bool = false
+  @State private var autoScrollTargetID: MessageType.ID?
+  @State private var isAtBottom: Bool = false
 
   @State private var message: String = ""
   @FocusState private var focusedField: FocusedField?
@@ -92,6 +97,12 @@ public struct ConversationView<Content, MessageType: Message, AttachmentType: At
             Spacer()
               .frame(height: 100)
               .id(ConversationScrollID.bottomMarker)
+              .onAppear {
+                isAtBottom = true
+              }
+              .onDisappear {
+                isAtBottom = false
+              }
           }
           .scrollTargetLayout()
         }
@@ -99,12 +110,29 @@ public struct ConversationView<Content, MessageType: Message, AttachmentType: At
         .scrollBounceBehavior(.always)
         .scrollDismissesKeyboard(.interactively)
         .scrollPosition(id: $scrolledID, anchor: .top)
+        .simultaneousGesture(
+          DragGesture().onChanged { _ in
+            // Stop sticky top anchoring if the user touches/scrolls the view
+            isAutoScrollingTop = false
+            autoScrollTargetID = nil
+          }
+        )
         .onChange(of: messages) { oldValue, newValue in
-          // Anchor to the latest user message
-          if let lastMessage = newValue.last, lastMessage.participant == .user {
+          // 1. Detect if a brand new message was submitted by the user
+          let wasUserMessageAdded = oldValue.count < newValue.count && newValue.last?.participant == .user
+          
+          if wasUserMessageAdded, let lastMessage = newValue.last {
+            // Anchor to the new user message, trigger auto-scrolling state
+            isAutoScrollingTop = true
+            autoScrollTargetID = lastMessage.id
             withAnimation {
               scrolledID = .message(lastMessage.id)
             }
+          } 
+          // 2. If we are currently anchored, and new tokens are arriving (list mutated but user didn't scroll away)
+          else if isAutoScrollingTop, let targetID = autoScrollTargetID {
+            // Force the proxy to clamp to the top of the anchor without animation (seamless "riding" of the expanding content)
+            proxy.scrollTo(ConversationScrollID.message(targetID), anchor: .top)
           }
         }
         .overlay(alignment: .bottomTrailing) {
@@ -117,8 +145,10 @@ public struct ConversationView<Content, MessageType: Message, AttachmentType: At
             })
             .padding(.bottom, 80) // Adjust to sit above composer
             .padding(.trailing, 16)
+            .transition(.opacity.combined(with: .scale(scale: 0.8)))
           }
         }
+        .animation(.easeInOut(duration: 0.2), value: shouldShowFAB)
       }
 
       MessageComposerView(message: $message, attachments: $attachments)
@@ -131,12 +161,9 @@ public struct ConversationView<Content, MessageType: Message, AttachmentType: At
   }
   
   private var shouldShowFAB: Bool {
-    guard let scrolledID = scrolledID, case .message(let id) = scrolledID, !messages.isEmpty else { return false }
-    // If the currently top-anchored message is older than the last 3 messages, we likely scrolled up.
-    if let currentIndex = messages.firstIndex(where: { $0.id == id }) {
-      return currentIndex < messages.count - 3
-    }
-    return false
+    if messages.isEmpty { return false }
+    if isAutoScrollingTop { return false }
+    return !isAtBottom
   }
 
   @MainActor
