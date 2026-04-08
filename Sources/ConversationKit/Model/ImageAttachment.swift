@@ -20,9 +20,9 @@ import SwiftUI
 
 public struct ImageAttachment: Attachment {
   public let id = UUID()
-  public let image: UIImage
+  public let image: PlatformImage
 
-  public init(image: UIImage) {
+  public init(image: PlatformImage) {
     self.image = image
   }
 
@@ -37,7 +37,7 @@ public struct ImageAttachment: Attachment {
 
 extension ImageAttachment: View {
   public var body: some View {
-    Image(uiImage: image)
+    Image(platformImage: image)
       .resizable()
       .aspectRatio(contentMode: .fill)
       .frame(width: 100, height: 100)

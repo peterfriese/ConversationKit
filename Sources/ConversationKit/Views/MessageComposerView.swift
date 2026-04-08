@@ -53,7 +53,7 @@ public struct MessageComposerView<AttachmentType: Attachment & View>: View {
 
   public var body: some View {
 #if compiler(>=6.2)
-    if #available(iOS 26.0, *) {
+    if #available(iOS 26.0, macOS 26.0, *) {
       GlassEffectContainer {
         HStack(alignment: .bottom) {
           if !disableAttachments, let attachmentActions {
@@ -121,7 +121,7 @@ public struct MessageComposerView<AttachmentType: Attachment & View>: View {
         .clipShape(Circle())
         .overlay(
           Circle()
-            .stroke(Color(.separator), lineWidth: 0.5)
+            .stroke(Color.platformSeparator, lineWidth: 0.5)
         )
         .padding(.trailing, 8)
       }
@@ -156,7 +156,7 @@ public struct MessageComposerView<AttachmentType: Attachment & View>: View {
       .clipShape(RoundedRectangle(cornerRadius: 22))
       .overlay(
         RoundedRectangle(cornerRadius: 22)
-          .stroke(Color(.separator), lineWidth: 0.5)
+          .stroke(Color.platformSeparator, lineWidth: 0.5)
       )
     }
     .padding(.top, 8)
@@ -174,9 +174,9 @@ extension MessageComposerView where AttachmentType == EmptyAttachment {
 #Preview("With Attachments") {
   @Previewable @State var message = "Hello, world!"
   @Previewable @State var attachments = [
-    ImageAttachment(image: UIImage(systemName: "photo")!),
-    ImageAttachment(image: UIImage(systemName: "camera")!),
-    ImageAttachment(image: UIImage(systemName: "mic")!)
+    ImageAttachment(image: PlatformImage.systemSymbol("photo")!),
+    ImageAttachment(image: PlatformImage.systemSymbol("camera")!),
+    ImageAttachment(image: PlatformImage.systemSymbol("mic")!)
   ]
 
   MessageComposerView(message: $message, attachments: $attachments)
