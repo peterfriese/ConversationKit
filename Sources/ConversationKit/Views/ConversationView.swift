@@ -176,21 +176,14 @@ public struct ConversationView<Content, MessageType: Message, AttachmentType: At
   func submit() {
     let userMessage = MessageType(content: message, imageURL: nil, participant: .user)
     
-    // Proactively append the user message to guarantee synchronous layout invalidation
-    // for perfect "Sticky Top" scrolling physics when the keyboard dismisses.
-    messages.append(userMessage)
-    
     withAnimation {
       message = ""
       focusedField = nil // Dismiss keyboard
     }
 
-    sendingTask = Task {
+    sendingTask = Task { @MainActor in
+      defer { self.sendingTask = nil }
       await onSendMessageAction(userMessage)
-      
-      await MainActor.run {
-        self.sendingTask = nil
-      }
     }
   }
 
