@@ -47,6 +47,14 @@ public struct ConversationView<Content, MessageType: Message, AttachmentType: At
   @State private var isAtBottom: Bool = false
   
   @State private var sendingTask: Task<Void, Never>?
+  @State private var optimisticUserMessage: MessageType?
+  
+  private var displayedMessages: [MessageType] {
+    if let opt = optimisticUserMessage, !messages.contains(where: { $0.id == opt.id }) {
+      return messages + [opt]
+    }
+    return messages
+  }
 
   @State private var message: String = ""
   @FocusState private var focusedField: FocusedField?
@@ -76,7 +84,7 @@ public struct ConversationView<Content, MessageType: Message, AttachmentType: At
       ScrollViewReader { proxy in
         ScrollView {
           LazyVStack(spacing: 16) {
-            ForEach(messages) { message in
+            ForEach(displayedMessages) { message in
               VStack(alignment: .leading, spacing: 8) {
                 content(message)
                 
@@ -90,7 +98,7 @@ public struct ConversationView<Content, MessageType: Message, AttachmentType: At
             }
             
             // Disclaimer View
-            if let lastMessage = messages.last, lastMessage.participant == .other, let disclaimer = conversationDisclaimer {
+            if let lastMessage = displayedMessages.last, lastMessage.participant == .other, let disclaimer = conversationDisclaimer {
               disclaimer
                 .padding(.horizontal)
                 .padding(.top, 8)
@@ -119,7 +127,7 @@ public struct ConversationView<Content, MessageType: Message, AttachmentType: At
             autoScrollTargetID = nil
           }
         )
-        .onChange(of: messages) { oldValue, newValue in
+        .onChange(of: displayedMessages) { oldValue, newValue in
           // 1. Detect if a brand new message was submitted by the user
           let wasUserMessageAdded = oldValue.count < newValue.count && newValue.last?.participant == .user
           
@@ -129,6 +137,7 @@ public struct ConversationView<Content, MessageType: Message, AttachmentType: At
             autoScrollTargetID = lastMessage.id
             withAnimation {
               scrolledID = .message(lastMessage.id)
+              proxy.scrollTo(ConversationScrollID.message(lastMessage.id), anchor: .top)
             }
           } 
           // 2. If we are currently anchored, and new tokens are arriving (list mutated but user didn't scroll away)
@@ -167,7 +176,7 @@ public struct ConversationView<Content, MessageType: Message, AttachmentType: At
   }
   
   private var shouldShowFAB: Bool {
-    if messages.isEmpty { return false }
+    if displayedMessages.isEmpty { return false }
     if isAutoScrollingTop { return false }
     return !isAtBottom
   }
@@ -176,13 +185,21 @@ public struct ConversationView<Content, MessageType: Message, AttachmentType: At
   func submit() {
     let userMessage = MessageType(content: message, imageURL: nil, participant: .user)
     
+    // Set the optimistic message synchronously so it immediately appears in the layout
+    // for perfect "Sticky Top" scrolling physics when the keyboard dismisses.
+    // It will be seamlessly replaced by the developer's actual message update.
+    optimisticUserMessage = userMessage
+    
     withAnimation {
       message = ""
       focusedField = nil // Dismiss keyboard
     }
 
     sendingTask = Task { @MainActor in
-      defer { self.sendingTask = nil }
+      defer { 
+        self.sendingTask = nil 
+        self.optimisticUserMessage = nil
+      }
       await onSendMessageAction(userMessage)
     }
   }
