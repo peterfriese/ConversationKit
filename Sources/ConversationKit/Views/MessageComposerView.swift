@@ -152,7 +152,9 @@ public struct MessageComposerView<AttachmentType: Attachment & View>: View {
           }) {
             Image(systemName: isGenerating ? "stop.fill" : "arrow.up")
               #if os(macOS)
-              .font(.subheadline.weight(.bold))
+              .font(isGenerating ? .system(size: 11, weight: .black) : .subheadline.weight(.bold))
+              #else
+              .font(isGenerating ? .system(size: 14, weight: .black) : .body.weight(.semibold))
               #endif
           }
           .disabled(!isGenerating && !canSubmit)
