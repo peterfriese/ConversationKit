@@ -156,7 +156,6 @@ public struct MessageComposerView<AttachmentType: Attachment & View>: View {
               #endif
           }
           .disabled(!isGenerating && !canSubmit)
-          .opacity(!isGenerating && !canSubmit ? 0.5 : 1.0)
           #if os(iOS)
           .buttonStyle(.borderedProminent)
           .buttonBorderShape(.circle)
@@ -164,10 +163,10 @@ public struct MessageComposerView<AttachmentType: Attachment & View>: View {
           .padding(EdgeInsets(top: 6, leading: 0, bottom: 6, trailing: 7))
           #else
           .buttonStyle(.plain)
-          .foregroundStyle(.white)
+          .foregroundStyle((isGenerating || canSubmit) ? .white : Color.secondary)
           // Specifically control the frame to match the + button
           .frame(width: ComposerMetrics.buttonSize, height: ComposerMetrics.buttonSize)
-          .background(Color.accentColor)
+          .background((isGenerating || canSubmit) ? Color.accentColor : Color.secondary.opacity(0.2))
           .clipShape(Circle())
           .padding(EdgeInsets(top: 2, leading: 0, bottom: 2, trailing: 2))
           #endif
