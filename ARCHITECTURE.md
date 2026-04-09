@@ -8,7 +8,7 @@ This document outlines the Product Requirements and Technical Architecture for r
 ### 2.1 Goals
 *   **Gemini-like UX:** Implement a smooth, streaming-friendly chat interface with specific scrolling behaviors ("Sticky Top").
 *   **Distinct Styling:** Provide strong default visual styles differentiating user inputs from AI responses, matching modern conversational UI standards.
-*   **Progressive Disclosure:** Expose flexible, SwiftUI-canonical extension points for developers to inject custom views (actions, disclaimers, FABs) without cluttering the base API.
+*   **Progressive Disclosure:** Expose flexible, SwiftUI-canonical extension points for developers to inject custom views (actions, disclaimers) without cluttering the base API.
 *   **Zero API Breakage:** The core `ConversationView` initializers and environment modifiers (like `.onSendMessage`) must remain unchanged.
 
 ### 2.2 User Experience (UX) & Interactions
@@ -39,8 +39,8 @@ This document outlines the Product Requirements and Technical Architecture for r
 *   **Disclaimer Text:** A customizable disclaimer must appear **only** beneath the most recent AI message in the thread.
 
 **2.2.4 Message Composer Experience**
-*   **Empty State:** The "Send" button is visually disabled and inactive if the message input is empty (and no attachments are provided).
-*   **Generation State (Send/Stop):** When a user sends a message, the `ConversationView` must track the execution of the `onSendMessageAction` closure. While this closure is executing, the composer's "Send" button must transform into a "Stop" button (`stop.fill`). 
+*   **Empty State:** The "Send" button is visually disabled if the message input is empty. It relies strictly on native platform disabled styling (e.g., `.borderedProminent` on iOS) to ensure high-contrast readability without artificial opacity stacking.
+*   **Generation State (Send/Stop):** When a user sends a message, the `ConversationView` must track the execution of the `onSendMessageAction` closure. While this closure is executing, the composer's "Send" button must transform into a "Stop" button (`stop.fill`). The stop icon utilizes specific, reduced font sizing to maintain visual mass balance against the default send arrow.
 *   **Cancellation:** Tapping the Stop button calls `cancel()` on the executing `Task`. This implements a "Zero API Breakage" stop mechanism by relying entirely on standard Swift Cooperative Cancellation. Developers using the SDK must ensure their networking/streaming code checks `Task.isCancelled` to make the stop button effective.
 
 ---
@@ -109,7 +109,7 @@ public extension View {
 *Usage within ConversationView:* Rendered at the bottom of the `LazyVStack` only if `messages.last?.participant == .other`.
 
 ## 4. Implementation Phasing
-1.  **Foundation:** Implement new Environment Keys and Modifiers for Actions, Disclaimer, and FAB style.
+1.  **Foundation:** Implement new Environment Keys and Modifiers for Actions and Disclaimer.
 2.  **Styling:** Update `MessageView` to implement the `UnevenRoundedRectangle` user bubble and the `nil` content loading state.
 3.  **Scroll Architecture:** Refactor `ConversationView` to use `ScrollViewReader` and implement the scroll tracking logic.
 4.  **Behavior:** Implement the "Push and Pin" anchor logic triggered upon message submission, respecting manual scroll overrides.
