@@ -37,7 +37,6 @@ This document outlines the Product Requirements and Technical Architecture for r
 **2.2.3 Auxiliary Views (Progressive Disclosure)**
 *   **Message Actions:** AI messages must support an optional action bar beneath the text (e.g., Thumbs Up/Down, Regenerate, Copy).
 *   **Disclaimer Text:** A customizable disclaimer must appear **only** beneath the most recent AI message in the thread.
-*   **Scroll to Bottom FAB:** A small, customizable Floating Action Button appears in the bottom trailing corner when the user is scrolled away from the bottom. Tapping it jumps to the newest content.
 
 **2.2.4 Message Composer Experience**
 *   **Empty State:** The "Send" button is visually disabled and inactive if the message input is empty (and no attachments are provided).
@@ -109,40 +108,9 @@ public extension View {
 ```
 *Usage within ConversationView:* Rendered at the bottom of the `LazyVStack` only if `messages.last?.participant == .other`.
 
-**3.3.3 Scroll To Bottom Button Style**
-To provide a canonical SwiftUI styling mechanism for the FAB:
-
-```swift
-public struct ScrollToBottomButtonConfiguration {
-    public let action: () -> Void
-}
-
-public protocol ScrollToBottomButtonStyle {
-    associatedtype Body: View
-    @ViewBuilder func makeBody(configuration: ScrollToBottomButtonConfiguration) -> Body
-}
-
-public struct DefaultScrollToBottomButtonStyle: ScrollToBottomButtonStyle {
-    public func makeBody(configuration: ScrollToBottomButtonConfiguration) -> some View {
-        // Implementation of default circular FAB with downward arrow
-    }
-}
-
-extension EnvironmentValues {
-    @Entry var scrollToBottomButtonStyle: any ScrollToBottomButtonStyle = DefaultScrollToBottomButtonStyle()
-}
-
-public extension View {
-    func scrollToBottomButtonStyle<S: ScrollToBottomButtonStyle>(_ style: S) -> some View {
-        environment(\.scrollToBottomButtonStyle, style)
-    }
-}
-```
-*Usage within ConversationView:* Placed as an overlay over the `ScrollView`, visible only when scroll tracking indicates the user is not near the bottom.
-
 ## 4. Implementation Phasing
 1.  **Foundation:** Implement new Environment Keys and Modifiers for Actions, Disclaimer, and FAB style.
 2.  **Styling:** Update `MessageView` to implement the `UnevenRoundedRectangle` user bubble and the `nil` content loading state.
 3.  **Scroll Architecture:** Refactor `ConversationView` to use `ScrollViewReader` and implement the scroll tracking logic.
-4.  **Behavior:** Implement the "Sticky Top" anchor logic triggered upon message submission, respecting manual scroll overrides.
-5.  **Integration:** Assemble the FAB, Action bars, and Disclaimer into the updated scroll view layout.
+4.  **Behavior:** Implement the "Push and Pin" anchor logic triggered upon message submission, respecting manual scroll overrides.
+5.  **Integration:** Assemble the Action bars and Disclaimer into the updated scroll view layout.

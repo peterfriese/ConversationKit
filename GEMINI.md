@@ -27,7 +27,7 @@ It doesn't have any internal dependencies on other components within this projec
 
 *   **Building and Running**: To use this component, add it as a package dependency to your Xcode project.
 *   **Testing**: The project has a dedicated test target, `ConversationKitTests`, for unit tests.
-*   **Architectural Patterns**: The component follows standard Swift and SwiftUI conventions. It uses a protocol-based approach for the message data model and makes extensive use of SwiftUI's environment values and view modifiers for customization, adopting a Progressive Disclosure API design for advanced styling like `.messageActions`, `.conversationDisclaimer`, and `.scrollToBottomButtonStyle`.
+*   **Architectural Patterns**: The component follows standard Swift and SwiftUI conventions. It uses a protocol-based approach for the message data model and makes extensive use of SwiftUI's environment values and view modifiers for customization, adopting a Progressive Disclosure API design for advanced styling like `.messageActions` and `.conversationDisclaimer`.
 
 ## SwiftUI Scroll Physics & Concurrency
 

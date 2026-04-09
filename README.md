@@ -14,7 +14,7 @@ ConversationKit is a SwiftUI library that provides an elegant and easy-to-use ch
 - 🔄 **Real-time message streaming** support
 - 📎 **Attachment actions** with customizable menu
 - 🎯 **Gemini-style "Push and Pin" scrolling** (native SwiftUI clamping logic)
-- ⚙️ **Progressive disclosure APIs** for custom actions, disclaimers, and FABs
+- ⚙️ **Progressive disclosure APIs** for custom actions and disclaimers
 - 🛑 **Interruptible generation** (built-in stop button support)
 
 ## Requirements

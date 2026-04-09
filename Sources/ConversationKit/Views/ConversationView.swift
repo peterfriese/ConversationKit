@@ -53,7 +53,6 @@ public struct ConversationView<Content, MessageType: Message, AttachmentType: At
   // Custom scroll tracking
   @State private var isAutoScrollingTop: Bool = false
   @State private var autoScrollTargetID: MessageType.ID?
-  @State private var isAtBottom: Bool = false
   
   /// The task currently executing the `onSendMessage` action. Used to show the Stop button.
   @State private var sendingTask: Task<Void, Never>?
@@ -90,7 +89,6 @@ public struct ConversationView<Content, MessageType: Message, AttachmentType: At
   @Environment(\.onSendMessageAction) private var onSendMessageAction
   @Environment(\.messageActions) private var messageActions
   @Environment(\.conversationDisclaimer) private var conversationDisclaimer
-  @Environment(\.scrollToBottomButtonStyle) private var scrollToBottomButtonStyle
   
   private let content: (MessageType) -> Content
   
@@ -132,12 +130,6 @@ public struct ConversationView<Content, MessageType: Message, AttachmentType: At
             Spacer()
               .frame(height: 100)
               .id(ConversationScrollID.bottomMarker)
-              .onAppear {
-                isAtBottom = true
-              }
-              .onDisappear {
-                isAtBottom = false
-              }
           }
           .scrollTargetLayout()
         }
@@ -169,20 +161,6 @@ public struct ConversationView<Content, MessageType: Message, AttachmentType: At
             proxy.scrollTo(ConversationScrollID.message(targetID), anchor: .top)
           }
         }
-        .overlay(alignment: .bottomTrailing) {
-          // Show FAB if not near bottom
-          if shouldShowFAB {
-            scrollToBottomButtonStyle.makeBody(configuration: ScrollToBottomButtonConfiguration {
-              withAnimation {
-                proxy.scrollTo(ConversationScrollID.bottomMarker, anchor: .bottom)
-              }
-            })
-            .padding(.bottom, 80) // Adjust to sit above composer
-            .padding(.trailing, 16)
-            .transition(.opacity.combined(with: .scale(scale: 0.8)))
-          }
-        }
-        .animation(.easeInOut(duration: 0.2), value: shouldShowFAB)
       }
 
       MessageComposerView(message: $message, attachments: $attachments)
@@ -196,12 +174,6 @@ public struct ConversationView<Content, MessageType: Message, AttachmentType: At
           submit()
         }
     }
-  }
-  
-  private var shouldShowFAB: Bool {
-    if displayedMessages.isEmpty { return false }
-    if isAutoScrollingTop { return false }
-    return !isAtBottom
   }
 
   @MainActor
