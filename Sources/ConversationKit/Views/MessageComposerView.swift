@@ -20,20 +20,36 @@ import SwiftUI
 
 extension EnvironmentValues {
   @Entry var onSubmitAction: () -> Void = {}
+  @Entry var onStopAction: () -> Void = {}
+  @Entry var isGenerating: Bool = false
   @Entry var disableAttachments: Bool = false
   @Entry var attachmentActions: AnyView? = nil
 }
 
-extension View {
-  public func onSubmitAction(_ action: @escaping () -> Void) -> some View {
+public extension View {
+  /// Defines the closure executed when the user taps the send button (or hits return).
+  func onSubmitAction(_ action: @escaping () -> Void) -> some View {
     environment(\.onSubmitAction, action)
   }
   
-  public func disableAttachments(_ disable: Bool = true) -> some View {
+  /// Defines the closure executed when the user taps the stop button during active generation.
+  /// Used to cooperatively cancel the background task running the submit action.
+  func onStopAction(_ action: @escaping () -> Void) -> some View {
+    environment(\.onStopAction, action)
+  }
+  
+  /// Injects the current background execution state to toggle the Send button into a Stop button.
+  func isGenerating(_ isGenerating: Bool) -> some View {
+    environment(\.isGenerating, isGenerating)
+  }
+  
+  /// Disables the attachment (+) button inside the `MessageComposerView`.
+  func disableAttachments(_ disable: Bool = true) -> some View {
     environment(\.disableAttachments, disable)
   }
   
-  public func attachmentActions<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+  /// Defines a custom set of buttons to be displayed when the attachment (+) button is tapped.
+  func attachmentActions<Content: View>(@ViewBuilder content: () -> Content) -> some View {
     environment(\.attachmentActions, AnyView(content()))
   }
 }
@@ -48,6 +64,8 @@ private enum ComposerMetrics {
 
 public struct MessageComposerView<AttachmentType: Attachment & View>: View {
   @Environment(\.onSubmitAction) private var onSubmitAction
+  @Environment(\.onStopAction) private var onStopAction
+  @Environment(\.isGenerating) private var isGenerating
   @Environment(\.disableAttachments) private var disableAttachments
   @Environment(\.attachmentActions) private var attachmentActions
 
@@ -106,6 +124,8 @@ public struct MessageComposerView<AttachmentType: Attachment & View>: View {
         }
 
         HStack(alignment: .center) {
+          let canSubmit = !message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !attachments.isEmpty
+          
           TextField("Enter a message", text: $message, axis: .vertical)
             #if os(iOS)
             .frame(minHeight: 32)
@@ -115,14 +135,29 @@ public struct MessageComposerView<AttachmentType: Attachment & View>: View {
             // Asymmetrical padding to push the text UP optically, offsetting AppKit's intrinsic baseline spacing
             .padding(EdgeInsets(top: 7, leading: 12, bottom: 9, trailing: 0))
             #endif
-            .onSubmit(of: .text) { onSubmitAction() }
+            .onSubmit(of: .text) {
+              if isGenerating {
+                onStopAction()
+              } else if canSubmit {
+                onSubmitAction()
+              }
+            }
 
-          Button(action: { onSubmitAction() }) {
-            Image(systemName: "arrow.up")
+          Button(action: {
+            if isGenerating {
+              onStopAction()
+            } else if canSubmit {
+              onSubmitAction()
+            }
+          }) {
+            Image(systemName: isGenerating ? "stop.fill" : "arrow.up")
               #if os(macOS)
-              .font(.subheadline.weight(.bold))
+              .font(isGenerating ? .system(size: 11, weight: .black) : .subheadline.weight(.bold))
+              #else
+              .font(isGenerating ? .system(size: 14, weight: .black) : .body.weight(.semibold))
               #endif
           }
+          .disabled(!isGenerating && !canSubmit)
           #if os(iOS)
           .buttonStyle(.borderedProminent)
           .buttonBorderShape(.circle)
@@ -130,10 +165,10 @@ public struct MessageComposerView<AttachmentType: Attachment & View>: View {
           .padding(EdgeInsets(top: 6, leading: 0, bottom: 6, trailing: 7))
           #else
           .buttonStyle(.plain)
-          .foregroundStyle(.white)
+          .foregroundStyle((isGenerating || canSubmit) ? .white : Color.secondary)
           // Specifically control the frame to match the + button
           .frame(width: ComposerMetrics.buttonSize, height: ComposerMetrics.buttonSize)
-          .background(Color.accentColor)
+          .background((isGenerating || canSubmit) ? Color.accentColor : Color.secondary.opacity(0.2))
           .clipShape(Circle())
           .padding(EdgeInsets(top: 2, leading: 0, bottom: 2, trailing: 2))
           #endif

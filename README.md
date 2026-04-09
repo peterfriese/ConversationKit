@@ -13,8 +13,9 @@ ConversationKit is a SwiftUI library that provides an elegant and easy-to-use ch
 - 📱 **Modern iOS design** with glass effects (iOS 17+)
 - 🔄 **Real-time message streaming** support
 - 📎 **Attachment actions** with customizable menu
-- 🎯 **Auto-scrolling** to latest messages
-- ⌨️ **Keyboard-aware** input handling
+- 🎯 **Gemini-style "Push and Pin" scrolling** (native SwiftUI clamping logic)
+- ⚙️ **Progressive disclosure APIs** for custom actions and disclaimers
+- 🛑 **Interruptible generation** (built-in stop button support)
 
 ## Requirements
 
@@ -138,6 +139,28 @@ The main chat interface. It can be initialized in a few ways:
     }
     ```
 
+### Interrupting Generation (Stop Button)
+
+When the user sends a message, `ConversationView` automatically tracks the execution of your `onSendMessage` block. During this time, the "Send" button is replaced by a "Stop" button.
+
+To make the stop button work properly, your async code must be aware of Swift's cooperative cancellation. You can do this by using APIs that automatically throw `CancellationError` (like `URLSession`), or by checking manually during streaming operations:
+
+```swift
+.onSendMessage { message in
+    messages.append(message)
+    
+    // Example: A custom async stream
+    let stream = await myAIService.streamResponse(message)
+    
+    for try await chunk in stream {
+        // This line is required for the "Stop" button to cancel the stream
+        try Task.checkCancellation() 
+        
+        messages.last?.content?.append(chunk)
+    }
+}
+```
+
 ## Advanced Usage
 
 ### Custom Message Rendering
@@ -187,9 +210,16 @@ ConversationView(messages: $messages) { message in
 }
 ```
 
-### Message Streaming
+### Message Streaming & The "Push and Pin" UX
 
-Support for real-time streaming responses:
+ConversationKit features a custom, physics-driven scrolling paradigm designed specifically for AI chatbots. When a user sends a short message, it rests naturally at the bottom above the composer. As the AI begins generating its response directly below, the expanding text smoothly *pushes* the user's message upward natively. The exact moment the user's message touches the top navigation bar, the ScrollView natively *pins* it in place, allowing the rest of the massive generated response to flow organically downwards out of view!
+
+This relies entirely on SwiftUI's brilliant internal layout clamping, removing the need for fragile `GeometryReader` clutches, and ensures the user is never violently auto-scrolled away from the text they are reading.
+
+**Important Note:** To deliver this butter-smooth scroll physics, ConversationKit utilizes an **Optimistic UI state**. It instantly adds the user's message to the layout internally the exact millisecond the Send button is tapped to perfectly sync with the keyboard dismissal animation. You still *must* append the user's message to your own `messages` array inside your `onSendMessage` closure (as documented below). The SDK automatically deduplicates your actual message against its optimistic placeholder.
+> **Critical UUID Constraint:** When mapping the user's message into your array, you *must* preserve the exact `message.id` provided to you in the `.onSendMessage` closure. If you create a new Message with a brand new UUID instead, the deduplication engine will fail and the message will momentarily jump or appear twice.
+
+Support for real-time streaming responses is fully native:
 
 ```swift
 func streamResponse() async {

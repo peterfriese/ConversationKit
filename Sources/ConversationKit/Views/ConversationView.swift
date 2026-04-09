@@ -22,143 +22,63 @@ extension EnvironmentValues {
   @Entry var onSendMessageAction: (_ message: any Message) async -> Void = { message in
     // no-op
   }
-  
 }
 
 public extension View {
+  /// Defines the action to be executed when the user sends a new message.
+  ///
+  /// This action is executed asynchronously in a background task managed by `ConversationView`.
+  /// While this task runs, the composer's "Send" button becomes a "Stop" button.
+  ///
+  /// - Important: `ConversationView` utilizes an Optimistic UI state to ensure flawless layout
+  ///   anchor physics when the keyboard dismisses. It instantly displays the user's message locally.
+  ///   When this action fires, you **must** append the provided `message` instance to your array to
+  ///   permanently store it. The exact `id` of the `message` parameter must be preserved; if you copy
+  ///   the content into a different model with a new UUID, the internal deduplication will fail and
+  ///   the message will briefly appear twice.
   func onSendMessage(_ action: @escaping (_ message: any Message) async -> Void) -> some View {
     environment(\.onSendMessageAction, action)
   }
 }
 
-
-/// A view that displays a conversation thread and provides a text input field for the user.
-///
-/// `ConversationView` takes a binding to an array of `Message` objects and
-/// displays them in a scrollable view. It also provides a text input field at the
-/// bottom for the user to compose and send new messages. When a new message is
-/// submitted, it is automatically appended to the `messages` array.
-///
-/// ## Handling Sent Messages
-///
-/// To handle new messages sent by the user, use the `onSendMessage(_:)`
-/// view modifier. This modifier's closure is called with the user's `Message`
-/// object when they send it and supports async operations. In this closure, you can
-/// process the message asynchronously, such as by sending it to a backend or a local
-/// model, and then append any response to your `messages` array to have it appear
-/// in the conversation.
-///
-/// ## Built-in Message Rendering
-///
-/// The simplest way to use `ConversationView` is with the default message renderer,
-/// which uses the built-in `MessageView` to display messages:
-///
-/// ```swift
-/// struct ChatScreen: View {
-///     @State private var messages: [DefaultMessage] = [
-///         .init(content: "Hello!", participant: .other)
-///     ]
-///
-///     var body: some View {
-///         ConversationView(messages: $messages)
-///             .onSendMessage { userMessage in
-///                 // Process the user's message asynchronously
-///                 let responseText = await getResponse(for: userMessage.content ?? "")
-///                 let responseMessage = DefaultMessage(content: responseText, participant: .other)
-///                 await MainActor.run {
-///                     messages.append(responseMessage)
-///                 }
-///             }
-///     }
-///
-///     func getResponse(for text: String) async -> String {
-///         // Simulate network request
-///         try? await Task.sleep(for: .seconds(1))
-///         return "You said: \(text)"
-///     }
-/// }
-/// ```
-///
-/// ## Custom Message Rendering
-///
-/// For more control over message appearance, you can provide a custom content closure
-/// that defines how each message should be rendered:
-///
-/// ```swift
-/// struct CustomChatScreen: View {
-///     @State private var messages: [DefaultMessage] = [
-///         .init(content: "Hello!", participant: .other)
-///     ]
-///
-///     var body: some View {
-///         ConversationView(messages: $messages) { message in
-///             HStack {
-///                 if message.participant == .user {
-///                     Spacer()
-///                 }
-///                 
-///                 VStack(alignment: .leading) {
-///                     if let content = message.content {
-///                         Text(content)
-///                             .padding()
-///                             .background(message.participant == .user ? Color.blue : Color.gray)
-///                             .foregroundColor(.white)
-///                             .cornerRadius(12)
-///                     }
-///                 }
-///                 
-///                 if message.participant == .other {
-///                     Spacer()
-///                 }
-///             }
-///         }
-///         .onSendMessage { userMessage in
-///             // Handle the sent message asynchronously
-///             await processMessage(userMessage)
-///         }
-///     }
-///     
-///     func processMessage(_ message: any Message) async {
-///         // Perform async operations like API calls
-///         let response = await chatService.getResponse(to: message.content ?? "")
-///         await MainActor.run {
-///             messages.append(DefaultMessage(content: response, participant: .other))
-///         }
-///     }
-/// }
-/// ```
-///
-/// ## Error Handling
-///
-/// Since the `onSendMessage` action is async, you can handle errors naturally:
-///
-/// ```swift
-/// .onSendMessage { userMessage in
-///     do {
-///         let response = try await chatService.sendMessage(userMessage.content ?? "")
-///         await MainActor.run {
-///             messages.append(DefaultMessage(content: response, participant: .other))
-///         }
-///     } catch {
-///         await MainActor.run {
-///             messages.append(DefaultMessage(content: "Error: \(error.localizedDescription)", participant: .other))
-///         }
-///     }
-/// }
-/// ```
-///
-/// ## Initializers
-///
-/// - `init(messages:)`: Creates a conversation view with built-in message rendering using `MessageView`
-/// - `init(messages:content:)`: Creates a conversation view with custom message rendering using the provided content closure
-///
-/// - Parameter messages: A binding to an array of `Message` instances representing the conversation.
-/// - Parameter content: A closure that takes a `Message` and returns a view for rendering that message.
 public struct ConversationView<Content, MessageType: Message, AttachmentType: Attachment & View>: View where Content: View {
   @Binding var messages: [MessageType]
   @Binding var attachments: [AttachmentType]
 
-  @State private var scrolledID: MessageType.ID?
+  enum ConversationScrollID: Hashable {
+    case message(MessageType.ID)
+    case bottomMarker
+  }
+  
+  // Custom scroll tracking
+  @State private var isAutoScrollingTop: Bool = false
+  @State private var autoScrollTargetID: MessageType.ID?
+  
+  /// The task currently executing the `onSendMessage` action. Used to show the Stop button.
+  @State private var sendingTask: Task<Void, Never>?
+  
+  /// A temporary copy of the user's message used to instantly update the UI.
+  /// SwiftUI's `.scrollPosition` requires the layout to update synchronously with keyboard dismissal
+  /// for perfect "Sticky Top" physics. However, the SDK does not own the `messages` array, meaning
+  /// we must wait for the developer to append the message via the async `onSendMessage` action, which delays layout.
+  /// To fix this, we hold the message here optimistically to trick the layout engine into correct physics,
+  /// then seamlessly swap it out once the developer's data catches up.
+  @State private var optimisticUserMessage: MessageType?
+  
+  /// A dynamically computed list combining the developer's source of truth with our optimistic state.
+  private var displayedMessages: [MessageType] {
+    if let opt = optimisticUserMessage {
+      // O(1) fast path: The developer almost certainly appended the message to the end of the array.
+      if let last = messages.last, last.id == opt.id {
+        return messages
+      }
+      // O(N) fallback path just in case the array is sorted differently.
+      if !messages.contains(where: { $0.id == opt.id }) {
+        return messages + [opt]
+      }
+    }
+    return messages
+  }
 
   @State private var message: String = ""
   @FocusState private var focusedField: FocusedField?
@@ -167,6 +87,8 @@ public struct ConversationView<Content, MessageType: Message, AttachmentType: At
   }
 
   @Environment(\.onSendMessageAction) private var onSendMessageAction
+  @Environment(\.messageActions) private var messageActions
+  @Environment(\.conversationDisclaimer) private var conversationDisclaimer
   
   private let content: (MessageType) -> Content
   
@@ -182,31 +104,75 @@ public struct ConversationView<Content, MessageType: Message, AttachmentType: At
 
   public var body: some View {
     ZStack(alignment: .bottom) {
-      ScrollView {
-        LazyVStack(spacing: 20) {
-          ForEach(messages) { message in
-            content(message)
+      ScrollViewReader { proxy in
+        ScrollView {
+          LazyVStack(spacing: 16) {
+            ForEach(displayedMessages) { message in
+              VStack(alignment: .leading, spacing: 8) {
+                content(message)
+                
+                // Message Actions
+                if message.participant == .other, let actions = messageActions {
+                  actions(message)
+                }
+              }
               .padding(.horizontal)
+              .id(ConversationScrollID.message(message.id))
+            }
+            
+            // Disclaimer View
+            if let lastMessage = displayedMessages.last, lastMessage.participant == .other, let disclaimer = conversationDisclaimer {
+              disclaimer
+                .padding(.horizontal)
+                .padding(.top, 8)
+            }
+            
+            Spacer()
+              .frame(height: 100)
+              .id(ConversationScrollID.bottomMarker)
           }
-          Spacer()
-            .frame(height: 50)
+          .scrollTargetLayout()
         }
-        .scrollTargetLayout()
+        .scrollTargetBehavior(.viewAligned)
+        .scrollBounceBehavior(.always)
+        .scrollDismissesKeyboard(.interactively)
+        .simultaneousGesture(
+          DragGesture().onChanged { _ in
+            // Stop sticky top anchoring if the user touches/scrolls the view
+            isAutoScrollingTop = false
+            autoScrollTargetID = nil
+          }
+        )
+        .onChange(of: displayedMessages) { oldValue, newValue in
+          // 1. Detect if a brand new message was submitted by the user
+          let wasUserMessageAdded = oldValue.count < newValue.count && newValue.last?.participant == .user
+          
+          if wasUserMessageAdded, let lastMessage = newValue.last {
+            // Anchor to the new user message, trigger auto-scrolling state
+            isAutoScrollingTop = true
+            autoScrollTargetID = lastMessage.id
+            withAnimation {
+              proxy.scrollTo(ConversationScrollID.message(lastMessage.id), anchor: .top)
+            }
+          } 
+          // 2. If we are currently anchored, and new tokens are arriving (list mutated but user didn't scroll away)
+          else if isAutoScrollingTop, let targetID = autoScrollTargetID {
+            // Force the proxy to clamp to the top of the anchor without animation (seamless "riding" of the expanding content)
+            proxy.scrollTo(ConversationScrollID.message(targetID), anchor: .top)
+          }
+        }
       }
-      .scrollTargetBehavior(.viewAligned)
-      .scrollBounceBehavior(.always)
-      .scrollDismissesKeyboard(.interactively)
-      .scrollPosition(id: $scrolledID, anchor: .top)
 
       MessageComposerView(message: $message, attachments: $attachments)
         .padding(.bottom, 10) // keep distance from keyboard
         .focused($focusedField, equals: .message)
+        .isGenerating(sendingTask != nil)
+        .onStopAction {
+          sendingTask?.cancel()
+        }
         .onSubmitAction {
           submit()
         }
-    }
-    .onChange(of: messages) { oldValue, newValue in
-      scrolledID = messages.last?.id
     }
   }
 
@@ -214,12 +180,26 @@ public struct ConversationView<Content, MessageType: Message, AttachmentType: At
   func submit() {
     let userMessage = MessageType(content: message, imageURL: nil, participant: .user)
     
+    // Set the optimistic message synchronously so it immediately appears in the layout
+    // for perfect "Sticky Top" scrolling physics when the keyboard dismisses.
+    // It will be seamlessly replaced by the developer's actual message update since
+    // `displayedMessages` deduplicates by ID.
+    optimisticUserMessage = userMessage
+    
     withAnimation {
       message = ""
-      focusedField = .message
+      focusedField = nil // Dismiss keyboard
     }
 
-    Task {
+    // Wrap the developer's closure execution in a background task. 
+    // We mark it @MainActor so it yields execution immediately to allow the layout 
+    // physics animation above to finish, but keeps any state updates they perform safely 
+    // bound to the main thread by default to prevent deadlocks.
+    sendingTask = Task { @MainActor in
+      defer { 
+        self.sendingTask = nil 
+        self.optimisticUserMessage = nil
+      }
       await onSendMessageAction(userMessage)
     }
   }
@@ -262,129 +242,5 @@ extension ConversationView where AttachmentType == EmptyAttachment {
               attachments: .constant([]),
               userPrompt: userPrompt,
               content: content)
-  }
-}
-
-
-#Preview("Built-in chat bubbles") {
-  @Previewable @State var messages: [DefaultMessage] = [
-    .init(content: "Hello, how are you?",
-          imageURL: "https://picsum.photos/1080/1920",
-          participant: .other),
-    .init(content: "Well, I am fine, how are you?",
-          imageURL: "https://picsum.photos/100/100",
-          participant: .user),
-    .init(content: "Not too bad. Not too bad after all.", 
-          participant: .other),
-    .init(imageURL: "https://picsum.photos/100/100",
-          participant: .user),
-    .init(content: "Laborum ea ad anim magna.", participant: .other),
-    .init(content: "Esse aliquip laboris irure est voluptate aliquip non duis aute eu. Occaecat irure incididunt aute aute do sunt labore nisi esse nostrud amet labore enim mollit occaecat. Occaecat incididunt consectetur sint dolor deserunt exercitation mollit id culpa deserunt fugiat pariatur pariatur ullamco. Ex aliqua sit commodo enim qui commodo aliqua sint dolor laboris magna consequat adipisicing sunt.",
-          imageURL: "https://picsum.photos/100/100",
-          participant: .user)
-  ]
-  NavigationStack {
-    ConversationView(messages: $messages)
-      .attachmentActions {
-        Button(action: {}) {
-          Label("Photos", systemImage: "photo.on.rectangle.angled")
-        }
-        Button(action: {}) {
-          Label("Camera", systemImage: "camera")
-        }
-      }
-      .onSendMessage { userMessage in
-        let content = userMessage.content ?? "(nothing at all)"
-        print("You said: \(content)")
-        // Simulate async response
-        try? await Task.sleep(for: .seconds(0.5))
-        await MainActor.run {
-          messages.append(DefaultMessage(content: content.localizedUppercase, participant: .other))
-        }
-      }
-      .navigationTitle("Chat")
-      #if os(iOS)
-      .navigationBarTitleDisplayMode(.inline)
-      #endif
-  }
-}
-
-#Preview("Custom chat bubbles") {
-  @Previewable @State var messages: [DefaultMessage] = [
-    .init(content: "Hello, how are you?",
-          imageURL: "https://picsum.photos/1080/1920",
-          participant: .other),
-    .init(content: "Well, I am fine, how are you?",
-          imageURL: "https://picsum.photos/100/100",
-          participant: .user),
-    .init(content: "Not too bad. Not too bad after all.",
-          participant: .other),
-    .init(imageURL: "https://picsum.photos/100/100",
-          participant: .user),
-    .init(content: "Laborum ea ad anim magna.", participant: .other),
-    .init(content: "Esse aliquip laboris irure est voluptate aliquip non duis aute eu. Occaecat irure incididunt aute aute do sunt labore nisi esse nostrud amet labore enim mollit occaecat. Occaecat incididunt consectetur sint dolor deserunt exercitation mollit id culpa deserunt fugiat pariatur pariatur ullamco. Ex aliqua sit commodo enim qui commodo aliqua sint dolor laboris magna consequat adipisicing sunt.",
-          imageURL: "https://picsum.photos/100/100",
-          participant: .user)
-  ]
-  NavigationStack {
-    ConversationView(messages: $messages) { message in
-      VStack {
-        if let imageURL = message.imageURL {
-          if let url = URL(string: imageURL) {
-            HStack {
-              if message.participant == .user {
-                Spacer()
-              }
-              AsyncImage(url: url) { phase in
-                if let image = phase.image {
-                  image
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(maxWidth: 200, maxHeight: 400)
-                } else if phase.error != nil {
-                  Image(systemName: "icloud.slash")
-                } else {
-                  ProgressView()
-                }
-              }
-              .frame(width: .infinity, height: .infinity, alignment: .center)
-              .cornerRadius(8.0)
-              if message.participant == .other {
-                Spacer()
-              }
-            }
-          }
-        }
-        if let messageContent = message.content {
-          HStack {
-            if message.participant == .user {
-              Spacer()
-            }
-            Markdown(messageContent)
-              .padding()
-              .background {
-                message.participant == .other
-                      ? Color.platformSecondaryBackground
-                      : Color.platformGray4
-              }
-              .roundedCorner(10, corners: .allCorners)
-            if message.participant == .other {
-              Spacer()
-            }
-          }
-        }
-      }
-    }
-    .onSendMessage { userMessage in
-      let content = userMessage.content ?? "(nothing at all)"
-      print("You said: \(content)")
-      await MainActor.run {
-        messages.append(DefaultMessage(content: content.localizedUppercase, participant: .other))
-      }
-    }
-    .navigationTitle("Chat")
-    #if os(iOS)
-    .navigationBarTitleDisplayMode(.inline)
-    #endif
   }
 }
