@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.1.1
+- 🐛 fix(MessageComposerView): align send button to bottom for long text
+- 🐛 fix(ConversationView): address @State initialization error for SDK 27
+
+## v0.1.0
+- ✨ feat: Gemini-style 'Sticky Top' Scrolling & Progressive Disclosure UX
+- ✨ feat(ui): refine MessageComposerView for native macOS appearance
+- 🐛 fix: Add macOS platform support via Chameleon typealias pattern (#22)
+
 ## v0.0.4
 - 🐛 Fix build on Xcode 16 (#21)
 
