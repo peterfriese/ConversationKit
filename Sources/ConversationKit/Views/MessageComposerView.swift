@@ -123,7 +123,7 @@ public struct MessageComposerView<AttachmentType: Attachment & View>: View {
           .padding(.bottom, -8)
         }
 
-        HStack(alignment: .center) {
+        HStack(alignment: .bottom) {
           let canSubmit = !message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !attachments.isEmpty
           
           TextField("Enter a message", text: $message, axis: .vertical)
@@ -262,3 +262,4 @@ extension MessageComposerView where AttachmentType == EmptyAttachment {
     MessageComposerView(message: $message)
 
 }
+
