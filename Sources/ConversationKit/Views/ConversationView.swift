@@ -80,7 +80,7 @@ public struct ConversationView<Content, MessageType: Message, AttachmentType: At
     return messages
   }
 
-  @State private var message: String = ""
+  @State private var message: String
   @FocusState private var focusedField: FocusedField?
   enum FocusedField {
     case message
@@ -96,10 +96,10 @@ public struct ConversationView<Content, MessageType: Message, AttachmentType: At
               attachments: Binding<[AttachmentType]>,
               userPrompt: String? = "",
               @ViewBuilder content: @escaping (MessageType) -> Content) {
+    self.content = content
     self._messages = messages
     self._attachments = attachments
     self.message = userPrompt ?? ""
-    self.content = content
   }
 
   public var body: some View {
