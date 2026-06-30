@@ -45,6 +45,7 @@ public struct MessageView: View {
         Image(systemName: "sparkles")
           .font(.title2)
           .foregroundStyle(Color.accentColor)
+          .accessibilityHidden(true)
       }
       VStack(alignment: participant == .user ? .trailing : .leading) {
         if let error {
@@ -66,8 +67,10 @@ public struct MessageView: View {
                   image
                     .resizable()
                     .aspectRatio(contentMode: .fill)
+                    .accessibilityLabel("Attached image")
                 } else if phase.error != nil {
                   Image(systemName: "icloud.slash")
+                    .accessibilityLabel("Image failed to load")
                 } else {
                   ProgressView()
                 }
