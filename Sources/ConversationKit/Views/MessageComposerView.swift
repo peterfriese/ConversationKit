@@ -157,7 +157,7 @@ public struct MessageComposerView<AttachmentType: Attachment & View>: View {
               .font(isGenerating ? .system(size: 14, weight: .black) : .body.weight(.semibold))
               #endif
           }
-          .accessibilityLabel(isGenerating ? "Stop generating" : "Send message")
+          .accessibilityLabel(isGenerating ? Text("Stop generating") : Text("Send message"))
           .disabled(!isGenerating && !canSubmit)
           #if os(iOS)
           .buttonStyle(.borderedProminent)
