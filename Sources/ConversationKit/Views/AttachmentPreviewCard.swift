@@ -33,7 +33,7 @@ public struct AttachmentPreviewCard<AttachmentType: Attachment & View>: View {
       
       Button(action: onDelete) {
         Image(systemName: "xmark.circle.fill")
-          .foregroundColor(.white)
+          .foregroundStyle(.white)
           .background(Circle().fill(Color.black.opacity(0.6)))
       }
       .padding(4)

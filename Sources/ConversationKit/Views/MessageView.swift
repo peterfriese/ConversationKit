@@ -44,7 +44,7 @@ public struct MessageView: View {
       else {
         Image(systemName: "sparkles")
           .font(.title2)
-          .foregroundColor(.accentColor)
+          .foregroundStyle(Color.accentColor)
       }
       VStack(alignment: participant == .user ? .trailing : .leading) {
         if let error {
