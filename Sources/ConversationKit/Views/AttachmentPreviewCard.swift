@@ -36,6 +36,7 @@ public struct AttachmentPreviewCard<AttachmentType: Attachment & View>: View {
           .foregroundStyle(.white)
           .background(Circle().fill(Color.black.opacity(0.6)))
       }
+      .accessibilityLabel("Remove attachment")
       .padding(4)
     }
   }
