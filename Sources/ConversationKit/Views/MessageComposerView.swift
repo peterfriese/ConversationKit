@@ -80,7 +80,6 @@ public struct MessageComposerView<AttachmentType: Attachment & View>: View {
   public var body: some View {
     HStack(alignment: .bottom) {
       
-      // Plus button sits OUTSIDE the text pill on both iOS and macOS now
       if !disableAttachments, let attachmentActions {
         Menu {
           attachmentActions
@@ -93,6 +92,7 @@ public struct MessageComposerView<AttachmentType: Attachment & View>: View {
             .font(.callout.weight(.medium))
             #endif
         }
+        .accessibilityLabel("Add attachment")
         .menuStyle(.borderlessButton)
         #if os(iOS)
         .controlSize(.large)
@@ -157,6 +157,7 @@ public struct MessageComposerView<AttachmentType: Attachment & View>: View {
               .font(isGenerating ? .system(size: 14, weight: .black) : .body.weight(.semibold))
               #endif
           }
+          .accessibilityLabel(isGenerating ? Text("Stop generating") : Text("Send message"))
           .disabled(!isGenerating && !canSubmit)
           #if os(iOS)
           .buttonStyle(.borderedProminent)
