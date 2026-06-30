@@ -7,7 +7,7 @@ This component is an example application that demonstrates how to integrate `Con
 ## Key Files and Structure
 
 *   **`AIChatDemoApp.swift`**: The main entry point of the application. It sets up a `TabView` with three different chat examples.
-*   **`FirebaseAILogicChatView.swift`**: This view demonstrates how to integrate `ConversationKit` with Firebase AI.
+*   **`FirebaseAILogicChatView.swift`**: This view demonstrates how to integrate `ConversationKit` with Firebase AI, demonstrating multimodal inputs.
 *   **`FirebaseAILogicChatWithMetadataView.swift`**: This is a more advanced example of Firebase AI integration that shows how to use a custom `Message` type to display metadata from the AI service.
 *   **`FoundationModelChatView.swift`**: This view demonstrates how to integrate `ConversationKit` with on-device foundation models.
 *   **`AIChatDemo.xcodeproj`**: The Xcode project file for the application.
@@ -23,10 +23,11 @@ This component depends on the `ConversationKit` library and the following extern
 
 *   **Building and Running**: To run this example, open the `AIChatDemo.xcodeproj` file in Xcode and run the app on the simulator or a physical device.
 *   **Firebase Setup**: This example requires a `GoogleService-Info.plist` file to be added to the project to connect to Firebase.
+*   **Multimodal Attachment Conversion**: In `FirebaseAILogicChatViewModel`, when sending messages containing attachments, the platform-native images (`UIImage`/`PlatformImage`) are converted to Firebase AI's `InlineDataPart` representables (using JPEG or PNG data format) and submitted inside a unified `sendMessage` part list to the Gemini generative model.
 
 ## Usage and Integration
 
-This component is a standalone example application and is not meant to be integrated into other applications. It serves as a reference for developers who want to use `ConversationKit` with AI services.
+This component is a standalone example application and is not meant to be integrated into other applications. It serves as a reference for developers who want to learn how to use `ConversationKit` with AI services.
 
 ## Important Notes
 
