@@ -21,6 +21,7 @@ let package = Package(
       ]),
     .testTarget(
       name: "ConversationKitTests",
-      dependencies: ["ConversationKit"]),
+      dependencies: ["ConversationKit"],
+      exclude: ["AGENTS.md"]),
   ]
 )
