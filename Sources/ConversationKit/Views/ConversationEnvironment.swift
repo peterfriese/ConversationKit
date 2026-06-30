@@ -9,15 +9,27 @@ import SwiftUI
 
 // MARK: - Message Actions
 
+public struct MessageActions {
+  private let handler: (any Message) -> AnyView
+  
+  public init(handler: @escaping (any Message) -> AnyView) {
+    self.handler = handler
+  }
+  
+  public func callAsFunction(_ message: any Message) -> AnyView {
+    handler(message)
+  }
+}
+
 public extension EnvironmentValues {
-  @Entry var messageActions: ((any Message) -> AnyView)?
+  @Entry var messageActions: MessageActions?
 }
 
 public extension View {
   /// Defines a custom view to be displayed below AI messages (e.g. thumbs up/down, copy, regenerate).
   /// - Parameter actions: A closure that takes a `Message` and returns a View.
   func messageActions<V: View>(@ViewBuilder actions: @escaping (any Message) -> V) -> some View {
-    environment(\.messageActions, { message in AnyView(actions(message)) })
+    environment(\.messageActions, MessageActions(handler: { message in AnyView(actions(message)) }))
   }
 }
 

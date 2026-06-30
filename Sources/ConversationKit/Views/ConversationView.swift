@@ -18,10 +18,20 @@
 import SwiftUI
 import MarkdownUI
 
-extension EnvironmentValues {
-  @Entry var onSendMessageAction: (_ message: any Message) async -> Void = { message in
-    // no-op
+public struct OnSendMessageAction {
+  private let handler: (any Message) async -> Void
+  
+  public init(handler: @escaping (any Message) async -> Void) {
+    self.handler = handler
   }
+  
+  public func callAsFunction(_ message: any Message) async {
+    await handler(message)
+  }
+}
+
+extension EnvironmentValues {
+  @Entry var onSendMessageAction: OnSendMessageAction = OnSendMessageAction(handler: { _ in })
 }
 
 public extension View {
@@ -37,7 +47,7 @@ public extension View {
   ///   the content into a different model with a new UUID, the internal deduplication will fail and
   ///   the message will briefly appear twice.
   func onSendMessage(_ action: @escaping (_ message: any Message) async -> Void) -> some View {
-    environment(\.onSendMessageAction, action)
+    environment(\.onSendMessageAction, OnSendMessageAction(handler: action))
   }
 }
 
