@@ -145,7 +145,9 @@ struct ContentView: View {
 
         generatedText.append(String(chunk))
         responseMessage.content = generatedText
-        messages[messages.count - 1] = responseMessage
+        if let index = messages.firstIndex(where: { $0.id == responseMessage.id }) {
+          messages[index] = responseMessage
+        }
 
         let randomDelay = Double.random(in: 0.1...0.2)
         try await Task.sleep(nanoseconds: UInt64(randomDelay * 100_000_000))
@@ -191,7 +193,9 @@ struct ContentView: View {
 
         generatedText.append(String(chunk))
         message.content = generatedText
-        messages[messages.count - 1] = message
+        if let index = messages.firstIndex(where: { $0.id == message.id }) {
+          messages[index] = message
+        }
 
         let randomDelay = Double.random(in: 0.05...0.1)
         try? await Task.sleep(for: .seconds(randomDelay))

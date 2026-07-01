@@ -56,15 +56,20 @@ final class ConversationKitDemoUITests: XCTestCase {
             let sendButton = app.buttons["composer_primary_button"]
             sendButton.tap()
             
-            // The button should change its accessibility label to "Stop generating"
-            let stopButton = app.buttons["Stop generating"]
-            XCTAssertTrue(stopButton.waitForExistence(timeout: 15), "Stop button should appear during long response generation")
+            // Wait for the button label to change to "Stop generating"
+            let stopPredicate = NSPredicate(format: "label == 'Stop generating'")
+            let stopExpectation = XCTNSPredicateExpectation(predicate: stopPredicate, object: sendButton)
+            let result = XCTWaiter().wait(for: [stopExpectation], timeout: 15)
+            XCTAssertEqual(result, .completed, "Stop button should appear during long response generation")
             
             // Tap the stop button
-            stopButton.tap()
+            sendButton.tap()
             
-            // Verify it changes back to the send button (arrow.up) and is enabled again
-            XCTAssertTrue(sendButton.waitForExistence(timeout: 15), "Send button should reappear after stopping")
+            // Verify it changes back to the send button state ("Send message")
+            let sendPredicate = NSPredicate(format: "label == 'Send message'")
+            let sendExpectation = XCTNSPredicateExpectation(predicate: sendPredicate, object: sendButton)
+            let sendResult = XCTWaiter().wait(for: [sendExpectation], timeout: 15)
+            XCTAssertEqual(sendResult, .completed, "Send button should reappear after stopping")
         }
     }
 
@@ -81,8 +86,9 @@ final class ConversationKitDemoUITests: XCTestCase {
             let listView = app.scrollViews["conversation_scroll_view"]
             XCTAssertTrue(listView.waitForExistence(timeout: 15), "Conversation list should exist")
             
-            // Wait a bit for some messages to stream in
-            sleep(3)
+            // Wait non-blockingly for the streaming response text to start appearing
+            let responseText = app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "Byte")).firstMatch
+            XCTAssertTrue(responseText.waitForExistence(timeout: 15), "Streaming response should start appearing")
             
             // Drag up to manually scroll, which should disable auto-scrolling
             listView.swipeUp()
