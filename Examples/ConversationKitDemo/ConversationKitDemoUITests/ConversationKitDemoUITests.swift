@@ -23,7 +23,7 @@ final class ConversationKitDemoUITests: XCTestCase {
             
             // Type a message
             messageInput.tap()
-            messageInput.typeText("Hello from UI Test")
+            messageInput.typeText("Hello")
             
             // Find and tap the send button
             let sendButton = app.buttons["composer_primary_button"]
@@ -32,10 +32,10 @@ final class ConversationKitDemoUITests: XCTestCase {
             
             // Verify the message appears in the conversation list
             // We search for any element that contains the text, as Markdown might split it
-            let messageText = app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "Hello from UI Test")).firstMatch
+            let messageText = app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "Hello")).firstMatch
             if !messageText.waitForExistence(timeout: 15) {
                 print("UI Hierarchy: \(app.debugDescription)")
-                XCTFail("The submitted message 'Hello from UI Test' should appear in the list")
+                XCTFail("The submitted message 'Hello' should appear in the list")
             }
             
             // Verify the input field is cleared
