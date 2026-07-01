@@ -19,24 +19,26 @@
 import SwiftUI
 
 public struct OnSubmitAction {
-  private let handler: () -> Void
+  private let handler: @MainActor () -> Void
   
-  public init(handler: @escaping () -> Void = {}) {
+  public init(handler: @escaping @MainActor () -> Void = {}) {
     self.handler = handler
   }
   
+  @MainActor
   public func callAsFunction() {
     handler()
   }
 }
 
 public struct OnStopAction {
-  private let handler: () -> Void
+  private let handler: @MainActor () -> Void
   
-  public init(handler: @escaping () -> Void = {}) {
+  public init(handler: @escaping @MainActor () -> Void = {}) {
     self.handler = handler
   }
   
+  @MainActor
   public func callAsFunction() {
     handler()
   }
@@ -52,13 +54,15 @@ extension EnvironmentValues {
 
 public extension View {
   /// Defines the closure executed when the user taps the send button (or hits return).
-  func onSubmitAction(_ action: @escaping () -> Void) -> some View {
+  @MainActor
+  func onSubmitAction(_ action: @escaping @MainActor () -> Void) -> some View {
     environment(\.onSubmitAction, OnSubmitAction(handler: action))
   }
   
   /// Defines the closure executed when the user taps the stop button during active generation.
   /// Used to cooperatively cancel the background task running the submit action.
-  func onStopAction(_ action: @escaping () -> Void) -> some View {
+  @MainActor
+  func onStopAction(_ action: @escaping @MainActor () -> Void) -> some View {
     environment(\.onStopAction, OnStopAction(handler: action))
   }
   
@@ -116,6 +120,7 @@ public struct MessageComposerView<AttachmentType: Attachment & View>: View {
             .font(.callout.weight(.medium))
             #endif
         }
+        .accessibilityIdentifier("attachment_button")
         .accessibilityLabel("Add attachment")
         .menuStyle(.borderlessButton)
         #if os(iOS)
@@ -159,6 +164,7 @@ public struct MessageComposerView<AttachmentType: Attachment & View>: View {
             // Asymmetrical padding to push the text UP optically, offsetting AppKit's intrinsic baseline spacing
             .padding(EdgeInsets(top: 7, leading: 12, bottom: 9, trailing: 0))
             #endif
+            .accessibilityIdentifier("message_input_field")
             .onSubmit(of: .text) {
               if isGenerating {
                 onStopAction()
@@ -181,6 +187,7 @@ public struct MessageComposerView<AttachmentType: Attachment & View>: View {
               .font(isGenerating ? .system(size: 14, weight: .black) : .body.weight(.semibold))
               #endif
           }
+          .accessibilityIdentifier("composer_primary_button")
           .accessibilityLabel(isGenerating ? Text("Stop generating") : Text("Send message"))
           .disabled(!isGenerating && !canSubmit)
           #if os(iOS)
