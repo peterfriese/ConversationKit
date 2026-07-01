@@ -76,16 +76,19 @@ public struct MessageView: View {
                 }
               }
               .cornerRadius(8.0)
+              .accessibilityIdentifier("message_image")
             }
           }
           if let message, !message.isEmpty {
             Markdown(message)
+              .accessibilityIdentifier("message_text")
               .if(participant == .user) { view in
                 view.padding()
               }
           } else if participant == .other {
             // Loading state for AI messages
             TypingIndicator()
+              .accessibilityIdentifier("typing_indicator")
           }
         }
       }

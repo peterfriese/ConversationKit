@@ -1,20 +1,21 @@
 //
-// ContentView.swift
-// ConversationKitDemo
+//  ContentView.swift
+//  ConversationKitDemo
 //
-// Created by Peter Friese on 19.02.24.
+//  Created by Peter Friese on 19.02.24.
 //
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
 //
 //      http://www.apache.org/licenses/LICENSE-2.0
 //
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
+//
 
 import ConversationKit
 import PhotosUI
@@ -23,22 +24,17 @@ import SwiftUI
 struct ContentView: View {
   @State
   var messages: [DefaultMessage] = [
-    .init(content: "Hello, how are you?", participant: .other),
-    .init(content: "Well, I am fine, how are you?", participant: .user),
-    .init(content: "Not too bad. Not too bad after all.", participant: .other),
+    .init(content: "Hello! I'm your AI assistant. How can I help you today?", participant: .other),
+    .init(content: "What are the key features of ConversationKit?", participant: .user),
+    .init(content: "ConversationKit provides a robust set of UI components for building chat interfaces. Key features include Optimistic UI, 'Sticky Top' scrolling, and native cross-platform support.", participant: .other),
+    .init(content: "How does the 'Sticky Top' scrolling work?", participant: .user),
+    .init(content: "It anchors the scroll position to the top of the message being streamed, ensuring a stable reading experience as new tokens arrive.", participant: .other),
+    .init(content: "Can you show me a formatted response with an image?", participant: .user),
     .init(
-      content:
-        "Laboris officia aliqua eiusmod deserunt pariatur aliquip cillum proident excepteur qui pariatur consequat aute occaecat deserunt.",
-      participant: .user
+      content: "Sure! Here is an example of a **formatted message** with an image:\n\n### Key Benefits\n* **Native Performance**: Built entirely in SwiftUI.\n* **Customizable**: Use your own models and views.\n* **Cross-platform**: Works on iOS and macOS.",
+      imageURL: "https://picsum.photos/400/300",
+      participant: .other
     ),
-    .init(content: "Laborum ea ad anim magna.", participant: .other),
-    .init(
-      content:
-        "Esse aliquip laboris irure est voluptate aliquip non duis aute eu. Occaecat irure incididunt aute aute do sunt labore nisi esse nostrud amet labore enim mollit occaecat. Occaecat incididunt consectetur sint dolor deserunt exercitation mollit id culpa deserunt fugiat pariatur pariatur ullamco. Ex aliqua sit commodo enim qui commodo aliqua sint dolor laboris magna consequat adipisicing sunt.",
-      imageURL: "https://picsum.photos/100/100",
-      participant: .user
-    ),
-
   ]
 
   @State var attachments = [ImageAttachment]()
@@ -102,16 +98,42 @@ struct ContentView: View {
 
   @MainActor
   func generateResponse(for message: any Message) async {
-    let text =
-      "Culpa *amet* irure aliquip qui deserunt ullamco tempor do irure anim amet do incididunt. Tempor et dolor qui. Aliqua **anim** aliqua elit in. Veniam veniam magna aliquip. Anim eu et excepteur voluptate labore reprehenderit exercitation voluptate fugiat dolor reprehenderit tempor esse et amet."
+    let userText = message.content ?? ""
+    
+    let responses: [(text: String, imageURL: String?)] = [
+      (
+        text: "ConversationKit provides a **smooth** and **native** chat experience. It handles complex UI logic like message deduplication and scroll management so you can focus on your AI logic. The library is fully compatible with **SwiftUI** and supports both iOS and macOS.",
+        imageURL: nil
+      ),
+      (
+        text: "Sure! Here is an example of a **formatted message** with an image:\n\n### Key Benefits\n*   **Native Performance**: Built entirely in SwiftUI.\n*   **Customizable**: Use your own models and views.\n*   **Cross-platform**: Works on iOS and macOS.\n\n```swift\nConversationView(messages: $messages)\n```",
+        imageURL: "https://picsum.photos/400/300"
+      ),
+      (
+        text: "I can definitely help with that. Did you know that *Sticky Top* scrolling is one of the most requested features for chat apps? We've made it a first-class citizen in this library.",
+        imageURL: nil
+      ),
+      (
+        text: "That's a great question! Integrating AI can be complex, but your UI shouldn't be. That's why we built **ConversationKit**.",
+        imageURL: nil
+      )
+    ]
+    
+    let selectedResponse: (text: String, imageURL: String?)
+    if userText.localizedCaseInsensitiveContains("formatted") || userText.localizedCaseInsensitiveContains("image") {
+      selectedResponse = responses[1]
+    } else {
+      selectedResponse = responses.randomElement() ?? responses[0]
+    }
 
     var generatedText = ""
-    var message = DefaultMessage(content: generatedText, participant: .other)
-    messages.append(message)  // Assuming you have an array 'messages' defined
+    var responseMessage = DefaultMessage(content: generatedText, imageURL: selectedResponse.imageURL, participant: .other)
+    messages.append(responseMessage)
 
-    let chunkSize = 3  // Size of each chunk
+    let chunkSize = 5
 
     do {
+      let text = selectedResponse.text
       for chunkStart in stride(from: 0, to: text.count, by: chunkSize) {
         let chunkEnd = min(chunkStart + chunkSize, text.count)
         let chunk = text[
@@ -122,10 +144,12 @@ struct ContentView: View {
         ]
 
         generatedText.append(String(chunk))
-        message.content = generatedText
-        messages[messages.count - 1] = message  // Update the last message
+        responseMessage.content = generatedText
+        if let index = messages.firstIndex(where: { $0.id == responseMessage.id }) {
+          messages[index] = responseMessage
+        }
 
-        let randomDelay = Double.random(in: 0.2...0.4)  // Adjust delay for chunks
+        let randomDelay = Double.random(in: 0.1...0.2)
         try await Task.sleep(nanoseconds: UInt64(randomDelay * 100_000_000))
         
         try Task.checkCancellation()
@@ -169,7 +193,9 @@ struct ContentView: View {
 
         generatedText.append(String(chunk))
         message.content = generatedText
-        messages[messages.count - 1] = message
+        if let index = messages.firstIndex(where: { $0.id == message.id }) {
+          messages[index] = message
+        }
 
         let randomDelay = Double.random(in: 0.05...0.1)
         try? await Task.sleep(for: .seconds(randomDelay))

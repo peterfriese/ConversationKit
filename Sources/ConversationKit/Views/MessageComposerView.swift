@@ -1,20 +1,21 @@
 //
-// MessageComposerView.swift
-// ConversationKit
+//  MessageComposerView.swift
+//  ConversationKit
 //
-// Created by Peter Friese on 03.07.25.
+//  Created by Peter Friese on 03.07.25.
 //
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
 //
 //      http://www.apache.org/licenses/LICENSE-2.0
 //
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
+//
 
 import SwiftUI
 
@@ -120,6 +121,7 @@ public struct MessageComposerView<AttachmentType: Attachment & View>: View {
             .font(.callout.weight(.medium))
             #endif
         }
+        .accessibilityIdentifier("attachment_button")
         .accessibilityLabel("Add attachment")
         .menuStyle(.borderlessButton)
         #if os(iOS)
@@ -163,6 +165,7 @@ public struct MessageComposerView<AttachmentType: Attachment & View>: View {
             // Asymmetrical padding to push the text UP optically, offsetting AppKit's intrinsic baseline spacing
             .padding(EdgeInsets(top: 7, leading: 12, bottom: 9, trailing: 0))
             #endif
+            .accessibilityIdentifier("message_input_field")
             .onSubmit(of: .text) {
               if isGenerating {
                 onStopAction()
@@ -185,6 +188,7 @@ public struct MessageComposerView<AttachmentType: Attachment & View>: View {
               .font(isGenerating ? .system(size: 14, weight: .black) : .body.weight(.semibold))
               #endif
           }
+          .accessibilityIdentifier("composer_primary_button")
           .accessibilityLabel(isGenerating ? Text("Stop generating") : Text("Send message"))
           .disabled(!isGenerating && !canSubmit)
           #if os(iOS)
@@ -269,7 +273,7 @@ extension MessageComposerView where AttachmentType == EmptyAttachment {
 }
 
 #Preview("With Attachments") {
-  @Previewable @State var message = "Hello, world!"
+  @Previewable @State var message = "How does the sticky top scroll work?"
   @Previewable @State var attachments = [
     ImageAttachment(image: PlatformImage.systemSymbol("photo")!),
     ImageAttachment(image: PlatformImage.systemSymbol("camera")!),
@@ -286,9 +290,8 @@ extension MessageComposerView where AttachmentType == EmptyAttachment {
 }
 
 #Preview("Without Attachments") {
-    @Previewable @State var message = "Hello, world!"
+    @Previewable @State var message = "Tell me more about ConversationKit."
 
     MessageComposerView(message: $message)
 
 }
-

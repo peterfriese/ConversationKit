@@ -130,6 +130,7 @@ public struct ConversationView<Content, MessageType: Message, AttachmentType: At
               }
               .padding(.horizontal)
               .id(ConversationScrollID.message(message.id))
+              .accessibilityIdentifier("message_row")
             }
             
             // Disclaimer View
@@ -137,6 +138,7 @@ public struct ConversationView<Content, MessageType: Message, AttachmentType: At
               disclaimer
                 .padding(.horizontal)
                 .padding(.top, 8)
+                .accessibilityIdentifier("conversation_disclaimer")
             }
             
             Spacer()
@@ -144,7 +146,9 @@ public struct ConversationView<Content, MessageType: Message, AttachmentType: At
               .id(ConversationScrollID.bottomMarker)
           }
           .scrollTargetLayout()
+          .accessibilityIdentifier("conversation_list")
         }
+        .accessibilityIdentifier("conversation_scroll_view")
         .scrollTargetBehavior(.viewAligned)
         .scrollBounceBehavior(.always)
         .scrollDismissesKeyboard(.interactively)
