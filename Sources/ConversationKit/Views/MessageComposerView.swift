@@ -18,9 +18,35 @@
 
 import SwiftUI
 
+public struct OnSubmitAction {
+  private let handler: @MainActor () -> Void
+  
+  public init(handler: @escaping @MainActor () -> Void = {}) {
+    self.handler = handler
+  }
+  
+  @MainActor
+  public func callAsFunction() {
+    handler()
+  }
+}
+
+public struct OnStopAction {
+  private let handler: @MainActor () -> Void
+  
+  public init(handler: @escaping @MainActor () -> Void = {}) {
+    self.handler = handler
+  }
+  
+  @MainActor
+  public func callAsFunction() {
+    handler()
+  }
+}
+
 extension EnvironmentValues {
-  @Entry var onSubmitAction: () -> Void = {}
-  @Entry var onStopAction: () -> Void = {}
+  @Entry var onSubmitAction: OnSubmitAction = OnSubmitAction()
+  @Entry var onStopAction: OnStopAction = OnStopAction()
   @Entry var isGenerating: Bool = false
   @Entry var disableAttachments: Bool = false
   @Entry var attachmentActions: AnyView? = nil
@@ -28,14 +54,16 @@ extension EnvironmentValues {
 
 public extension View {
   /// Defines the closure executed when the user taps the send button (or hits return).
-  func onSubmitAction(_ action: @escaping () -> Void) -> some View {
-    environment(\.onSubmitAction, action)
+  @MainActor
+  func onSubmitAction(_ action: @escaping @MainActor () -> Void) -> some View {
+    environment(\.onSubmitAction, OnSubmitAction(handler: action))
   }
   
   /// Defines the closure executed when the user taps the stop button during active generation.
   /// Used to cooperatively cancel the background task running the submit action.
-  func onStopAction(_ action: @escaping () -> Void) -> some View {
-    environment(\.onStopAction, action)
+  @MainActor
+  func onStopAction(_ action: @escaping @MainActor () -> Void) -> some View {
+    environment(\.onStopAction, OnStopAction(handler: action))
   }
   
   /// Injects the current background execution state to toggle the Send button into a Stop button.
