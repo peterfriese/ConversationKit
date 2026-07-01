@@ -19,12 +19,13 @@ import SwiftUI
 import MarkdownUI
 
 public struct OnSendMessageAction {
-  private let handler: (any Message) async -> Void
+  private let handler: @MainActor (any Message) async -> Void
   
-  public init(handler: @escaping (any Message) async -> Void) {
+  public init(handler: @escaping @MainActor (any Message) async -> Void) {
     self.handler = handler
   }
   
+  @MainActor
   public func callAsFunction(_ message: any Message) async {
     await handler(message)
   }
@@ -46,7 +47,8 @@ public extension View {
   ///   permanently store it. The exact `id` of the `message` parameter must be preserved; if you copy
   ///   the content into a different model with a new UUID, the internal deduplication will fail and
   ///   the message will briefly appear twice.
-  func onSendMessage(_ action: @escaping (_ message: any Message) async -> Void) -> some View {
+  @MainActor
+  func onSendMessage(_ action: @escaping @MainActor (_ message: any Message) async -> Void) -> some View {
     environment(\.onSendMessageAction, OnSendMessageAction(handler: action))
   }
 }

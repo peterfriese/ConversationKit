@@ -19,24 +19,26 @@
 import SwiftUI
 
 public struct OnSubmitAction {
-  private let handler: () -> Void
+  private let handler: @MainActor () -> Void
   
-  public init(handler: @escaping () -> Void = {}) {
+  public init(handler: @escaping @MainActor () -> Void = {}) {
     self.handler = handler
   }
   
+  @MainActor
   public func callAsFunction() {
     handler()
   }
 }
 
 public struct OnStopAction {
-  private let handler: () -> Void
+  private let handler: @MainActor () -> Void
   
-  public init(handler: @escaping () -> Void = {}) {
+  public init(handler: @escaping @MainActor () -> Void = {}) {
     self.handler = handler
   }
   
+  @MainActor
   public func callAsFunction() {
     handler()
   }
@@ -52,13 +54,15 @@ extension EnvironmentValues {
 
 public extension View {
   /// Defines the closure executed when the user taps the send button (or hits return).
-  func onSubmitAction(_ action: @escaping () -> Void) -> some View {
+  @MainActor
+  func onSubmitAction(_ action: @escaping @MainActor () -> Void) -> some View {
     environment(\.onSubmitAction, OnSubmitAction(handler: action))
   }
   
   /// Defines the closure executed when the user taps the stop button during active generation.
   /// Used to cooperatively cancel the background task running the submit action.
-  func onStopAction(_ action: @escaping () -> Void) -> some View {
+  @MainActor
+  func onStopAction(_ action: @escaping @MainActor () -> Void) -> some View {
     environment(\.onStopAction, OnStopAction(handler: action))
   }
   
