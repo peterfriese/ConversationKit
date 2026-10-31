@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 840 260" width="100%" height="100%">
+  <defs>
+    <style>
+      .canvas-bg { fill: #FFFFFF; }
+      .kicker { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif; font-size: 11px; font-weight: 600; fill: #86868B; letter-spacing: 0.08em; text-anchor: middle; text-transform: uppercase; }
+      .header-title { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif; font-size: 22px; font-weight: 700; fill: #1D1D1F; text-anchor: middle; }
+      .header-sub { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif; font-size: 13px; font-weight: 400; fill: #86868B; text-anchor: middle; }
+      
+      .card-bg { fill: #F5F5F7; stroke: #E5E5EA; stroke-width: 1.5; }
+      .card-hero-bg { fill: #F5F5F7; stroke: #0071E3; stroke-width: 2; }
+      
+      .pill-badge { fill: #E5E5EA; }
+      .pill-hero-badge { fill: #0071E3; }
+      
+      .card-title { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif; font-size: 15px; font-weight: 600; fill: #1D1D1F; text-anchor: middle; }
+      .card-hero-title { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif; font-size: 15px; font-weight: 600; fill: #0071E3; text-anchor: middle; }
+      .card-sub { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif; font-size: 13px; font-weight: 400; fill: #86868B; text-anchor: middle; }
+      
+      .connector { stroke: #86868B; stroke-width: 1.5; fill: none; }
+      .arrowhead { fill: #86868B; }
+    </style>
+    <!-- refX=2 stops line at arrowhead base, eliminating tip protrusion -->
+    <marker id="arrow" viewBox="0 0 14 14" refX="2" refY="7" markerUnits="userSpaceOnUse" markerWidth="14" markerHeight="14" orient="auto">
+      <path d="M 2 2.5 L 12 7 L 2 11.5 C 3.5 9 3.5 5 2 2.5 Z" class="arrowhead" />
+    </marker>
+  </defs>
+
+  <rect width="100%" height="100%" class="canvas-bg" />
+
+  <!-- Header Block -->
+  <text x="420" y="32" class="kicker">Interactive tutorial • Architecture asset</text>
+  <text x="420" y="58" class="header-title">Persistence and data flow</text>
+  <text x="420" y="80" class="header-sub">Schema models and storage container pipeline</text>
+
+  <!-- Card 1: SwiftData model (Hero) -->
+  <g id="card-model">
+    <rect x="40" y="105" width="220" height="130" rx="16" ry="16" class="card-hero-bg" />
+    <rect x="120" y="126" width="60" height="12" rx="6" ry="6" class="pill-hero-badge" />
+    <text x="150" y="174" class="card-hero-title">
+      <tspan x="150" dy="0">SwiftData model</tspan>
+      <tspan x="150" dy="1.4em" class="card-sub">@Model schema definition</tspan>
+    </text>
+  </g>
+
+  <!-- Connector 1 -> 2 (12px gap from Card 1, 12px gap before Card 2) -->
+  <path d="M 272 170 L 288 170" class="connector" marker-end="url(#arrow)" />
+
+  <!-- Card 2: ModelContext -->
+  <g id="card-context">
+    <rect x="310" y="105" width="220" height="130" rx="16" ry="16" class="card-bg" />
+    <rect x="390" y="126" width="60" height="12" rx="6" ry="6" class="pill-badge" />
+    <text x="420" y="174" class="card-title">
+      <tspan x="420" dy="0">ModelContext</tspan>
+      <tspan x="420" dy="1.4em" class="card-sub">In-memory change tracker</tspan>
+    </text>
+  </g>
+
+  <!-- Connector 2 -> 3 (12px gap from Card 2, 12px gap before Card 3) -->
+  <path d="M 542 170 L 558 170" class="connector" marker-end="url(#arrow)" />
+
+  <!-- Card 3: View hierarchy -->
+  <g id="card-views">
+    <rect x="580" y="105" width="220" height="130" rx="16" ry="16" class="card-bg" />
+    <rect x="660" y="126" width="60" height="12" rx="6" ry="6" class="pill-badge" />
+    <text x="690" y="174" class="card-title">
+      <tspan x="690" dy="0">View hierarchy</tspan>
+      <tspan x="690" dy="1.4em" class="card-sub">Declarative invalidation</tspan>
+    </text>
+  </g>
+</svg>

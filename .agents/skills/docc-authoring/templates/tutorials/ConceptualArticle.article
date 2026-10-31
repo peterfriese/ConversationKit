@@ -1,0 +1,66 @@
+@Article(time: 15) {
+    @Intro(title: "Understanding state and data flow") {
+        Discover how data modeling, `@Observable` macros, and environment values form
+        a responsive, unidirectional data pipeline in modern SwiftUI.
+
+        @Image(source: "hero-state-sync.svg", alt: "An iPad screen displaying synchronized data across master and detail views.")
+    }
+
+    @ContentAndMedia {
+        SwiftUI uses a declarative approach to user interface construction. Rather than
+        imperatively mutating controls when underlying data shifts, you bind views to state.
+        When state values change, the framework invalidates dependent views and re-renders them.
+
+        @Image(source: "flow-overview.svg", alt: "Overview of data flow between model, view, and storage.")
+    }
+
+    @Stack {
+        @ContentAndMedia {
+            ### Single source of truth
+
+            Every distinct piece of information in your application resides in exactly one place.
+            Duplicating state across views introduces synchronization drift.
+
+            @Image(source: "single-source.svg", alt: "A diagram illustrating a central state container supplying data.")
+        }
+
+        @ContentAndMedia {
+            ### Unidirectional data flow
+
+            Data flows downward from parent views to child views as read-only properties or bindings.
+            User events flow upward as actions, updating the central model.
+
+            @Image(source: "unidirectional-flow.svg", alt: "A diagram illustrating data flowing downward and events flowing upward.")
+        }
+    }
+
+    @Assessments {
+        @MultipleChoice {
+            How does SwiftUI react when an observed state value changes?
+
+            @Choice(isCorrect: true) {
+                It automatically invalidates and re-evaluates the `body` of any view that reads that property.
+
+                @Justification(reaction: "Correct!") {
+                    SwiftUI tracks property access during view rendering and recalculates only affected views.
+                }
+            }
+
+            @Choice(isCorrect: false) {
+                It forces a full application restart and re-initializes all window scenes.
+
+                @Justification(reaction: "Try again.") {
+                    State updates trigger granular view invalidation, never application restarts.
+                }
+            }
+
+            @Choice(isCorrect: false) {
+                It requires manually notifying each parent view by posting a NotificationCenter message.
+
+                @Justification(reaction: "Try again.") {
+                    Modern observation handles invalidation automatically without manual notification posting.
+                }
+            }
+        }
+    }
+}

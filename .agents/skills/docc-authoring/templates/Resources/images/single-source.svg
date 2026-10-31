@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 280" width="100%" height="100%">
+  <defs>
+    <style>
+      .canvas-bg { fill: #FFFFFF; }
+      .kicker { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif; font-size: 11px; font-weight: 600; fill: #86868B; letter-spacing: 0.08em; text-anchor: middle; text-transform: uppercase; }
+      .header-title { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif; font-size: 22px; font-weight: 700; fill: #1D1D1F; text-anchor: middle; }
+      .header-sub { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif; font-size: 13px; font-weight: 400; fill: #86868B; text-anchor: middle; }
+      
+      .pill-hero-bg { fill: #F0F6FF; stroke: #0071E3; stroke-width: 1.5; }
+      .pill-hero-text { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif; font-size: 14px; font-weight: 600; fill: #0071E3; text-anchor: middle; dominant-baseline: central; }
+      .indicator-dot { fill: #0071E3; }
+      
+      .card-bg { fill: #F5F5F7; stroke: #E5E5EA; stroke-width: 1.5; }
+      .card-title { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif; font-size: 14px; font-weight: 600; fill: #1D1D1F; text-anchor: middle; dominant-baseline: central; }
+      
+      .connector { stroke: #86868B; stroke-width: 1.5; fill: none; }
+      .arrowhead { fill: #86868B; }
+    </style>
+    <!-- refX=2 stops line at arrowhead base, eliminating tip protrusion -->
+    <marker id="arrow" viewBox="0 0 14 14" refX="2" refY="7" markerUnits="userSpaceOnUse" markerWidth="14" markerHeight="14" orient="auto">
+      <path d="M 2 2.5 L 12 7 L 2 11.5 C 3.5 9 3.5 5 2 2.5 Z" class="arrowhead" />
+    </marker>
+  </defs>
+
+  <rect width="100%" height="100%" class="canvas-bg" />
+
+  <!-- Header Block -->
+  <text x="380" y="30" class="kicker">Conceptual guide • Principles</text>
+  <text x="380" y="56" class="header-title">Single source of truth</text>
+  <text x="380" y="78" class="header-sub">A centralized model driving multiple dependent views</text>
+
+  <!-- Central Model Pill (Hero) -->
+  <g id="central-model">
+    <rect x="260" y="96" width="240" height="42" rx="21" ry="21" class="pill-hero-bg" />
+    <circle cx="284" cy="117" r="5" class="indicator-dot" />
+    <text x="388" y="117" class="pill-hero-text">Central source of truth</text>
+  </g>
+
+  <!-- Branching Lines (10px gap below central pill, 10px gap before cards) -->
+  <path d="M 380 148 L 380 164" class="connector" />
+  <path d="M 150 164 L 610 164" class="connector" />
+  <path d="M 150 164 L 150 176" class="connector" marker-end="url(#arrow)" />
+  <path d="M 380 164 L 380 176" class="connector" marker-end="url(#arrow)" />
+  <path d="M 610 164 L 610 176" class="connector" marker-end="url(#arrow)" />
+
+  <!-- Dependent View Cards -->
+  <g id="card-view-a">
+    <rect x="50" y="196" width="200" height="60" rx="14" ry="14" class="card-bg" />
+    <text x="150" y="226" class="card-title">View A (navigation)</text>
+  </g>
+
+  <g id="card-view-b">
+    <rect x="280" y="196" width="200" height="60" rx="14" ry="14" class="card-bg" />
+    <text x="380" y="226" class="card-title">View B (detail)</text>
+  </g>
+
+  <g id="card-view-c">
+    <rect x="510" y="196" width="200" height="60" rx="14" ry="14" class="card-bg" />
+    <text x="610" y="226" class="card-title">View C (inspector)</text>
+  </g>
+</svg>

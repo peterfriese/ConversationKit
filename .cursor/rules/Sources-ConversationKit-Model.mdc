@@ -1,0 +1,15 @@
+---
+description: >-
+  Core Chat & Agentic Data Models (Message, Attachment, Thinking, ToolCall,
+  Starter Chips)
+globs: Sources/ConversationKit/Model/**
+---
+# Rules for Sources/ConversationKit/Model/**
+
+- **Lead Specialist**: `@swift-sdk-architect`
+- **Domain Skills**: stratos-swift-api, swift-6-concurrency, docc-authoring
+- **Verification Command**: `swift test`
+
+When editing files matching `Sources/ConversationKit/Model/**`:
+1. Adhere strictly to the domain skills and architectural patterns declared above.
+2. Run `swift test` to verify changes before marking work as complete.

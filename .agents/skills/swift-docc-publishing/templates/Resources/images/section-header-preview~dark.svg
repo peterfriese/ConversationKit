@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 480" width="100%" height="100%">
+  <defs>
+    <style>
+      .canvas-bg { fill: #000000; }
+      .kicker { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif; font-size: 11px; font-weight: 600; fill: #98989D; letter-spacing: 0.08em; text-anchor: middle; text-transform: uppercase; }
+      .header-title { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif; font-size: 22px; font-weight: 700; fill: #F5F5F7; text-anchor: middle; }
+      .header-sub { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif; font-size: 13px; font-weight: 400; fill: #98989D; text-anchor: middle; }
+      
+      .window-frame { fill: #1C1C1E; stroke: #38383A; stroke-width: 2; }
+      .window-dot { fill: #48484A; }
+      .window-sub { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif; font-size: 11px; font-weight: 500; fill: #98989D; }
+      
+      .preview-image { fill: #1C2834; }
+      .preview-title { fill: #F5F5F7; rx: 5; ry: 5; }
+      .preview-line { fill: #48484A; rx: 3; ry: 3; }
+    </style>
+  </defs>
+
+  <rect width="100%" height="100%" class="canvas-bg" />
+
+  <!-- Header Block -->
+  <text x="380" y="34" class="kicker">Section step • Canvas preview</text>
+  <text x="380" y="60" class="header-title">Header view component</text>
+  <text x="380" y="82" class="header-sub">Isolated SwiftUI component rendering in Xcode Canvas</text>
+
+  <!-- Xcode Canvas Window (Dark Mode) -->
+  <g id="window-canvas">
+    <rect x="150" y="115" width="460" height="310" rx="20" ry="20" class="window-frame" />
+    
+    <!-- Window Control Dots -->
+    <circle cx="174" cy="136" r="4" class="window-dot" />
+    <circle cx="186" cy="136" r="4" class="window-dot" />
+    <circle cx="198" cy="136" r="4" class="window-dot" />
+    
+    <text x="500" y="140" class="window-sub">Canvas • Live Preview</text>
+
+    <!-- Component Preview Card -->
+    <rect x="175" y="160" width="410" height="180" rx="14" ry="14" class="preview-image" />
+    <rect x="175" y="356" width="160" height="14" rx="4" ry="4" class="preview-title" />
+    <rect x="175" y="380" width="220" height="8" rx="4" ry="4" class="preview-line" />
+  </g>
+</svg>

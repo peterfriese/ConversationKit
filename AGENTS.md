@@ -18,11 +18,15 @@ The component is organized into three main directories: `Model`, `Platform`, and
 *   **`Platform/PlatformTypes.swift`**: Defines cross-platform type aliases following the Chameleon pattern. Centralizes platform differences (such as `UIImage` vs `NSImage` via `PlatformImage`, color utilities, and image construction) so SwiftUI views remain clean and cross-platform.
 
 ### Views
-*   **`Views/ConversationView.swift`**: This is the main entry point to the library. It's a SwiftUI view that displays the conversation thread and the message composer. It's highly customizable and binds both a list of messages and a list of attachments.
-*   **`Views/MessageComposerView.swift`**: This view provides the text input field, the send button, and the attachment menu.
-*   **`Views/MessageView.swift`**: This is the default view for rendering a single message.
-*   **`Views/AttachmentPreviewScrollView.swift`**: A horizontal scroll view rendered inside the composer that previews pending attachments.
-*   **`Views/AttachmentPreviewCard.swift`**: A wrapper card for an attachment with a delete/close overlay, featuring concentric corner adjustments.
+`Views` is organized into four vNext sub-surface directories (`Timeline`, `Composer`, `Welcome`, and `Agentic`) alongside shared environment and error utilities:
+
+*   **`Views/Timeline/ConversationView.swift`**: This is the main entry point to the library. It's a SwiftUI view that displays the conversation thread and the message composer. It's highly customizable and binds both a list of messages and a list of attachments.
+*   **`Views/Timeline/MessageView.swift`**: This is the default view for rendering a single message.
+*   **`Views/Composer/MessageComposerView.swift`**: This view provides the text input field, the send button, and the attachment menu.
+*   **`Views/Composer/AttachmentPreviewScrollView.swift`**: A horizontal scroll view rendered inside the composer that previews pending attachments.
+*   **`Views/Composer/AttachmentPreviewCard.swift`**: A wrapper card for an attachment with a delete/close overlay, featuring concentric corner adjustments.
+*   **`Views/Welcome/`**: Sub-surface directory for empty-state welcome views and starter prompt chips (`WelcomeSurface.swift`).
+*   **`Views/Agentic/`**: Sub-surface directory for agentic reasoning, tool call, and streaming status views (`AgenticSurface.swift`).
 *   **`Views/ConversationEnvironment.swift`**: Defines environment values and modifiers for advanced customization (`messageActions` and `conversationDisclaimer`).
 *   **`Views/ErrorWrapper.swift`**, **`Views/OnErrorModifier.swift`**, and **`Views/PresentErrorAction.swift`**: These files provide a robust error handling mechanism.
 *   **`Views/Utilities.swift`**: Contains utility extensions and views.

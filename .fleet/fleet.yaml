@@ -1,0 +1,281 @@
+version: 1
+name: ConversationKit
+orchestrator:
+  agent: agents/chief-of-staff.md
+  strategy: hierarchical
+default:
+  owners:
+    lead: agents/swift-sdk-architect.md
+    reviewers:
+      - agents/code-reviewer.md
+  tools:
+    - swift-test
+    - flowdeck
+  skills:
+    - stratos-swift-api
+    - swift-6-concurrency
+  rules:
+    - stratos-progressive-disclosure
+    - chameleon-cross-platform
+  verification:
+    build: swift build
+    test: swift test
+tools:
+  - swift-test
+  - swift-docc
+  - flowdeck
+  - rocketsim
+features:
+  critics: true
+  adversarial-qa: true
+  human-in-the-loop: true
+  reconciler: true
+hierarchy:
+  - path: Sources/ConversationKit/**
+    description: Root ConversationKit Target & DocC Catalog
+    pack: "@fleetkit/swift-package"
+    owners:
+      lead: agents/swift-sdk-architect.md
+      reviewers:
+        - agents/code-reviewer.md
+    tools:
+      - swift-test
+      - swift-docc
+    skills:
+      - stratos-swift-api
+      - swift-6-concurrency
+      - docc-authoring
+    rules:
+      - stratos-progressive-disclosure
+      - chameleon-cross-platform
+    verification:
+      build: swift build
+      test: swift test
+
+  - path: Sources/ConversationKit/Model/**
+    description: Core Chat & Agentic Data Models (Message, Attachment, Thinking, ToolCall, Starter Chips)
+    pack: "@fleetkit/swift-package"
+    owners:
+      lead: agents/swift-sdk-architect.md
+      reviewers:
+        - agents/swift-systems-engineer.md
+        - agents/code-reviewer.md
+    tools:
+      - swift-test
+    skills:
+      - stratos-swift-api
+      - swift-6-concurrency
+      - docc-authoring
+    rules:
+      - stratos-progressive-disclosure
+      - chameleon-cross-platform
+    verification:
+      build: swift build
+      test: swift test
+
+  - path: Sources/ConversationKit/Platform/**
+    description: Chameleon Cross-Platform Abstractions (iOS, macCatalyst, macOS)
+    pack: "@fleetkit/swift-package"
+    owners:
+      lead: agents/swift-systems-engineer.md
+      reviewers:
+        - agents/swift-sdk-architect.md
+        - agents/code-reviewer.md
+    tools:
+      - swift-test
+    skills:
+      - swift-6-concurrency
+      - stratos-swift-api
+    rules:
+      - chameleon-cross-platform
+    verification:
+      build: swift build
+      test: swift test
+
+  - path: Sources/ConversationKit/Views/**
+    description: Shared Conversation Environment, Error Handling & View Utilities
+    pack: "@fleetkit/apple-app"
+    owners:
+      lead: agents/apple-engineer.md
+      reviewers:
+        - agents/swift-sdk-architect.md
+        - agents/code-reviewer.md
+    tools:
+      - swift-test
+      - flowdeck
+    skills:
+      - apple-stratos
+      - swiftui-modern
+      - apple-flo-liquid-glass
+    rules:
+      - stratos-progressive-disclosure
+      - chameleon-cross-platform
+    verification:
+      build: swift build
+      test: swift test
+
+  - path: Sources/ConversationKit/Views/Timeline/**
+    description: Conversation Thread, Streaming Replies & Push-and-Pin Scroll Engine
+    pack: "@fleetkit/apple-app"
+    owners:
+      lead: agents/apple-engineer.md
+      reviewers:
+        - agents/swift-sdk-architect.md
+        - agents/code-reviewer.md
+    tools:
+      - swift-test
+      - flowdeck
+      - rocketsim
+    skills:
+      - apple-stratos
+      - swiftui-modern
+      - apple-flo-liquid-glass
+      - apple-flowdeck-validation
+      - apple-rocketsim
+    rules:
+      - stratos-progressive-disclosure
+      - chameleon-cross-platform
+      - optimistic-ui-scroll-contract
+      - agentic-ui-physics
+    verification:
+      build: swift build
+      test: swift test
+
+  - path: Sources/ConversationKit/Views/Welcome/**
+    description: Chat Welcome Screen, Prompt Suggestion Chips & Starter Cards
+    pack: "@fleetkit/apple-app"
+    owners:
+      lead: agents/apple-engineer.md
+      reviewers:
+        - agents/swift-sdk-architect.md
+        - agents/code-reviewer.md
+    tools:
+      - swift-test
+      - flowdeck
+      - rocketsim
+    skills:
+      - apple-stratos
+      - swiftui-modern
+      - apple-flo-liquid-glass
+      - apple-flowdeck-validation
+      - apple-rocketsim
+    rules:
+      - stratos-progressive-disclosure
+      - chameleon-cross-platform
+      - agentic-ui-physics
+    verification:
+      build: swift build
+      test: swift test
+
+  - path: Sources/ConversationKit/Views/Agentic/**
+    description: Thinking State, Collapsible Tool Calls, Agent Plans, Approvals & Citations
+    pack: "@fleetkit/apple-app"
+    owners:
+      lead: agents/apple-engineer.md
+      reviewers:
+        - agents/swift-sdk-architect.md
+        - agents/code-reviewer.md
+    tools:
+      - swift-test
+      - flowdeck
+      - rocketsim
+    skills:
+      - apple-stratos
+      - swiftui-modern
+      - apple-flo-liquid-glass
+      - apple-flowdeck-validation
+      - apple-rocketsim
+    rules:
+      - stratos-progressive-disclosure
+      - chameleon-cross-platform
+      - agentic-ui-physics
+    verification:
+      build: swift build
+      test: swift test
+
+  - path: Sources/ConversationKit/Views/Composer/**
+    description: Message Composer, Mode/Model Chips, Slash Commands & Attachment Previews
+    pack: "@fleetkit/apple-app"
+    owners:
+      lead: agents/apple-engineer.md
+      reviewers:
+        - agents/swift-sdk-architect.md
+        - agents/code-reviewer.md
+    tools:
+      - swift-test
+      - flowdeck
+      - rocketsim
+    skills:
+      - apple-stratos
+      - swiftui-modern
+      - apple-flo-liquid-glass
+      - apple-flowdeck-validation
+      - apple-rocketsim
+    rules:
+      - stratos-progressive-disclosure
+      - chameleon-cross-platform
+      - agentic-ui-physics
+    verification:
+      build: swift build
+      test: swift test
+
+  - path: Tests/ConversationKitTests/**
+    description: Swift Testing Unit Suite for Models, Actions, Agentic Blocks & Platform
+    pack: "@fleetkit/swift-package"
+    owners:
+      lead: agents/swift-systems-engineer.md
+      reviewers:
+        - agents/adversarial-tester.md
+        - agents/code-reviewer.md
+    tools:
+      - swift-test
+    skills:
+      - swift-testing-pro
+      - swift-6-concurrency
+    rules: []
+    verification:
+      test: swift test
+
+  - path: Examples/ConversationKitDemo/**
+    description: Reference Demo App, Interactive Pattern Showcase & XCTest UI Automation Suite
+    pack: "@fleetkit/apple-app"
+    owners:
+      lead: agents/apple-engineer.md
+      reviewers:
+        - agents/apple-qa.md
+        - agents/code-reviewer.md
+    tools:
+      - flowdeck
+      - rocketsim
+    skills:
+      - apple-flowdeck-validation
+      - apple-rocketsim
+      - swiftui-modern
+      - apple-flo-liquid-glass
+    rules:
+      - agentic-ui-physics
+    verification:
+      build: flowdeck build --project Examples/ConversationKitDemo/ConversationKitDemo.xcodeproj --scheme ConversationKitDemo
+      test: flowdeck test --project Examples/ConversationKitDemo/ConversationKitDemo.xcodeproj --scheme ConversationKitDemo
+
+  - path: Examples/AIChatDemo/**
+    description: Firebase AI Logic & Apple FoundationModels Integration Demo App
+    pack: "@fleetkit/apple-app"
+    owners:
+      lead: agents/apple-engineer.md
+      reviewers:
+        - agents/code-reviewer.md
+    tools:
+      - flowdeck
+      - rocketsim
+    skills:
+      - apple-flowdeck-validation
+      - swiftui-modern
+    rules: []
+    verification:
+      build: flowdeck build --project Examples/AIChatDemo/AIChatDemo.xcodeproj --scheme AIChatDemo
+
+shared:
+  docs: docs/
+  specs: docs/specs/
+  architecture: docs/architecture/

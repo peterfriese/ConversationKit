@@ -1,0 +1,85 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "default_agent": "chief-of-staff",
+  "worktree": {
+    "directory": ".fleet/worktrees"
+  },
+  "skills": [
+    ".agents/skills"
+  ],
+  "agents": {
+    "build": {
+      "disabled": true
+    },
+    "plan": {
+      "disabled": true
+    },
+    "adversarial-tester": {
+      "name": "Adversarial Tester (Red Team QA)",
+      "description": "Assumes code is fragile until proven otherwise. Injects boundary chaos, audits PRD acceptance criteria, and writes failing exploit tests.",
+      "mode": "subagent"
+    },
+    "chief-of-staff": {
+      "name": "Chief of Staff",
+      "description": "FleetKit Master Orchestrator for ConversationKit",
+      "mode": "primary",
+      "permissions": [
+        {
+          "action": "edit",
+          "resource": "*",
+          "effect": "deny"
+        }
+      ]
+    },
+    "code-reviewer": {
+      "name": "Code Reviewer",
+      "description": "Reviews git diffs against architectural rules, strict concurrency, security, and coding standards without modifying code.",
+      "mode": "subagent"
+    },
+    "journal-agent": {
+      "name": "Journal Agent",
+      "description": "Maintains docs/journal/YYYY-MM-DD.md with daily engineering milestones, decisions, and blockers.",
+      "mode": "subagent"
+    },
+    "learnings-agent": {
+      "name": "Learnings Agent",
+      "description": "Extracts architectural breakthroughs and non-trivial technical discoveries into publishable articles in docs/learnings/.",
+      "mode": "subagent"
+    },
+    "product-manager": {
+      "name": "Product Manager",
+      "description": "Interviews the user, scopes requirements, and authors comprehensive PRDs in docs/specs/.",
+      "mode": "subagent"
+    },
+    "senior-architect": {
+      "name": "Senior Architect",
+      "description": "Evaluates technical feasibility, creates data models, drafts ADRs in docs/architecture/, and defines API contracts.",
+      "mode": "subagent"
+    },
+    "docc-specialist": {
+      "name": "DocC Specialist",
+      "description": "Authors triple-slash doc comments, DocC catalogs, articles, and interactive tutorials.",
+      "mode": "subagent"
+    },
+    "swift-sdk-architect": {
+      "name": "Swift SDK Architect",
+      "description": "Designs elegant, ergonomic public Swift interfaces following Apple's API Design Guidelines and Progressive Disclosure.",
+      "mode": "subagent"
+    },
+    "swift-systems-engineer": {
+      "name": "Swift Systems Engineer",
+      "description": "Implements high-performance Swift code with strict Swift 6 concurrency compliance, actors, Sendable, and Swift Testing.",
+      "mode": "subagent"
+    },
+    "apple-engineer": {
+      "name": "Apple Platform Engineer",
+      "description": "Builds native Apple applications across iOS, iPadOS, macOS, watchOS, and visionOS with SwiftUI, @Observable state, Factory DI, clean SPM modularization, and Apple HIG polish.",
+      "mode": "subagent"
+    },
+    "apple-qa": {
+      "name": "Apple Platform QA & Verification",
+      "description": "Closes the verification loop: runs builds, unit tests, streams OSLog logs, starts UI automation sessions, and verifies visual state with screenshots.",
+      "mode": "subagent"
+    }
+  }
+}

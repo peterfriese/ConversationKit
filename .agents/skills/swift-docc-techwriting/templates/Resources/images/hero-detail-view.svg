@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 480" width="100%" height="100%">
+  <defs>
+    <style>
+      .canvas-bg { fill: #FFFFFF; }
+      .kicker { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif; font-size: 11px; font-weight: 600; fill: #86868B; letter-spacing: 0.08em; text-anchor: middle; text-transform: uppercase; }
+      .header-title { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif; font-size: 22px; font-weight: 700; fill: #1D1D1F; text-anchor: middle; }
+      .header-sub { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif; font-size: 13px; font-weight: 400; fill: #86868B; text-anchor: middle; }
+      
+      .phone-frame { fill: #FFFFFF; stroke: #E5E5EA; stroke-width: 2; }
+      .island { fill: #1D1D1F; }
+      
+      .cover-photo { fill: #E8EEF5; }
+      .headline-bar { fill: #1D1D1F; rx: 5; ry: 5; }
+      .meta-pill { fill: #E5E5EA; rx: 6; ry: 6; }
+      .body-line-1 { fill: #D1D1D6; rx: 3; ry: 3; }
+      .body-line-2 { fill: #E5E5EA; rx: 3; ry: 3; }
+      
+      .action-btn { fill: #0071E3; rx: 12; ry: 12; }
+      .btn-text { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif; font-size: 12px; font-weight: 600; fill: #FFFFFF; text-anchor: middle; dominant-baseline: central; }
+      .home-bar { fill: #C7C7CC; rx: 2.5; ry: 2.5; }
+    </style>
+  </defs>
+
+  <rect width="100%" height="100%" class="canvas-bg" />
+
+  <!-- Header Block -->
+  <text x="380" y="34" class="kicker">Interactive tutorial • Hero asset</text>
+  <text x="380" y="60" class="header-title">Detail view layout</text>
+  <text x="380" y="82" class="header-sub">Formatted image, metadata banner, and action buttons</text>
+
+  <!-- iPhone Mockup -->
+  <g id="device-iphone">
+    <rect x="270" y="105" width="220" height="360" rx="36" ry="36" class="phone-frame" />
+    
+    <!-- Dynamic Island -->
+    <rect x="345" y="117" width="70" height="18" rx="9" ry="9" class="island" />
+    
+    <!-- Cover Photo Card -->
+    <rect x="286" y="146" width="188" height="130" rx="16" ry="16" class="cover-photo" />
+
+    <!-- Headline and Description Lines -->
+    <rect x="286" y="290" width="115" height="11" rx="4" ry="4" class="headline-bar" />
+    
+    <rect x="286" y="310" width="40" height="14" rx="7" ry="7" class="meta-pill" />
+    <rect x="332" y="310" width="40" height="14" rx="7" ry="7" class="meta-pill" />
+    <rect x="378" y="310" width="40" height="14" rx="7" ry="7" class="meta-pill" />
+    
+    <rect x="286" y="334" width="188" height="7" rx="3" ry="3" class="body-line-1" />
+    <rect x="286" y="346" width="130" height="7" rx="3" ry="3" class="body-line-2" />
+
+    <!-- Action Button -->
+    <rect x="286" y="396" width="188" height="36" rx="12" ry="12" class="action-btn" />
+    <text x="380" y="414" class="btn-text">Get started</text>
+
+    <!-- Home Indicator -->
+    <rect x="340" y="452" width="80" height="4" rx="2" ry="2" class="home-bar" />
+  </g>
+</svg>

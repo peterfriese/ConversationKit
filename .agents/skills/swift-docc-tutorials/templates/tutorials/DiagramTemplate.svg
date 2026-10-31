@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 220" width="100%" height="100%">
+  <defs>
+    <!-- Cupertino Technical Typography and Colors -->
+    <style>
+      .canvas-bg { fill: #FFFFFF; }
+      .card-bg { fill: #F5F5F7; stroke: #E5E5EA; stroke-width: 1.5; }
+      .card-hero-bg { fill: #F5F5F7; stroke: #0071E3; stroke-width: 2; }
+      .text-title { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif; font-size: 14px; font-weight: 600; fill: #1D1D1F; text-anchor: middle; }
+      .text-hero-title { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif; font-size: 14px; font-weight: 600; fill: #0071E3; text-anchor: middle; }
+      .text-caption { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif; font-size: 12px; font-weight: 400; fill: #86868B; text-anchor: middle; }
+      .flow-line { stroke: #86868B; stroke-width: 1.5; fill: none; }
+      .flow-hero-line { stroke: #0071E3; stroke-width: 2; fill: none; }
+      .arrowhead { fill: #86868B; }
+      .arrowhead-hero { fill: #0071E3; }
+
+      /* Dark mode appearance convention:
+         When providing diagram~dark.svg, update:
+         - .canvas-bg: fill: #000000;
+         - .card-bg: fill: #1C1C1E; stroke: #38383A;
+         - .card-hero-bg: fill: #1C1C1E; stroke: #2997FF;
+         - .text-title: fill: #F5F5F7;
+         - .text-hero-title: fill: #2997FF;
+         - .text-caption: fill: #98989D;
+         - .flow-line / .arrowhead: stroke/fill: #636366;
+         - .flow-hero-line / .arrowhead-hero: stroke/fill: #2997FF;
+      */
+    </style>
+
+    <!-- Apple-Grade Acute Arrowhead Markers (refX=2 stops line at base, preventing tip protrusion) -->
+    <marker id="arrow" viewBox="0 0 14 14" refX="2" refY="7" markerUnits="userSpaceOnUse" markerWidth="14" markerHeight="14" orient="auto">
+      <path d="M 2 2.5 L 12 7 L 2 11.5 C 3.5 9 3.5 5 2 2.5 Z" class="arrowhead" />
+    </marker>
+    <marker id="arrow-hero" viewBox="0 0 14 14" refX="2" refY="7" markerUnits="userSpaceOnUse" markerWidth="14" markerHeight="14" orient="auto">
+      <path d="M 2 2.5 L 12 7 L 2 11.5 C 3.5 9 3.5 5 2 2.5 Z" class="arrowhead-hero" />
+    </marker>
+  </defs>
+
+  <!-- Canvas Background -->
+  <rect width="100%" height="100%" class="canvas-bg" />
+
+  <!-- 
+    DEFENSIVE BOUNDING-BOX SIZING (THE 10px RULE):
+    rectWidth = (maxLineCharacters * 10) + 32px
+    Guarantees text never clips across different OS font engines.
+  -->
+
+  <!-- Card 1: User action (max chars = 11 -> width = 11*10 + 32 = 142 -> 160px) -->
+  <g id="node-user-action">
+    <rect x="30" y="70" width="160" height="80" rx="14" ry="14" class="card-bg" />
+    <text x="110" y="106" class="text-title">
+      <tspan x="110" dy="0">User action</tspan>
+      <tspan x="110" dy="1.4em" class="text-caption">Touch or keyboard event</tspan>
+    </text>
+  </g>
+
+  <!-- Flow 1 -> 2 (10px gap from Card 1, 10px gap before Card 2) -->
+  <path d="M 200 110 L 250 110" class="flow-line" marker-end="url(#arrow)" />
+
+  <!-- Card 2: Observable state store (Hero Accent) (max chars = 22 -> width = 22*10 + 32 = 252 -> 260px) -->
+  <g id="node-state-store">
+    <rect x="270" y="60" width="260" height="100" rx="16" ry="16" class="card-hero-bg" />
+    <text x="400" y="102" class="text-hero-title">
+      <tspan x="400" dy="0">Observable data store</tspan>
+      <tspan x="400" dy="1.4em" class="text-caption">Single source of truth</tspan>
+      <tspan x="400" dy="1.3em" class="text-caption">@Observable class model</tspan>
+    </text>
+  </g>
+
+  <!-- Flow 2 -> 3 (10px gap from Card 2, 10px gap before Card 3) -->
+  <path d="M 540 110 L 580 110" class="flow-hero-line" marker-end="url(#arrow-hero)" />
+
+  <!-- Card 3: View presentation (max chars = 14 -> width = 14*10 + 32 = 172 -> 130px) -->
+  <g id="node-view-layer">
+    <rect x="600" y="70" width="130" height="80" rx="14" ry="14" class="card-bg" />
+    <text x="665" y="106" class="text-title">
+      <tspan x="665" dy="0">View interface</tspan>
+      <tspan x="665" dy="1.4em" class="text-caption">Reactive re-render</tspan>
+    </text>
+  </g>
+</svg>

@@ -1,0 +1,50 @@
+@Tutorials(name: "AppOrFrameworkName") {
+    @Intro(title: "Building AppOrFrameworkName") {
+        Discover how to build an application using modern
+        Swift and SwiftUI. In this tutorial series, you'll construct the user interface,
+        integrate data storage, and add responsive interactions.
+
+        @Image(source: "hero-app.svg", alt: "A rendering of the running application on an iPhone screen.")
+    }
+
+    @Chapter(name: "Core interface and navigation") {
+        Assemble the primary views, build dynamic lists, and wire navigation hierarchies.
+
+        @Image(source: "chapter-interface.svg", alt: "An iPad screen displaying the multi-column navigation layout.")
+
+        @TutorialReference(tutorial: "doc:01-CreatingViews")
+        @TutorialReference(tutorial: "doc:02-ConfiguringNavigation")
+    }
+
+    @Chapter(name: "Persistence and data flow") {
+        Connect your user interface to modern model storage and manage reactive updates.
+
+        @Image(source: "chapter-data.svg", alt: "A diagrammatic view of the application data flow.")
+
+        @TutorialReference(tutorial: "doc:03-ModelingData")
+    }
+
+    @Resources {
+        Explore developer guides, complete project downloads, and reference materials.
+
+        @Downloads(destination: "downloads/AppOrFrameworkName-Starter.zip") {
+            Download starter and completed Xcode project archives to follow along:
+
+            - [Starter Project](downloads/AppOrFrameworkName-Starter.zip)
+            - [Completed Project](downloads/AppOrFrameworkName-Finisher.zip)
+        }
+
+        @Documentation(destination: "https://developer.apple.com/documentation/swiftui") {
+            Browse official Apple documentation:
+
+            - [SwiftUI Documentation](https://developer.apple.com/documentation/swiftui)
+            - [Human Interface Guidelines](https://developer.apple.com/design/human-interface-guidelines)
+        }
+
+        @SampleCode(destination: "https://github.com/example/sample-repo") {
+            Browse the open source companion sample code repository:
+
+            - [Sample Code Repository](https://github.com/example/sample-repo)
+        }
+    }
+}

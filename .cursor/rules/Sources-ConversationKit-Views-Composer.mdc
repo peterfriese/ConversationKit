@@ -1,0 +1,13 @@
+---
+description: 'Message Composer, Mode/Model Chips, Slash Commands & Attachment Previews'
+globs: Sources/ConversationKit/Views/Composer/**
+---
+# Rules for Sources/ConversationKit/Views/Composer/**
+
+- **Lead Specialist**: `@apple-engineer`
+- **Domain Skills**: apple-stratos, swiftui-modern, apple-flo-liquid-glass, apple-flowdeck-validation, apple-rocketsim
+- **Verification Command**: `swift test`
+
+When editing files matching `Sources/ConversationKit/Views/Composer/**`:
+1. Adhere strictly to the domain skills and architectural patterns declared above.
+2. Run `swift test` to verify changes before marking work as complete.

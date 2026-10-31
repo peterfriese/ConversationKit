@@ -1,0 +1,91 @@
+@Tutorial(time: 20, projectFiles: "AppOrFrameworkName-Starter.zip") {
+    @XcodeRequirement(title: "Xcode 16.0+", destination: "https://developer.apple.com/xcode/")
+
+    @Intro(title: "Creating the detail view") {
+        Build a polished detail view combining image previews, formatted metadata,
+        and action controls.
+
+        @Image(source: "hero-detail-view.svg", alt: "The completed detail view displaying item information.")
+    }
+
+    @Section(title: "Construct the header component") {
+        @ContentAndMedia {
+            The detail view introduces the item with a prominent header image and title badge.
+            In this section, you'll create a dedicated view component and style it with SwiftUI modifiers.
+
+            @Image(source: "section-header-preview.svg", alt: "A preview of the header view component.")
+        }
+
+        @Steps {
+            @Step {
+                In the Project navigator, create a new SwiftUI view file named `ItemHeaderView.swift`.
+
+                By default, SwiftUI view files declare a structure conforming to `View` and a `#Preview` block.
+
+                The canvas renders an initial preview displaying a placeholder text view.
+
+                @Code(name: "ItemHeaderView.swift", file: "01-header-step1.swift")
+            }
+
+            @Step {
+                Replace the default text view with an `Image` view displaying the hero asset.
+
+                Image views display bitmap assets stored in your asset catalog using asset name identifiers.
+
+                The canvas preview refreshes immediately to render the unclipped hero image.
+
+                @Code(name: "ItemHeaderView.swift", file: "01-header-step2.swift")
+            }
+
+            @Step {
+                Apply the `clipShape(_:)` modifier to mask the image to a rounded rectangle.
+
+                Clipping constrains the view's rendered bounds without modifying the underlying asset geometry.
+
+                The image corners smooth into uniform rounded edges in the preview.
+
+                @Code(name: "ItemHeaderView.swift", file: "01-header-step3.swift")
+            }
+
+            @Step {
+                Embed the image inside a `VStack` and append a title text view underneath.
+
+                A `VStack` stacks views along a vertical axis without requiring manual constraint calculations.
+
+                The canvas updates to show the title centered directly beneath the header image.
+
+                @Code(name: "ItemHeaderView.swift", file: "01-header-step4.swift")
+            }
+        }
+    }
+
+    @Assessments {
+        @MultipleChoice {
+            Which layout container arranges views sequentially in a vertical column?
+
+            @Choice(isCorrect: true) {
+                `VStack`
+
+                @Justification(reaction: "Correct!") {
+                    `VStack` stacks its child views vertically from top to bottom.
+                }
+            }
+
+            @Choice(isCorrect: false) {
+                `HStack`
+
+                @Justification(reaction: "Try again.") {
+                    `HStack` stacks views along a horizontal axis from leading to trailing.
+                }
+            }
+
+            @Choice(isCorrect: false) {
+                `ZStack`
+
+                @Justification(reaction: "Try again.") {
+                    `ZStack` overlays views atop one another along the z-axis.
+                }
+            }
+        }
+    }
+}

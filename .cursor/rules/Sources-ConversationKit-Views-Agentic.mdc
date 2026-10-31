@@ -1,0 +1,13 @@
+---
+description: 'Thinking State, Collapsible Tool Calls, Agent Plans, Approvals & Citations'
+globs: Sources/ConversationKit/Views/Agentic/**
+---
+# Rules for Sources/ConversationKit/Views/Agentic/**
+
+- **Lead Specialist**: `@apple-engineer`
+- **Domain Skills**: apple-stratos, swiftui-modern, apple-flo-liquid-glass, apple-flowdeck-validation, apple-rocketsim
+- **Verification Command**: `swift test`
+
+When editing files matching `Sources/ConversationKit/Views/Agentic/**`:
+1. Adhere strictly to the domain skills and architectural patterns declared above.
+2. Run `swift test` to verify changes before marking work as complete.

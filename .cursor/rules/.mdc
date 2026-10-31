@@ -1,0 +1,13 @@
+---
+description: 'Surface: root-swift-package'
+globs: '**'
+---
+# Rules for **
+
+- **Lead Specialist**: `@swift-sdk-architect`
+- **Domain Skills**: docc-authoring, stratos-swift-api, swift-6-concurrency, swift-docc-diagrams, swift-docc-publishing, swift-docc-reference, swift-docc-techwriting, swift-docc-tutorials, swift-testing-pro
+- **Verification Command**: `swift test`
+
+When editing files matching `**`:
+1. Adhere strictly to the domain skills and architectural patterns declared above.
+2. Run `swift test` to verify changes before marking work as complete.

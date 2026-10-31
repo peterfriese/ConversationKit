@@ -1,0 +1,92 @@
+@Tutorial(time: 5, projectFiles: "ChatPrototype-Starter.zip") {
+    @XcodeRequirement(title: "Xcode 16.0+", destination: "https://developer.apple.com/xcode/")
+
+    @Intro(title: "Building a quick chat prototype") {
+        Validate core messaging interactions in under five minutes by constructing a rapid,
+        single-file prototype before establishing full model and persistence layers.
+
+        @Image(source: "hero-chat-prototype.svg", alt: "A rendering of the completed single-file chat prototype running in the Xcode Canvas.")
+    }
+
+    @Section(title: "Construct the prototype interface") {
+        @ContentAndMedia {
+            Micro-prototypes prioritize immediate tactile feedback over multi-file architectural
+            ceremony. In this section, you'll assemble speech bubbles and interactive state
+            directly within a single view.
+
+            @Image(source: "section-prototype-overview.svg", alt: "A wireframe sketch showing two conversation bubbles aligned on opposing screen edges.")
+        }
+
+        @Steps {
+            @Step {
+                In the Project navigator, select `ChatPrototypeView.swift`.
+
+                Single-file prototypes place layout, hardcoded state, and preview configuration together for rapid iteration.
+
+                The Xcode Canvas displays the initial template preview with a placeholder text label.
+
+                @Code(name: "ChatPrototypeView.swift", file: "01-proto-step1.swift")
+            }
+
+            @Step {
+                Embed a text label inside a rounded background rectangle to form an incoming speech bubble.
+
+                Background styling and corner radiuses shape plain text into recognizable conversational elements.
+
+                The canvas updates immediately to render a styled speech bubble with leading alignment.
+
+                @Code(name: "ChatPrototypeView.swift", file: "01-proto-step2.swift")
+            }
+
+            @Step {
+                Add a second speech bubble styled with system accent colors to represent an outgoing response.
+
+                Contrasting bubble colors visually differentiate conversational roles without requiring complex state management.
+
+                The canvas displays two alternating message bubbles stacked vertically.
+
+                @Code(name: "ChatPrototypeView.swift", file: "01-proto-step3.swift")
+            }
+
+            @Step {
+                Add an interactive button that toggles message delivery status in the preview.
+
+                Local `@State` properties provide immediate interaction validation before connecting persistent models.
+
+                Tapping the button in live canvas preview toggles the confirmation badge beneath the outgoing bubble.
+
+                @Code(name: "ChatPrototypeView.swift", file: "01-proto-step4.swift")
+            }
+        }
+    }
+
+    @Assessments {
+        @MultipleChoice {
+            What is the primary objective of building a single-file micro-prototype first?
+
+            @Choice(isCorrect: true) {
+                To validate core interaction mechanics and visual layout within minutes before investing in complex multi-file architecture.
+
+                @Justification(reaction: "Correct!") {
+                    Micro-prototypes yield fast feedback loops, proving interface viability before introducing formal models or database persistence.
+                }
+            }
+
+            @Choice(isCorrect: false) {
+                To replace production database migrations and production security checks permanently.
+
+                @Justification(reaction: "Try again.") {
+                    Micro-prototypes serve as exploratory learning artifacts; production features still graduate to robust multi-file architectures.
+                }
+            }
+
+            @Choice(isCorrect: false) {
+                To ensure code executes exclusively on the GPU rather than the CPU.
+
+                @Justification(reaction: "Try again.") {
+                    Prototyping architecture affects code organization and iteration speed, not hardware execution pipelines.
+                }
+            }
+        }
+    }
+}

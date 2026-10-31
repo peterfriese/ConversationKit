@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 340" width="100%" height="100%">
+  <defs>
+    <style>
+      .canvas-bg { fill: #000000; }
+      .kicker { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif; font-size: 11px; font-weight: 600; fill: #98989D; letter-spacing: 0.08em; text-anchor: middle; text-transform: uppercase; }
+      .header-title { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif; font-size: 22px; font-weight: 700; fill: #F5F5F7; text-anchor: middle; }
+      .header-sub { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif; font-size: 13px; font-weight: 400; fill: #98989D; text-anchor: middle; }
+      
+      .card-bg { fill: #1C1C1E; stroke: #38383A; stroke-width: 1.5; }
+      .card-hero-bg { fill: #1C1C1E; stroke: #2997FF; stroke-width: 2; }
+      
+      .card-title { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif; font-size: 15px; font-weight: 600; fill: #F5F5F7; text-anchor: middle; }
+      .card-hero-title { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif; font-size: 15px; font-weight: 600; fill: #2997FF; text-anchor: middle; }
+      .card-sub { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif; font-size: 13px; font-weight: 400; fill: #98989D; text-anchor: middle; }
+      
+      .flow-label { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif; font-size: 12px; font-weight: 600; fill: #98989D; text-anchor: middle; }
+      .flow-hero-label { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif; font-size: 12px; font-weight: 600; fill: #2997FF; text-anchor: middle; }
+      
+      .connector { stroke: #636366; stroke-width: 1.5; fill: none; }
+      .hero-connector { stroke: #2997FF; stroke-width: 1.5; fill: none; }
+      .arrowhead { fill: #636366; }
+      .hero-arrowhead { fill: #2997FF; }
+    </style>
+    <!-- refX=2 stops line at arrowhead base, eliminating tip protrusion -->
+    <marker id="arrow" viewBox="0 0 14 14" refX="2" refY="7" markerUnits="userSpaceOnUse" markerWidth="14" markerHeight="14" orient="auto">
+      <path d="M 2 2.5 L 12 7 L 2 11.5 C 3.5 9 3.5 5 2 2.5 Z" class="arrowhead" />
+    </marker>
+    <marker id="hero-arrow" viewBox="0 0 14 14" refX="2" refY="7" markerUnits="userSpaceOnUse" markerWidth="14" markerHeight="14" orient="auto">
+      <path d="M 2 2.5 L 12 7 L 2 11.5 C 3.5 9 3.5 5 2 2.5 Z" class="hero-arrowhead" />
+    </marker>
+  </defs>
+
+  <rect width="100%" height="100%" class="canvas-bg" />
+
+  <!-- Header Block -->
+  <text x="360" y="32" class="kicker">Conceptual guide • Principles</text>
+  <text x="360" y="58" class="header-title">Unidirectional data flow</text>
+  <text x="360" y="80" class="header-sub">State flows down as values; user events flow up as actions</text>
+
+  <!-- Top Card: State Model (Hero) -->
+  <g id="state-model">
+    <rect x="240" y="105" width="240" height="70" rx="14" ry="14" class="card-hero-bg" />
+    <text x="360" y="137" class="card-hero-title">
+      <tspan x="360" dy="0">State model</tspan>
+      <tspan x="360" dy="1.4em" class="card-sub">@Observable source of truth</tspan>
+    </text>
+  </g>
+
+  <!-- Bottom Card: View Hierarchy -->
+  <g id="view-hierarchy">
+    <rect x="240" y="235" width="240" height="70" rx="14" ry="14" class="card-bg" />
+    <text x="360" y="267" class="card-title">
+      <tspan x="360" dy="0">View hierarchy</tspan>
+      <tspan x="360" dy="1.4em" class="card-sub">Declarative view components</tspan>
+    </text>
+  </g>
+
+  <!-- Left Flow: State flows down (10px gap from top card, 10px gap before bottom card) -->
+  <path d="M 230 140 L 170 140 L 170 270 L 220 270" class="hero-connector" marker-end="url(#hero-arrow)" />
+  <text x="105" y="205" class="flow-hero-label">State flows down</text>
+
+  <!-- Right Flow: Actions flow up (10px gap from bottom card, 10px gap before top card) -->
+  <path d="M 490 270 L 550 270 L 550 140 L 500 140" class="connector" marker-end="url(#arrow)" />
+  <text x="618" y="205" class="flow-label">Actions flow up</text>
+</svg>

@@ -1,0 +1,44 @@
+@Article(time: 5) {
+    @Intro(title: "Milestone wrap-up and next steps") {
+        Celebrate completing this milestone, review the key architectural decisions
+        you made, and discover resources to extend your application.
+
+        @Image(source: "hero-milestone-complete.svg", alt: "A rendering of the completed feature running smoothly on iPhone and Mac.")
+    }
+
+    @ContentAndMedia {
+        You've completed this development milestone. In this module, you transformed
+        an initial concept into a robust, interactive user experience built on modern
+        Swift and SwiftUI foundations.
+
+        @Image(source: "flow-milestone-architecture.svg", alt: "An architectural overview of the components and state flow assembled in this milestone.")
+    }
+
+    @Stack {
+        @ContentAndMedia {
+            ### Core architectural takeaways
+
+            Take a moment to review the architectural patterns established during this module:
+
+            - **Single source of truth**: State belongs to a dedicated observable model; views observe changes reactively without manual event binding.
+            - **Progressive disclosure**: Interfaces reveal advanced configuration and options only when requested, keeping the primary workspace uncluttered.
+            - **Strict concurrency**: All asynchronous boundaries conform to Swift 6 concurrency models, guaranteeing compile-time thread safety.
+            - **Composable view hierarchy**: Small, dedicated view components isolate layout logic and optimize canvas preview execution times.
+
+            @Image(source: "takeaways-diagram.svg", alt: "A diagram illustrating the four core takeaways: state, views, models, and concurrency.")
+        }
+    }
+
+    @ContentAndMedia {
+        ### Where to go next
+
+        Continue deepening your understanding of the frameworks and techniques introduced in this module:
+
+        - [WWDC Session: Explore SwiftUI Developments](https://developer.apple.com/videos/play/wwdc2024/10144/)
+        - [Apple Developer Documentation: SwiftUI Views and Controls](https://developer.apple.com/documentation/swiftui/views-and-controls)
+        - [Human Interface Guidelines: Layout and Visual Design](https://developer.apple.com/design/human-interface-guidelines/layout)
+        - [Apple Developer Forums: Developer Discussions](https://developer.apple.com/forums/)
+
+        @Image(source: "resources-preview.svg", alt: "A graphic pointing to developer documentation, videos, and sample code.")
+    }
+}
