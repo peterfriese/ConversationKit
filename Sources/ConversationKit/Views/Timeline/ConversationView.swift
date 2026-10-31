@@ -1,4 +1,4 @@
-// 
+//
 // ConversationView.swift
 //
 // Created by Peter Friese on 20.02.24.
@@ -20,11 +20,11 @@ import MarkdownUI
 
 public struct OnSendMessageAction {
   private let handler: @MainActor (any Message) async -> Void
-  
+
   public init(handler: @escaping @MainActor (any Message) async -> Void) {
     self.handler = handler
   }
-  
+
   @MainActor
   public func callAsFunction(_ message: any Message) async {
     await handler(message)
@@ -61,14 +61,17 @@ public struct ConversationView<Content, MessageType: Message, AttachmentType: At
     case message(MessageType.ID)
     case bottomMarker
   }
-  
+
   // Custom scroll tracking
   @State private var isAutoScrollingTop: Bool = false
   @State private var autoScrollTargetID: MessageType.ID?
-  
-  /// The task currently executing the `onSendMessage` action. Used to show the Stop button.
+
+  /// The task currently executing an async turn (`onSendMessage`, `onRegenerateMessage`, `onRetryMessage`, or `onRetryToolCall`).
   @State private var sendingTask: Task<Void, Never>?
-  
+
+  /// Unique token guarding `sendingTask` and `optimisticUserMessage` against late cleanup from a cancelled task (`[MF-2]`).
+  @State private var activeTurnToken: UUID?
+
   /// A temporary copy of the user's message used to instantly update the UI.
   /// SwiftUI's `.scrollPosition` requires the layout to update synchronously with keyboard dismissal
   /// for perfect "Sticky Top" physics. However, the SDK does not own the `messages` array, meaning
@@ -76,7 +79,10 @@ public struct ConversationView<Content, MessageType: Message, AttachmentType: At
   /// To fix this, we hold the message here optimistically to trick the layout engine into correct physics,
   /// then seamlessly swap it out once the developer's data catches up.
   @State private var optimisticUserMessage: MessageType?
-  
+
+  /// Strongly-typed submission handler configured directly on `ConversationView` (`[MF-1]`).
+  private var typedOnSendMessageAction: (@MainActor (MessageSubmission<MessageType, AttachmentType>) async -> Void)?
+
   /// A dynamically computed list combining the developer's source of truth with our optimistic state.
   private var displayedMessages: [MessageType] {
     if let opt = optimisticUserMessage {
@@ -93,6 +99,9 @@ public struct ConversationView<Content, MessageType: Message, AttachmentType: At
   }
 
   @State private var message: String
+  @State private var fallbackSelectedModelID: String?
+  @State private var fallbackActiveCapabilities: Set<ComposerCapability> = []
+  @State private var fallbackActiveTokens: [ComposerTokenChip] = []
   @FocusState private var focusedField: FocusedField?
   enum FocusedField {
     case message
@@ -101,162 +110,293 @@ public struct ConversationView<Content, MessageType: Message, AttachmentType: At
   @Environment(\.onSendMessageAction) private var onSendMessageAction
   @Environment(\.messageActions) private var messageActions
   @Environment(\.conversationDisclaimer) private var conversationDisclaimer
-  
+  @Environment(\.welcomeConfiguration) private var welcomeConfiguration
+  @Environment(\.showsStandardMessageActions) private var showsStandardMessageActions
+  @Environment(\.onRegenerateMessageAction) private var onRegenerateMessageAction
+  @Environment(\.onRateMessageAction) private var onRateMessageAction
+  @Environment(\.onRetryMessageAction) private var onRetryMessageAction
+  @Environment(\.onRetryToolCallAction) private var onRetryToolCallAction
+  @Environment(\.activeComposerCapabilities) private var activeComposerCapabilities
+  @Environment(\.activeComposerTokens) private var activeComposerTokens
+  @Environment(\.selectedComposerModelID) private var selectedComposerModelID
+  @Environment(\.composerModels) private var composerModels
+
   private let content: (MessageType) -> Content
-  
-  public init(messages: Binding<[MessageType]>,
-              attachments: Binding<[AttachmentType]>,
-              userPrompt: String? = "",
-              @ViewBuilder content: @escaping (MessageType) -> Content) {
+
+  public init(
+    messages: Binding<[MessageType]>,
+    attachments: Binding<[AttachmentType]>,
+    userPrompt: String? = "",
+    @ViewBuilder content: @escaping (MessageType) -> Content
+  ) {
     self.content = content
     self._messages = messages
     self._attachments = attachments
     self.message = userPrompt ?? ""
+    self.typedOnSendMessageAction = nil
+  }
+
+  private var shouldShowStandardActionBar: Bool {
+    showsStandardMessageActions || onRegenerateMessageAction != nil || onRateMessageAction != nil
   }
 
   public var body: some View {
-    ZStack(alignment: .bottom) {
-      ScrollViewReader { proxy in
-        ScrollView {
-          LazyVStack(spacing: 16) {
-            ForEach(displayedMessages) { message in
-              VStack(alignment: .leading, spacing: 8) {
-                content(message)
-                
-                // Message Actions
-                if message.participant == .other, let actions = messageActions {
+    let currentMessages = displayedMessages
+
+    ScrollViewReader { proxy in
+      ScrollView {
+        LazyVStack(spacing: 16) {
+          if currentMessages.isEmpty, let welcomeConfig = welcomeConfiguration {
+            ConversationWelcomeView(configuration: welcomeConfig) { suggestion in
+              switch welcomeConfig.handoff {
+              case .immediateSend:
+                message = suggestion.prompt
+                submit()
+              case .populateComposer:
+                message = suggestion.prompt
+                focusedField = .message
+              }
+            }
+          }
+
+          ForEach(currentMessages) { message in
+            VStack(alignment: .leading, spacing: 8) {
+              content(message)
+
+              // Message Actions: Custom override takes precedence; otherwise standard action bar when opted in ([SF-3])
+              if message.participant == .other {
+                if let actions = messageActions {
                   actions(message)
+                } else if !message.isStreaming && message.error == nil && shouldShowStandardActionBar {
+                  MessageActionBarView(message: message)
                 }
               }
+            }
+            .padding(.horizontal)
+            .id(ConversationScrollID.message(message.id))
+            .accessibilityIdentifier("message_row")
+          }
+
+          // Disclaimer View
+          if let lastMessage = currentMessages.last,
+             lastMessage.participant == .other,
+             let disclaimer = conversationDisclaimer {
+            disclaimer
               .padding(.horizontal)
-              .id(ConversationScrollID.message(message.id))
-              .accessibilityIdentifier("message_row")
-            }
-            
-            // Disclaimer View
-            if let lastMessage = displayedMessages.last, lastMessage.participant == .other, let disclaimer = conversationDisclaimer {
-              disclaimer
-                .padding(.horizontal)
-                .padding(.top, 8)
-                .accessibilityIdentifier("conversation_disclaimer")
-            }
-            
-            Spacer()
-              .frame(height: 100)
-              .id(ConversationScrollID.bottomMarker)
+              .padding(.top, 8)
+              .accessibilityIdentifier("conversation_disclaimer")
           }
-          .scrollTargetLayout()
-          .accessibilityIdentifier("conversation_list")
         }
-        .accessibilityIdentifier("conversation_scroll_view")
-        .scrollTargetBehavior(.viewAligned)
-        .scrollBounceBehavior(.always)
-        .scrollDismissesKeyboard(.interactively)
-        .simultaneousGesture(
-          DragGesture().onChanged { _ in
-            // Stop sticky top anchoring if the user touches/scrolls the view
-            isAutoScrollingTop = false
-            autoScrollTargetID = nil
+        .padding(.bottom, 8)
+        .scrollTargetLayout()
+        .accessibilityIdentifier("conversation_list")
+      }
+      .accessibilityIdentifier("conversation_scroll_view")
+      .scrollTargetBehavior(.viewAligned)
+      .scrollBounceBehavior(.always)
+      .scrollDismissesKeyboard(.interactively)
+      .simultaneousGesture(
+        DragGesture().onChanged { _ in
+          // Stop sticky top anchoring if the user touches/scrolls the view
+          isAutoScrollingTop = false
+          autoScrollTargetID = nil
+        }
+      )
+      .onChange(of: currentMessages) { oldValue, newValue in
+        // 1. Detect if a brand new message was submitted by the user
+        let wasUserMessageAdded = oldValue.count < newValue.count && newValue.last?.participant == .user
+
+        if wasUserMessageAdded, let lastMessage = newValue.last {
+          // Anchor to the new user message, trigger auto-scrolling state
+          isAutoScrollingTop = true
+          autoScrollTargetID = lastMessage.id
+          withAnimation {
+            proxy.scrollTo(ConversationScrollID.message(lastMessage.id), anchor: .top)
           }
-        )
-        .onChange(of: displayedMessages) { oldValue, newValue in
-          // 1. Detect if a brand new message was submitted by the user
-          let wasUserMessageAdded = oldValue.count < newValue.count && newValue.last?.participant == .user
-          
-          if wasUserMessageAdded, let lastMessage = newValue.last {
-            // Anchor to the new user message, trigger auto-scrolling state
-            isAutoScrollingTop = true
-            autoScrollTargetID = lastMessage.id
-            withAnimation {
-              proxy.scrollTo(ConversationScrollID.message(lastMessage.id), anchor: .top)
-            }
-          } 
-          // 2. If we are currently anchored, and new tokens are arriving (list mutated but user didn't scroll away)
-          else if isAutoScrollingTop, let targetID = autoScrollTargetID {
-            // Force the proxy to clamp to the top of the anchor without animation (seamless "riding" of the expanding content)
-            proxy.scrollTo(ConversationScrollID.message(targetID), anchor: .top)
-          }
+        }
+        // 2. If we are currently anchored, and new tokens are arriving (list mutated but user didn't scroll away)
+        else if isAutoScrollingTop, let targetID = autoScrollTargetID {
+          // Force the proxy to clamp to the top of the anchor without animation (seamless "riding" of the expanding content)
+          proxy.scrollTo(ConversationScrollID.message(targetID), anchor: .top)
         }
       }
+      .safeAreaInset(edge: .bottom, spacing: 0) {
+        MessageComposerView(message: $message, attachments: $attachments)
+          .padding(.bottom, 10) // keep distance from keyboard
+          .focused($focusedField, equals: .message)
+          .isGenerating(sendingTask != nil)
+          .environment(\.selectedComposerModelID, selectedComposerModelID ?? $fallbackSelectedModelID)
+          .environment(\.activeComposerCapabilities, activeComposerCapabilities ?? $fallbackActiveCapabilities)
+          .environment(\.activeComposerTokens, activeComposerTokens ?? $fallbackActiveTokens)
+          .onStopAction {
+            sendingTask?.cancel()
+          }
+          .onSubmitAction {
+            submit()
+          }
+      }
+      .environment(
+        \.onRegenerateMessageAction,
+        onRegenerateMessageAction.map { action in
+          OnRegenerateMessageAction { targetMessage in
+            startTurnTask {
+              await action(targetMessage)
+            }
+          }
+        }
+      )
+      .environment(
+        \.onRetryMessageAction,
+        onRetryMessageAction.map { action in
+          OnRetryMessageAction { targetMessage in
+            startTurnTask {
+              await action(targetMessage)
+            }
+          }
+        }
+      )
+      .environment(
+        \.onRetryToolCallAction,
+        onRetryToolCallAction.map { action in
+          OnRetryToolCallAction { toolCall in
+            startTurnTask {
+              await action(toolCall)
+            }
+          }
+        }
+      )
+    }
+  }
 
-      MessageComposerView(message: $message, attachments: $attachments)
-        .padding(.bottom, 10) // keep distance from keyboard
-        .focused($focusedField, equals: .message)
-        .isGenerating(sendingTask != nil)
-        .onStopAction {
-          sendingTask?.cancel()
+  /// Token-guarded turn coordinator (`[MF-2]`).
+  /// Ensures a cancelled turn's `defer` block never clears a newly started turn's `sendingTask` or `optimisticUserMessage`.
+  @MainActor
+  func startTurnTask(_ operation: @escaping @MainActor () async -> Void) {
+    sendingTask?.cancel()
+    let token = UUID()
+    activeTurnToken = token
+
+    sendingTask = Task { @MainActor in
+      defer {
+        if self.activeTurnToken == token {
+          self.sendingTask = nil
+          self.optimisticUserMessage = nil
+          self.activeTurnToken = nil
         }
-        .onSubmitAction {
-          submit()
-        }
+      }
+      await operation()
     }
   }
 
   @MainActor
   func submit() {
     let userMessage = MessageType(content: message, imageURL: nil, participant: .user)
-    
+    let resolvedCapabilities = activeComposerCapabilities?.wrappedValue ?? fallbackActiveCapabilities
+    let resolvedTokens = activeComposerTokens?.wrappedValue ?? fallbackActiveTokens
+    let resolvedModelID = selectedComposerModelID?.wrappedValue ?? fallbackSelectedModelID ?? composerModels.first?.id
+
+    let submission = MessageSubmission(
+      message: userMessage,
+      attachments: attachments,
+      activeCapabilities: resolvedCapabilities,
+      tokens: resolvedTokens,
+      selectedModelID: resolvedModelID
+    )
+
     // Set the optimistic message synchronously so it immediately appears in the layout
     // for perfect "Sticky Top" scrolling physics when the keyboard dismisses.
     // It will be seamlessly replaced by the developer's actual message update since
     // `displayedMessages` deduplicates by ID.
     optimisticUserMessage = userMessage
-    
+
     withAnimation {
       message = ""
+      if let activeComposerTokens {
+        activeComposerTokens.wrappedValue.removeAll()
+      } else {
+        fallbackActiveTokens.removeAll()
+      }
       focusedField = nil // Dismiss keyboard
     }
 
-    // Wrap the developer's closure execution in a background task. 
-    // We mark it @MainActor so it yields execution immediately to allow the layout 
-    // physics animation above to finish, but keeps any state updates they perform safely 
-    // bound to the main thread by default to prevent deadlocks.
-    sendingTask = Task { @MainActor in
-      defer { 
-        self.sendingTask = nil 
-        self.optimisticUserMessage = nil
+    let typedHandler = typedOnSendMessageAction
+    let fallbackHandler = onSendMessageAction
+
+    startTurnTask {
+      if let typedHandler {
+        await typedHandler(submission)
+      } else {
+        await fallbackHandler(userMessage)
       }
-      await onSendMessageAction(userMessage)
     }
   }
-
 }
 
+// MARK: - Strongly-Typed onSendMessage Overloads ([MF-1])
+
+extension ConversationView {
+  /// Defines a strongly-typed action executed when the user sends a new message, eliminating `as? DefaultMessage` downcasting.
+  public func onSendMessage(
+    _ action: @escaping @MainActor (MessageType) async -> Void
+  ) -> Self {
+    var copy = self
+    copy.typedOnSendMessageAction = { submission in
+      await action(submission.message)
+    }
+    return copy
+  }
+
+  /// Defines a strongly-typed action receiving the full `MessageSubmission` context (message, attachments, capabilities, tokens, and model ID).
+  public func onSendMessage(
+    _ action: @escaping @MainActor (MessageSubmission<MessageType, AttachmentType>) async -> Void
+  ) -> Self {
+    var copy = self
+    copy.typedOnSendMessageAction = action
+    return copy
+  }
+}
+
+// MARK: - Convenience Initializers
+
 extension ConversationView where Content == MessageView {
-  public init(messages: Binding<[MessageType]>,
-              attachments: Binding<[AttachmentType]>,
-              userPrompt: String? = "") {
-    self.init(messages: messages,
-              attachments: attachments,
-              userPrompt: userPrompt,
-              content: { message in
-      MessageView(message: message.content,
-                  imageURL: message.imageURL,
-                  participant: message.participant,
-                  error: message.error)
-    })
+  public init(
+    messages: Binding<[MessageType]>,
+    attachments: Binding<[AttachmentType]>,
+    userPrompt: String? = ""
+  ) {
+    self.init(
+      messages: messages,
+      attachments: attachments,
+      userPrompt: userPrompt,
+      content: { message in
+        MessageView(message)
+      }
+    )
   }
 }
 
 extension ConversationView where AttachmentType == EmptyAttachment {
   public init(messages: Binding<[MessageType]>, userPrompt: String? = "") where Content == MessageView {
-    self.init(messages: messages,
-              attachments: .constant([]),
-              userPrompt: userPrompt,
-              content: { message in
-      MessageView(message: message.content,
-                  imageURL: message.imageURL,
-                  participant: message.participant,
-                  error: message.error)
-    })
+    self.init(
+      messages: messages,
+      attachments: .constant([]),
+      userPrompt: userPrompt,
+      content: { message in
+        MessageView(message)
+      }
+    )
   }
-  
-  public init(messages: Binding<[MessageType]>,
-              userPrompt: String? = "",
-              @ViewBuilder content: @escaping (MessageType) -> Content) {
-    self.init(messages: messages,
-              attachments: .constant([]),
-              userPrompt: userPrompt,
-              content: content)
+
+  public init(
+    messages: Binding<[MessageType]>,
+    userPrompt: String? = "",
+    @ViewBuilder content: @escaping (MessageType) -> Content
+  ) {
+    self.init(
+      messages: messages,
+      attachments: .constant([]),
+      userPrompt: userPrompt,
+      content: content
+    )
   }
 }

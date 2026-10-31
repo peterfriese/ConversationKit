@@ -18,7 +18,7 @@
 
 import Foundation
 
-public enum Participant {
+public enum Participant: String, Hashable, Sendable {
   case other
   case user
 }
@@ -29,40 +29,102 @@ public protocol Message: Identifiable, Hashable {
   var participant: Participant { get }
   var error: Error? { get }
 
+  // vNext Agentic Surface & Turn Lifecycle Properties
+  var thinking: ThinkingTrace? { get }
+  var toolCalls: [ToolCall] { get }
+  var citations: [Citation] { get }
+  var plan: AgentPlan? { get }
+  var approvalRequest: ApprovalRequest? { get }
+  var isStreaming: Bool { get }
+  var rating: MessageRating? { get }
+
   init(content: String?, imageURL: String?, participant: Participant)
 }
 
-public struct DefaultMessage: Message {
-  public let id: UUID = .init()
+public extension Message {
+  var thinking: ThinkingTrace? { nil }
+  var toolCalls: [ToolCall] { [] }
+  var citations: [Citation] { [] }
+  var plan: AgentPlan? { nil }
+  var approvalRequest: ApprovalRequest? { nil }
+  var isStreaming: Bool { false }
+  var rating: MessageRating? { nil }
+}
+
+public struct DefaultMessage: Message, Sendable {
+  public let id: UUID
   public var content: String?
-  public let imageURL: String?
-  public let participant: Participant
-  public let error: (any Error)?
-  
-  public init(content: String? = nil, imageURL: String? = nil, participant: Participant, error: (any Error)? = nil) {
+  public var imageURL: String?
+  public var participant: Participant
+  public var error: (any Error)?
+  public var thinking: ThinkingTrace?
+  public var toolCalls: [ToolCall]
+  public var citations: [Citation]
+  public var plan: AgentPlan?
+  public var approvalRequest: ApprovalRequest?
+  public var isStreaming: Bool
+  public var rating: MessageRating?
+
+  public init(
+    id: UUID = UUID(),
+    content: String? = nil,
+    imageURL: String? = nil,
+    participant: Participant,
+    error: (any Error)? = nil,
+    thinking: ThinkingTrace? = nil,
+    toolCalls: [ToolCall] = [],
+    citations: [Citation] = [],
+    plan: AgentPlan? = nil,
+    approvalRequest: ApprovalRequest? = nil,
+    isStreaming: Bool = false,
+    rating: MessageRating? = nil
+  ) {
+    self.id = id
     self.content = content
     self.imageURL = imageURL
     self.participant = participant
     self.error = error
+    self.thinking = thinking
+    self.toolCalls = toolCalls
+    self.citations = citations
+    self.plan = plan
+    self.approvalRequest = approvalRequest
+    self.isStreaming = isStreaming
+    self.rating = rating
   }
-  
+
   // Protocol-required initializer
   public init(content: String?, imageURL: String?, participant: Participant) {
+    self.id = UUID()
     self.content = content
     self.imageURL = imageURL
     self.participant = participant
     self.error = nil
+    self.thinking = nil
+    self.toolCalls = []
+    self.citations = []
+    self.plan = nil
+    self.approvalRequest = nil
+    self.isStreaming = false
+    self.rating = nil
   }
 }
 
-// Implement Equatable and Hashable for DefaultMessage (ignore error)
 extension DefaultMessage {
   public static func == (lhs: DefaultMessage, rhs: DefaultMessage) -> Bool {
     lhs.id == rhs.id &&
     lhs.content == rhs.content &&
     lhs.imageURL == rhs.imageURL &&
-    lhs.participant == rhs.participant
-    // intentionally ignore `error`
+    lhs.participant == rhs.participant &&
+    (lhs.error != nil) == (rhs.error != nil) &&
+    lhs.error?.localizedDescription == rhs.error?.localizedDescription &&
+    lhs.thinking == rhs.thinking &&
+    lhs.toolCalls == rhs.toolCalls &&
+    lhs.citations == rhs.citations &&
+    lhs.plan == rhs.plan &&
+    lhs.approvalRequest == rhs.approvalRequest &&
+    lhs.isStreaming == rhs.isStreaming &&
+    lhs.rating == rhs.rating
   }
 
   public func hash(into hasher: inout Hasher) {
@@ -70,6 +132,14 @@ extension DefaultMessage {
     hasher.combine(content)
     hasher.combine(imageURL)
     hasher.combine(participant)
-    // intentionally ignore `error`
+    hasher.combine(error != nil)
+    hasher.combine(error?.localizedDescription)
+    hasher.combine(thinking)
+    hasher.combine(toolCalls)
+    hasher.combine(citations)
+    hasher.combine(plan)
+    hasher.combine(approvalRequest)
+    hasher.combine(isStreaming)
+    hasher.combine(rating)
   }
 }

@@ -48,10 +48,8 @@ class FirebaseAILogicChatViewModel {
     chat = model.startChat(history: history)
   }
 
-  func sendMessage(_ message: any Message) async {
-    if let defaultMessage = message as? DefaultMessage {
-      messages.append(defaultMessage)
-    }
+  func sendMessage(_ message: DefaultMessage) async {
+    messages.append(message)
     var responseText: String
     do {
       // Convert attachments (UIImage) into InlineDataPart which conforms to Part/PartsRepresentable.
@@ -90,6 +88,9 @@ struct FirebaseAILogicChatView: View {
   var body: some View {
     NavigationStack {
       ConversationView(messages: $viewModel.messages, attachments: $viewModel.attachments)
+        .onSendMessage { message in
+          await viewModel.sendMessage(message)
+        }
         .attachmentActions {
           Button("Photos", systemImage: "photo.on.rectangle.angled") {
             showingPhotoPicker = true
@@ -97,9 +98,6 @@ struct FirebaseAILogicChatView: View {
         }
         .navigationTitle("Chat")
         .navigationBarTitleDisplayMode(.inline)
-        .onSendMessage { message in
-          await viewModel.sendMessage(message)
-        }
         .photosPicker(
           isPresented: $showingPhotoPicker,
           selection: $viewModel.selectedItems,

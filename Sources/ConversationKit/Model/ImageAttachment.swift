@@ -18,20 +18,36 @@
 
 import SwiftUI
 
-public struct ImageAttachment: Attachment {
-  public let id = UUID()
+public struct ImageAttachment: Attachment, @unchecked Sendable {
+  public let id: UUID
   public let image: PlatformImage
+  public var uploadProgress: Double?
+  public var uploadError: (any Error)?
 
-  public init(image: PlatformImage) {
+  public init(
+    id: UUID = UUID(),
+    image: PlatformImage,
+    uploadProgress: Double? = nil,
+    uploadError: (any Error)? = nil
+  ) {
+    self.id = id
     self.image = image
+    self.uploadProgress = uploadProgress
+    self.uploadError = uploadError
   }
 
   public static func == (lhs: ImageAttachment, rhs: ImageAttachment) -> Bool {
-    lhs.id == rhs.id
+    lhs.id == rhs.id &&
+    lhs.uploadProgress == rhs.uploadProgress &&
+    (lhs.uploadError != nil) == (rhs.uploadError != nil) &&
+    lhs.uploadError?.localizedDescription == rhs.uploadError?.localizedDescription
   }
 
   public func hash(into hasher: inout Hasher) {
     hasher.combine(id)
+    hasher.combine(uploadProgress)
+    hasher.combine(uploadError != nil)
+    hasher.combine(uploadError?.localizedDescription)
   }
 }
 

@@ -35,12 +35,8 @@ extension FoundationModelChatView: View {
   var body: some View {
     NavigationStack {
       ConversationView(messages: $messages)
-        .navigationTitle("Chat")
-        .navigationBarTitleDisplayMode(.inline)
         .onSendMessage { message in
-          if let defaultMessage = message as? DefaultMessage {
-            messages.append(defaultMessage)
-          }
+          messages.append(message)
           var responseMessage: DefaultMessage
           do {
             let response = try await session.respond(to: message.content ?? "")
@@ -52,6 +48,8 @@ extension FoundationModelChatView: View {
           }
           messages.append(responseMessage)
         }
+        .navigationTitle("Chat")
+        .navigationBarTitleDisplayMode(.inline)
         .onError { error in
           errorWrapper = ErrorWrapper(error: error)
         }

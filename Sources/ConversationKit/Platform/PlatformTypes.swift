@@ -15,11 +15,25 @@ import SwiftUI
   public typealias PlatformImage = NSImage
 #endif
 
+// MARK: - Platform Pasteboard
+
+public enum PlatformPasteboard {
+  @MainActor
+  public static func copy(_ text: String) {
+    #if canImport(UIKit)
+      UIPasteboard.general.string = text
+    #elseif canImport(AppKit)
+      NSPasteboard.general.clearContents()
+      NSPasteboard.general.setString(text, forType: .string)
+    #endif
+  }
+}
+
 // MARK: - Platform Image Construction
 
 extension PlatformImage {
   /// Create a platform image from an SF Symbol name.
-  static func systemSymbol(_ name: String) -> PlatformImage? {
+  public static func systemSymbol(_ name: String) -> PlatformImage? {
     #if canImport(UIKit)
       return UIImage(systemName: name)
     #elseif canImport(AppKit)
@@ -51,6 +65,16 @@ extension Color {
       Color(uiColor: .secondarySystemBackground)
     #elseif canImport(AppKit)
       Color(nsColor: .controlBackgroundColor)
+    #endif
+  }
+
+  /// Tertiary system background — `.tertiarySystemBackground` on iOS,
+  /// `.underPageBackgroundColor` on macOS.
+  static var platformTertiaryBackground: Color {
+    #if canImport(UIKit)
+      Color(uiColor: .tertiarySystemBackground)
+    #elseif canImport(AppKit)
+      Color(nsColor: .underPageBackgroundColor)
     #endif
   }
 

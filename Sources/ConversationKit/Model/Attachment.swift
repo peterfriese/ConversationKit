@@ -19,4 +19,14 @@
 import SwiftUI
 
 public protocol Attachment: Identifiable, Hashable {
+  /// Determinate upload progress (`0.0...1.0`), or `nil` when ready/completed.
+  var uploadProgress: Double? { get }
+
+  /// Optional error encountered while uploading or preparing the attachment.
+  var uploadError: (any Error)? { get }
+}
+
+public extension Attachment {
+  var uploadProgress: Double? { nil }
+  var uploadError: (any Error)? { nil }
 }

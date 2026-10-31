@@ -21,16 +21,30 @@ import SwiftUI
 public struct AttachmentPreviewCard<AttachmentType: Attachment & View>: View {
   var attachment: AttachmentType
   var onDelete: () -> Void
-  
+
   public init(attachment: AttachmentType, onDelete: @escaping () -> Void) {
     self.attachment = attachment
     self.onDelete = onDelete
   }
-  
+
   public var body: some View {
     ZStack(alignment: .topTrailing) {
-      attachment
-      
+      ZStack {
+        attachment
+
+        if let progress = attachment.uploadProgress, (0.0..<1.0).contains(progress) {
+          ZStack {
+            Color.black.opacity(0.45)
+
+            CircularUploadProgressRing(progress: progress)
+              .frame(width: 24, height: 24)
+              .accessibilityIdentifier("attachment_upload_progress")
+              .accessibilityLabel("Upload progress")
+              .accessibilityValue("\(Int((progress * 100).rounded())) percent")
+          }
+        }
+      }
+
       Button(action: onDelete) {
         Image(systemName: "xmark.circle.fill")
           .foregroundStyle(.white)
@@ -38,6 +52,26 @@ public struct AttachmentPreviewCard<AttachmentType: Attachment & View>: View {
       }
       .accessibilityLabel("Remove attachment")
       .padding(4)
+    }
+  }
+}
+
+private struct CircularUploadProgressRing: View {
+  let progress: Double
+
+  var body: some View {
+    ZStack {
+      Circle()
+        .stroke(Color.white.opacity(0.35), lineWidth: 2.5)
+
+      Circle()
+        .trim(from: 0, to: min(max(progress, 0.0), 1.0))
+        .stroke(
+          Color.white,
+          style: StrokeStyle(lineWidth: 2.5, lineCap: .round)
+        )
+        .rotationEffect(.degrees(-90))
+        .animation(.smooth(duration: 0.2), value: progress)
     }
   }
 }

@@ -107,10 +107,8 @@ class FirebaseAILogicChatWithMetadataViewModel {
     chat = model.startChat(history: history)
   }
 
-  func sendMessage(_ message: any Message) async {
-    if let chatMessage = message as? ChatMessage {
-      messages.append(chatMessage)
-    }
+  func sendMessage(_ message: ChatMessage) async {
+    messages.append(message)
     var responseText: String
     var usageMetadata: GenerateContentResponse.UsageMetadata?
     var finishReason: FinishReason?
@@ -263,11 +261,7 @@ struct FirebaseAILogicChatWithMetadataView: View {
   @ViewBuilder
   private func messageContent(for message: ChatMessage) -> some View {
     VStack(alignment: .leading, spacing: 4) {
-      MessageView(
-        message: message.content,
-        imageURL: message.imageURL ?? "",
-        participant: message.participant
-      )
+      MessageView(message)
       VStack(alignment: .leading, spacing: 4) {
         tokenBar(for: message)
         metadataDebugView(for: message)
@@ -280,6 +274,9 @@ struct FirebaseAILogicChatWithMetadataView: View {
       ConversationView(messages: $viewModel.messages, attachments: $viewModel.attachments) { message in
         messageContent(for: message)
       }
+      .onSendMessage { message in
+        await viewModel.sendMessage(message)
+      }
       .attachmentActions {
         Button("Photos", systemImage: "photo.on.rectangle.angled") {
           showingPhotoPicker = true
@@ -287,9 +284,6 @@ struct FirebaseAILogicChatWithMetadataView: View {
       }
       .navigationTitle("Chat")
       .navigationBarTitleDisplayMode(.inline)
-      .onSendMessage { message in
-        await viewModel.sendMessage(message)
-      }
       .photosPicker(
         isPresented: $showingPhotoPicker,
         selection: $viewModel.selectedItems,

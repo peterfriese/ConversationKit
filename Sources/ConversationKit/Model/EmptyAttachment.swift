@@ -18,10 +18,12 @@
 
 import SwiftUI
 
-public struct EmptyAttachment: Attachment {
-  public var id = UUID()
+public struct EmptyAttachment: Attachment, Sendable {
+  public let id: UUID
   
-  public init() { }
+  public init(id: UUID = UUID()) {
+    self.id = id
+  }
 }
 
 extension EmptyAttachment: View {
