@@ -1,0 +1,15 @@
+---
+description: >-
+  Top-Floating Turn Timeline, Non-Pushing AI Replies, Streaming Markdown &
+  Scroll-to-Bottom Button
+globs: Sources/ConversationKit/Views/Timeline/**
+---
+# Rules for Sources/ConversationKit/Views/Timeline/**
+
+- **Lead Specialist**: `@apple-engineer`
+- **Domain Skills**: swiftui-modern, apple-avanderlee-swiftui, apple-flo-liquid-glass, apple-stratos, apple-flowdeck-validation
+- **Verification Command**: `swift test`
+
+When editing files matching `Sources/ConversationKit/Views/Timeline/**`:
+1. Adhere strictly to the domain skills and architectural patterns declared above.
+2. Run `swift test` to verify changes before marking work as complete.

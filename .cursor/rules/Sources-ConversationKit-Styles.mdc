@@ -1,0 +1,15 @@
+---
+description: >-
+  SwiftUI Style Protocols (MessageComposerStyle, ThinkingStateStyle,
+  UserMessageBubbleStyle)
+globs: Sources/ConversationKit/Styles/**
+---
+# Rules for Sources/ConversationKit/Styles/**
+
+- **Lead Specialist**: `@swift-sdk-architect`
+- **Domain Skills**: apple-stratos, stratos-swift-api, swiftui-modern, apple-flo-liquid-glass
+- **Verification Command**: `swift test`
+
+When editing files matching `Sources/ConversationKit/Styles/**`:
+1. Adhere strictly to the domain skills and architectural patterns declared above.
+2. Run `swift test` to verify changes before marking work as complete.

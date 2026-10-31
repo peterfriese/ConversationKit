@@ -1,0 +1,13 @@
+---
+description: Swift Testing Unit Suite for ConversationKit v2
+globs: Tests/ConversationKitTests/**
+---
+# Rules for Tests/ConversationKitTests/**
+
+- **Lead Specialist**: `@swift-systems-engineer`
+- **Domain Skills**: swift-testing-pro, apple-avanderlee-testing, swift-6-concurrency
+- **Verification Command**: `swift test`
+
+When editing files matching `Tests/ConversationKitTests/**`:
+1. Adhere strictly to the domain skills and architectural patterns declared above.
+2. Run `swift test` to verify changes before marking work as complete.

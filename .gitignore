@@ -117,3 +117,9 @@ Network Trash Folder/
 .Spotlight-V100
 .Trashes
 GoogleService-Info.plist
+
+# FleetKit Surface Ignores
+node_modules/
+dist/
+.fleet/worktrees/
+.fleet/cache/

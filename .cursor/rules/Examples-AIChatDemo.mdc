@@ -1,0 +1,13 @@
+---
+description: Firebase AI Logic & Apple FoundationModels Integration Demo App
+globs: Examples/AIChatDemo/**
+---
+# Rules for Examples/AIChatDemo/**
+
+- **Lead Specialist**: `@apple-engineer`
+- **Domain Skills**: apple-flowdeck-validation, swiftui-modern, apple-flo-liquid-glass
+- **Verification Command**: `inherit default`
+
+When editing files matching `Examples/AIChatDemo/**`:
+1. Adhere strictly to the domain skills and architectural patterns declared above.
+2. Run `inherit default` to verify changes before marking work as complete.

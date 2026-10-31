@@ -1,0 +1,24 @@
+{
+  "fleetkit-orchestrator-gate": {
+    "enabled": true,
+    "PreToolUse": [
+      {
+        "matcher": "write_file|edit_file|write_to_file|replace_file_content|multi_replace_file_content|define_subagent|invoke_subagent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ../.fleet/hooks/antigravity-fleet-gate.mjs pre-tool-use",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "type": "command",
+        "command": "node ../.fleet/hooks/antigravity-fleet-gate.mjs stop",
+        "timeout": 10
+      }
+    ]
+  }
+}

@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 480" width="100%" height="100%">
+  <defs>
+    <style>
+      .canvas-bg { fill: #000000; }
+      .kicker { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif; font-size: 11px; font-weight: 600; fill: #98989D; letter-spacing: 0.08em; text-anchor: middle; text-transform: uppercase; }
+      .header-title { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif; font-size: 22px; font-weight: 700; fill: #F5F5F7; text-anchor: middle; }
+      .header-sub { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif; font-size: 13px; font-weight: 400; fill: #98989D; text-anchor: middle; }
+      
+      .device-frame { fill: #1C1C1E; stroke: #38383A; stroke-width: 2; }
+      .sidebar-bg { fill: #2C2C2E; }
+      .active-pill { fill: #2997FF; }
+      .active-dot { fill: #FFFFFF; }
+      .inactive-dot { fill: #636366; }
+      .inactive-bar { fill: #48484A; }
+      
+      .content-card { fill: #2C2C2E; }
+    </style>
+  </defs>
+
+  <rect width="100%" height="100%" class="canvas-bg" />
+
+  <!-- Header Block -->
+  <text x="380" y="34" class="kicker">Interactive tutorial • Chapter asset</text>
+  <text x="380" y="60" class="header-title">Core interface and navigation</text>
+  <text x="380" y="82" class="header-sub">Adaptive multi-column layout on iPadOS</text>
+
+  <!-- iPad Frame -->
+  <rect x="150" y="105" width="460" height="345" rx="28" ry="28" class="device-frame" />
+
+  <!-- Sidebar Column -->
+  <rect x="165" y="120" width="125" height="315" rx="18" ry="18" class="sidebar-bg" />
+
+  <!-- Sidebar Row 1 (Active Hero) -->
+  <rect x="175" y="135" width="105" height="22" rx="8" ry="8" class="active-pill" />
+  <circle cx="186" cy="146" r="3.5" class="active-dot" />
+
+  <!-- Sidebar Row 2 -->
+  <circle cx="186" cy="176" r="3.5" class="inactive-dot" />
+  <rect x="196" y="172" width="70" height="8" rx="4" ry="4" class="inactive-bar" />
+
+  <!-- Sidebar Row 3 -->
+  <circle cx="186" cy="202" r="3.5" class="inactive-dot" />
+  <rect x="196" y="198" width="70" height="8" rx="4" ry="4" class="inactive-bar" />
+
+  <!-- Sidebar Row 4 -->
+  <circle cx="186" cy="228" r="3.5" class="inactive-dot" />
+  <rect x="196" y="224" width="70" height="8" rx="4" ry="4" class="inactive-bar" />
+
+  <!-- Sidebar Row 5 -->
+  <circle cx="186" cy="254" r="3.5" class="inactive-dot" />
+  <rect x="196" y="250" width="70" height="8" rx="4" ry="4" class="inactive-bar" />
+
+  <!-- Main Content Grid -->
+  <rect x="305" y="120" width="140" height="150" rx="16" ry="16" class="content-card" />
+  <rect x="455" y="120" width="140" height="150" rx="16" ry="16" class="content-card" />
+  <rect x="305" y="285" width="140" height="150" rx="16" ry="16" class="content-card" />
+  <rect x="455" y="285" width="140" height="150" rx="16" ry="16" class="content-card" />
+</svg>

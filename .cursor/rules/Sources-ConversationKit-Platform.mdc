@@ -1,0 +1,13 @@
+---
+description: 'Chameleon Cross-Platform Abstractions (iOS 26+, macCatalyst 26+, macOS 26+)'
+globs: Sources/ConversationKit/Platform/**
+---
+# Rules for Sources/ConversationKit/Platform/**
+
+- **Lead Specialist**: `@swift-systems-engineer`
+- **Domain Skills**: swift-6-concurrency, apple-avanderlee-concurrency, stratos-swift-api
+- **Verification Command**: `swift test`
+
+When editing files matching `Sources/ConversationKit/Platform/**`:
+1. Adhere strictly to the domain skills and architectural patterns declared above.
+2. Run `swift test` to verify changes before marking work as complete.

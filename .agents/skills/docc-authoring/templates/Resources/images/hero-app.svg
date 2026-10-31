@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 480" width="100%" height="100%">
+  <defs>
+    <style>
+      .canvas-bg { fill: #FFFFFF; }
+      .kicker { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif; font-size: 11px; font-weight: 600; fill: #86868B; letter-spacing: 0.08em; text-anchor: middle; text-transform: uppercase; }
+      .header-title { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif; font-size: 22px; font-weight: 700; fill: #1D1D1F; text-anchor: middle; }
+      .header-sub { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif; font-size: 13px; font-weight: 400; fill: #86868B; text-anchor: middle; }
+      
+      .phone-frame { fill: #FFFFFF; stroke: #E5E5EA; stroke-width: 2; }
+      .island { fill: #1D1D1F; }
+      .home-bar { fill: #C7C7CC; rx: 2.5; ry: 2.5; }
+      
+      .hero-placeholder { fill: #E8EEF5; }
+      .hero-pill { fill: #B8D5FA; rx: 6; ry: 6; }
+      .list-card { fill: #F5F5F7; }
+      .list-icon { fill: #E5E5EA; rx: 8; ry: 8; }
+      .list-text-1 { fill: #C7C7CC; rx: 3; ry: 3; }
+      .list-text-2 { fill: #E5E5EA; rx: 3; ry: 3; }
+    </style>
+  </defs>
+
+  <rect width="100%" height="100%" class="canvas-bg" />
+
+  <!-- Header Block -->
+  <text x="380" y="34" class="kicker">Interactive tutorial • Hero asset</text>
+  <text x="380" y="60" class="header-title">Application overview</text>
+  <text x="380" y="82" class="header-sub">A clean rendering of the running application interface</text>
+
+  <!-- iPhone Mockup (Centered at x=380, width=220, height=360) -->
+  <g id="device-iphone">
+    <rect x="270" y="105" width="220" height="360" rx="36" ry="36" class="phone-frame" />
+    
+    <!-- Dynamic Island -->
+    <rect x="345" y="117" width="70" height="18" rx="9" ry="9" class="island" />
+    
+    <!-- Hero Image Area -->
+    <rect x="286" y="146" width="188" height="110" rx="16" ry="16" class="hero-placeholder" />
+    <rect x="298" y="230" width="56" height="16" rx="6" ry="6" class="hero-pill" />
+
+    <!-- List Row 1 -->
+    <g transform="translate(0, 0)">
+      <rect x="286" y="268" width="188" height="38" rx="12" ry="12" class="list-card" />
+      <rect x="296" y="275" width="24" height="24" rx="6" ry="6" class="list-icon" />
+      <rect x="330" y="279" width="80" height="7" rx="3" ry="3" class="list-text-1" />
+      <rect x="330" y="291" width="50" height="6" rx="3" ry="3" class="list-text-2" />
+    </g>
+
+    <!-- List Row 2 -->
+    <g transform="translate(0, 46)">
+      <rect x="286" y="268" width="188" height="38" rx="12" ry="12" class="list-card" />
+      <rect x="296" y="275" width="24" height="24" rx="6" ry="6" class="list-icon" />
+      <rect x="330" y="279" width="80" height="7" rx="3" ry="3" class="list-text-1" />
+      <rect x="330" y="291" width="50" height="6" rx="3" ry="3" class="list-text-2" />
+    </g>
+
+    <!-- List Row 3 -->
+    <g transform="translate(0, 92)">
+      <rect x="286" y="268" width="188" height="38" rx="12" ry="12" class="list-card" />
+      <rect x="296" y="275" width="24" height="24" rx="6" ry="6" class="list-icon" />
+      <rect x="330" y="279" width="80" height="7" rx="3" ry="3" class="list-text-1" />
+      <rect x="330" y="291" width="50" height="6" rx="3" ry="3" class="list-text-2" />
+    </g>
+
+    <!-- Home Indicator -->
+    <rect x="340" y="452" width="80" height="4" rx="2" ry="2" class="home-bar" />
+  </g>
+</svg>

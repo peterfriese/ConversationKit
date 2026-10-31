@@ -1,27 +1,28 @@
-// swift-tools-version: 5.10
+// swift-tools-version: 6.2
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import PackageDescription
 
 let package = Package(
   name: "ConversationKit",
-  platforms: [.iOS(.v17), .macCatalyst(.v17), .macOS(.v14)],
+  platforms: [
+    .iOS(.v26),
+    .macCatalyst(.v26),
+    .macOS(.v26)
+  ],
   products: [
     .library(
       name: "ConversationKit",
-      targets: ["ConversationKit"]),
-  ],
-  dependencies: [
-    .package(url: "https://github.com/gonzalezreal/swift-markdown-ui", from: "2.0.2")
+      targets: ["ConversationKit"]
+    )
   ],
   targets: [
     .target(
-      name: "ConversationKit", dependencies: [
-        .product(name: "MarkdownUI", package: "swift-markdown-ui")
-      ]),
+      name: "ConversationKit"
+    ),
     .testTarget(
       name: "ConversationKitTests",
-      dependencies: ["ConversationKit"],
-      exclude: ["AGENTS.md"]),
+      dependencies: ["ConversationKit"]
+    )
   ]
 )
