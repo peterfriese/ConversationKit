@@ -1,6 +1,6 @@
 {
   "id": "apple-twostraws-testing",
   "source": "upstream",
-  "repository": "twostraws/Swift-Testing-Agent-Skill",
-  "resolvedAt": "2026-10-31T08:43:34.274Z"
+  "repository": "https://github.com/twostraws/swift-testing-agent-skill",
+  "resolvedAt": "2026-10-31T10:34:13.241Z"
 }

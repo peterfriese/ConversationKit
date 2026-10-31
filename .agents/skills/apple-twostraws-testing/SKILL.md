@@ -1,17 +1,11 @@
 ---
 name: apple-twostraws-testing
-description: Modern Swift Testing framework macros (@Test,
+description: Modern Swift Testing framework macros (@Test, #expect, #require) and parameterized tests.
 ---
 
-# TwoStraws Swift Testing Agent Skill
+# Skill: TwoStraws Swift Testing Agent Skill
 
-Expert patterns for writing tests using Apple's modern Swift Testing framework (`import Testing`).
-
-## Key Guidance
-
-- Use `@Test` macro instead of legacy `XCTestCase` methods.
-- Use `#expect(...)` for non-halting assertions and `#require(...)` when unwrap failures should abort the test.
-- Use parameterized testing `@Test(arguments: [...])` for table-driven testing.
+Provides official testing guidance for modern Swift Testing (`@Test`, `#expect`, `#require`).
 
 ---
 

@@ -169,6 +169,7 @@ Finally, FleetKit emits native configuration artifacts tailored to each coding h
 | `Tests/ConversationKitTests/**` | [@swift-systems-engineer](agents/swift-systems-engineer.md) | [@adversarial-tester](agents/adversarial-tester.md), [@code-reviewer](agents/code-reviewer.md) | `swift-testing-pro`, `swift-6-concurrency` | `swift test` | Swift Testing Unit Suite for Models, Actions, Agentic Blocks & Platform |
 | `Examples/ConversationKitDemo/**` | [@apple-engineer](agents/apple-engineer.md) | [@apple-qa](agents/apple-qa.md), [@code-reviewer](agents/code-reviewer.md) | `apple-flowdeck-validation`, `apple-rocketsim`, `swiftui-modern`, `apple-flo-liquid-glass` | `flowdeck test --project Examples/ConversationKitDemo/ConversationKitDemo.xcodeproj --scheme ConversationKitDemo` | Reference Demo App, Interactive Pattern Showcase & XCTest UI Automation Suite |
 | `Examples/AIChatDemo/**` | [@apple-engineer](agents/apple-engineer.md) | [@code-reviewer](agents/code-reviewer.md) | `apple-flowdeck-validation`, `swiftui-modern` | — | Firebase AI Logic & Apple FoundationModels Integration Demo App |
+| `**` | [@swift-sdk-architect](agents/swift-sdk-architect.md) | [@code-reviewer](agents/code-reviewer.md) | — | `swift test` | Surface: root-swift-package |
 
 ---
 

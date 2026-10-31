@@ -51,9 +51,9 @@ hierarchy:
     verification:
       build: swift build
       test: swift test
-
   - path: Sources/ConversationKit/Model/**
-    description: Core Chat & Agentic Data Models (Message, Attachment, Thinking, ToolCall, Starter Chips)
+    description: Core Chat & Agentic Data Models (Message, Attachment, Thinking,
+      ToolCall, Starter Chips)
     pack: "@fleetkit/swift-package"
     owners:
       lead: agents/swift-sdk-architect.md
@@ -72,7 +72,6 @@ hierarchy:
     verification:
       build: swift build
       test: swift test
-
   - path: Sources/ConversationKit/Platform/**
     description: Chameleon Cross-Platform Abstractions (iOS, macCatalyst, macOS)
     pack: "@fleetkit/swift-package"
@@ -91,7 +90,6 @@ hierarchy:
     verification:
       build: swift build
       test: swift test
-
   - path: Sources/ConversationKit/Views/**
     description: Shared Conversation Environment, Error Handling & View Utilities
     pack: "@fleetkit/apple-app"
@@ -113,7 +111,6 @@ hierarchy:
     verification:
       build: swift build
       test: swift test
-
   - path: Sources/ConversationKit/Views/Timeline/**
     description: Conversation Thread, Streaming Replies & Push-and-Pin Scroll Engine
     pack: "@fleetkit/apple-app"
@@ -140,7 +137,6 @@ hierarchy:
     verification:
       build: swift build
       test: swift test
-
   - path: Sources/ConversationKit/Views/Welcome/**
     description: Chat Welcome Screen, Prompt Suggestion Chips & Starter Cards
     pack: "@fleetkit/apple-app"
@@ -166,7 +162,6 @@ hierarchy:
     verification:
       build: swift build
       test: swift test
-
   - path: Sources/ConversationKit/Views/Agentic/**
     description: Thinking State, Collapsible Tool Calls, Agent Plans, Approvals & Citations
     pack: "@fleetkit/apple-app"
@@ -192,7 +187,6 @@ hierarchy:
     verification:
       build: swift build
       test: swift test
-
   - path: Sources/ConversationKit/Views/Composer/**
     description: Message Composer, Mode/Model Chips, Slash Commands & Attachment Previews
     pack: "@fleetkit/apple-app"
@@ -218,7 +212,6 @@ hierarchy:
     verification:
       build: swift build
       test: swift test
-
   - path: Tests/ConversationKitTests/**
     description: Swift Testing Unit Suite for Models, Actions, Agentic Blocks & Platform
     pack: "@fleetkit/swift-package"
@@ -235,9 +228,9 @@ hierarchy:
     rules: []
     verification:
       test: swift test
-
   - path: Examples/ConversationKitDemo/**
-    description: Reference Demo App, Interactive Pattern Showcase & XCTest UI Automation Suite
+    description: Reference Demo App, Interactive Pattern Showcase & XCTest UI
+      Automation Suite
     pack: "@fleetkit/apple-app"
     owners:
       lead: agents/apple-engineer.md
@@ -255,9 +248,12 @@ hierarchy:
     rules:
       - agentic-ui-physics
     verification:
-      build: flowdeck build --project Examples/ConversationKitDemo/ConversationKitDemo.xcodeproj --scheme ConversationKitDemo
-      test: flowdeck test --project Examples/ConversationKitDemo/ConversationKitDemo.xcodeproj --scheme ConversationKitDemo
-
+      build: flowdeck build --project
+        Examples/ConversationKitDemo/ConversationKitDemo.xcodeproj --scheme
+        ConversationKitDemo
+      test: flowdeck test --project
+        Examples/ConversationKitDemo/ConversationKitDemo.xcodeproj --scheme
+        ConversationKitDemo
   - path: Examples/AIChatDemo/**
     description: Firebase AI Logic & Apple FoundationModels Integration Demo App
     pack: "@fleetkit/apple-app"
@@ -273,8 +269,20 @@ hierarchy:
       - swiftui-modern
     rules: []
     verification:
-      build: flowdeck build --project Examples/AIChatDemo/AIChatDemo.xcodeproj --scheme AIChatDemo
-
+      build: flowdeck build --project Examples/AIChatDemo/AIChatDemo.xcodeproj
+        --scheme AIChatDemo
+  - path: "**"
+    description: "Surface: root-swift-package"
+    pack: "@fleetkit/swift-package"
+    owners:
+      lead: agents/swift-sdk-architect.md
+      reviewers:
+        - agents/code-reviewer.md
+    tools: []
+    skills: []
+    rules: []
+    verification:
+      test: swift test
 shared:
   docs: docs/
   specs: docs/specs/

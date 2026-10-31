@@ -95,6 +95,7 @@ When modifying files, route implementation directly to the designated lead owner
 | `Tests/ConversationKitTests/**` | [@swift-systems-engineer](.fleet/agents/swift-systems-engineer.md) | [@adversarial-tester](.fleet/agents/adversarial-tester.md), [@code-reviewer](.fleet/agents/code-reviewer.md) | `swift-testing-pro`, `swift-6-concurrency` | `swift test` | Swift Testing Unit Suite for Models, Actions, Agentic Blocks & Platform |
 | `Examples/ConversationKitDemo/**` | [@apple-engineer](.fleet/agents/apple-engineer.md) | [@apple-qa](.fleet/agents/apple-qa.md), [@code-reviewer](.fleet/agents/code-reviewer.md) | `apple-flowdeck-validation`, `apple-rocketsim`, `swiftui-modern`, `apple-flo-liquid-glass` | `flowdeck test --project Examples/ConversationKitDemo/ConversationKitDemo.xcodeproj --scheme ConversationKitDemo` | Reference Demo App, Interactive Pattern Showcase & XCTest UI Automation Suite |
 | `Examples/AIChatDemo/**` | [@apple-engineer](.fleet/agents/apple-engineer.md) | [@code-reviewer](.fleet/agents/code-reviewer.md) | `apple-flowdeck-validation`, `swiftui-modern` | — | Firebase AI Logic & Apple FoundationModels Integration Demo App |
+| `**` | [@swift-sdk-architect](.fleet/agents/swift-sdk-architect.md) | [@code-reviewer](.fleet/agents/code-reviewer.md) | — | `swift test` | Surface: root-swift-package |
 
 ---
 

@@ -14,6 +14,7 @@
 - **Tests/ConversationKitTests/****: Managed by `@swift-systems-engineer`. Verification: `swift test`.
 - **Examples/ConversationKitDemo/****: Managed by `@apple-engineer`. Verification: `flowdeck test --project Examples/ConversationKitDemo/ConversationKitDemo.xcodeproj --scheme ConversationKitDemo`.
 - **Examples/AIChatDemo/****: Managed by `@apple-engineer`. Verification: `inherit default`.
+- ******: Managed by `@swift-sdk-architect`. Verification: `swift test`.
 
 ## Orchestration Guidelines
 - Never modify files outside your current folder hierarchy without checking the path routing table.

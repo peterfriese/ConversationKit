@@ -5,7 +5,7 @@ globs: '**'
 # Rules for **
 
 - **Lead Specialist**: `@swift-sdk-architect`
-- **Domain Skills**: docc-authoring, stratos-swift-api, swift-6-concurrency, swift-docc-diagrams, swift-docc-publishing, swift-docc-reference, swift-docc-techwriting, swift-docc-tutorials, swift-testing-pro
+- **Domain Skills**: native platform standards
 - **Verification Command**: `swift test`
 
 When editing files matching `**`:
