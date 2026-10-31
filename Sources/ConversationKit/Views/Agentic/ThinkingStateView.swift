@@ -57,15 +57,17 @@ public struct ThinkingStateView: View {
   }
 
   private var hasTranscriptContent: Bool {
-    let hasSummary = !(thinking.summary?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
-    let hasTranscript = !thinking.transcript.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    let hasSummary = thinking.summary?.contains(where: { !$0.isWhitespace && !$0.isNewline }) ?? false
+    let hasTranscript = thinking.transcript.contains(where: { !$0.isWhitespace && !$0.isNewline })
     return hasSummary || hasTranscript
   }
 
   public var body: some View {
+    let hasContent = hasTranscriptContent
+
     VStack(alignment: .leading, spacing: 8) {
       Button {
-        guard hasTranscriptContent else { return }
+        guard hasContent else { return }
         hasUserToggled = true
         withAnimation(.snappy(duration: 0.25)) {
           isExpanded.toggle()
@@ -91,7 +93,7 @@ public struct ThinkingStateView: View {
               .foregroundStyle(.secondary)
           }
 
-          if hasTranscriptContent {
+          if hasContent {
             Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
               .font(.caption2.weight(.semibold))
               .foregroundStyle(.secondary)
@@ -102,7 +104,7 @@ public struct ThinkingStateView: View {
       .buttonStyle(.plain)
       .accessibilityIdentifier("thinking_header_button")
 
-      if isExpanded && hasTranscriptContent {
+      if isExpanded && hasContent {
         HStack(alignment: .top, spacing: 10) {
           RoundedRectangle(cornerRadius: 1.5)
             .fill(Color.accentColor.opacity(0.4))
@@ -116,7 +118,8 @@ public struct ThinkingStateView: View {
             }
 
             if !thinking.transcript.isEmpty {
-              Markdown(thinking.transcript)
+              EquatableThinkingMarkdown(text: thinking.transcript)
+                .equatable()
                 .font(.caption)
                 .foregroundStyle(.secondary)
             }
@@ -181,6 +184,18 @@ private struct ElapsedTimerText: View {
         .monospacedDigit()
         .foregroundStyle(.secondary)
     }
+  }
+}
+
+private struct EquatableThinkingMarkdown: View, Equatable {
+  let text: String
+
+  static func == (lhs: EquatableThinkingMarkdown, rhs: EquatableThinkingMarkdown) -> Bool {
+    lhs.text == rhs.text
+  }
+
+  var body: some View {
+    Markdown(text)
   }
 }
 

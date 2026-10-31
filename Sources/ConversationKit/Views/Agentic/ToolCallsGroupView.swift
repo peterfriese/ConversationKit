@@ -52,41 +52,73 @@ public struct ToolCallsGroupView: View {
     return userOverrodeExpansion
   }
 
+  private struct GroupMetrics {
+    let count: Int
+    var anyRunning = false
+    var anyFailed = false
+    var anyCancelled = false
+    var allSucceeded = true
+    var totalDuration: TimeInterval = 0
+
+    init(toolCalls: [ToolCall]) {
+      self.count = toolCalls.count
+      guard !toolCalls.isEmpty else {
+        allSucceeded = false
+        return
+      }
+      for call in toolCalls {
+        if let duration = call.durationSeconds {
+          totalDuration += duration
+        }
+        switch call.status {
+        case .failed:
+          anyFailed = true
+          allSucceeded = false
+        case .running:
+          anyRunning = true
+          allSucceeded = false
+        case .cancelled:
+          anyCancelled = true
+          allSucceeded = false
+        case .pending:
+          allSucceeded = false
+        case .succeeded:
+          break
+        }
+      }
+    }
+
+    var summaryTitle: String {
+      guard count > 0 else { return "No tools" }
+      if anyFailed {
+        return "Tool execution failed"
+      }
+      if anyRunning {
+        return "Running tools…"
+      }
+      if anyCancelled {
+        return "Tool execution cancelled"
+      }
+      if allSucceeded {
+        let formattedDuration = totalDuration.formatted(.number.precision(.fractionLength(1)))
+        let noun = count == 1 ? "tool" : "tools"
+        return "Used \(count) \(noun) · \(formattedDuration)s"
+      }
+      return "Pending tools…"
+    }
+  }
+
   /// Deterministically formats the aggregate header title for a list of tool calls (`AC-9`).
   public static func summaryTitle(for toolCalls: [ToolCall]) -> String {
-    guard !toolCalls.isEmpty else { return "No tools" }
-
-    if toolCalls.contains(where: { $0.status == .failed }) {
-      return "Tool execution failed"
-    }
-    if toolCalls.contains(where: { $0.status == .running }) {
-      return "Running tools…"
-    }
-    if toolCalls.contains(where: { $0.status == .cancelled }) {
-      return "Tool execution cancelled"
-    }
-    if toolCalls.allSatisfy({ $0.status == .succeeded }) {
-      let totalDuration = toolCalls.compactMap(\.durationSeconds).reduce(0, +)
-      let formattedDuration = totalDuration.formatted(.number.precision(.fractionLength(1)))
-      let noun = toolCalls.count == 1 ? "tool" : "tools"
-      return "Used \(toolCalls.count) \(noun) · \(formattedDuration)s"
-    }
-    return "Pending tools…"
-  }
-
-  private var anyRunning: Bool {
-    toolCalls.contains(where: { $0.status == .running })
-  }
-
-  private var anyFailed: Bool {
-    toolCalls.contains(where: { $0.status == .failed })
-  }
-
-  private var allSucceeded: Bool {
-    !toolCalls.isEmpty && toolCalls.allSatisfy({ $0.status == .succeeded })
+    GroupMetrics(toolCalls: toolCalls).summaryTitle
   }
 
   public var body: some View {
+    let metrics = GroupMetrics(toolCalls: toolCalls)
+    let running = metrics.anyRunning
+    let failed = metrics.anyFailed
+    let succeeded = metrics.allSucceeded
+
     VStack(alignment: .leading, spacing: 8) {
       Button {
         userOverrodeExpansion = true
@@ -95,12 +127,12 @@ public struct ToolCallsGroupView: View {
         }
       } label: {
         HStack(spacing: 8) {
-          headerIcon
+          headerIcon(running: running, failed: failed, succeeded: succeeded)
 
-          Text(Self.summaryTitle(for: toolCalls))
+          Text(metrics.summaryTitle)
             .font(.subheadline.weight(.medium))
             .monospacedDigit()
-            .foregroundStyle(anyFailed ? Color.red : Color.secondary)
+            .foregroundStyle(failed ? Color.red : Color.secondary)
 
           Spacer(minLength: 4)
 
@@ -114,7 +146,7 @@ public struct ToolCallsGroupView: View {
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .overlay(
           RoundedRectangle(cornerRadius: 12)
-            .stroke(anyFailed ? Color.red.opacity(0.4) : Color.platformSeparator, lineWidth: 0.5)
+            .stroke(failed ? Color.red.opacity(0.4) : Color.platformSeparator, lineWidth: 0.5)
         )
       }
       .buttonStyle(.plain)
@@ -133,18 +165,19 @@ public struct ToolCallsGroupView: View {
     .accessibilityElement(children: .contain)
     .accessibilityIdentifier("tool_calls_group")
     .onChange(of: toolCalls) { _, updatedTools in
-      if updatedTools.contains(where: { $0.status == .failed }) {
+      let updatedMetrics = GroupMetrics(toolCalls: updatedTools)
+      if updatedMetrics.anyFailed {
         withAnimation(.snappy(duration: 0.25)) {
           isExpanded = true
         }
-      } else if updatedTools.contains(where: { $0.status == .running }), !userOverrodeExpansion {
+      } else if updatedMetrics.anyRunning, !userOverrodeExpansion {
         withAnimation(.snappy(duration: 0.25)) {
           isExpanded = true
         }
       }
     }
-    .task(id: allSucceeded) {
-      guard allSucceeded, !userOverrodeExpansion else { return }
+    .task(id: succeeded) {
+      guard succeeded, !userOverrodeExpansion else { return }
       try? await Task.sleep(for: .milliseconds(400))
       guard !Task.isCancelled, !userOverrodeExpansion else { return }
       withAnimation(.snappy(duration: 0.25)) {
@@ -154,15 +187,15 @@ public struct ToolCallsGroupView: View {
   }
 
   @ViewBuilder
-  private var headerIcon: some View {
-    if anyRunning {
+  private func headerIcon(running: Bool, failed: Bool, succeeded: Bool) -> some View {
+    if running {
       ProgressView()
         .controlSize(.small)
-    } else if anyFailed {
+    } else if failed {
       Image(systemName: "exclamationmark.triangle.fill")
         .font(.subheadline)
         .foregroundStyle(.red)
-    } else if allSucceeded {
+    } else if succeeded {
       Image(systemName: "checkmark.circle.fill")
         .font(.subheadline)
         .foregroundStyle(.green)

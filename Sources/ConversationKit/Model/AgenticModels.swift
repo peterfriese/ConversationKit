@@ -299,7 +299,7 @@ public struct AgentPlan: Identifiable, Hashable, Sendable {
 
   /// The number of steps whose status is `.completed`.
   public var completedCount: Int {
-    steps.filter { $0.status == .completed }.count
+    steps.count(where: { $0.status == .completed })
   }
 }
 

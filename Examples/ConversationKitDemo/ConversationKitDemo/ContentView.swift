@@ -175,11 +175,14 @@ struct ContentView: View {
   @State private var selectedModelID: String? = "claude-sonnet-4-6"
   @State private var activeCapabilities: Set<ComposerCapability> = []
   @State private var activeTokens: [ComposerTokenChip] = []
+  @State private var demoSimulationTask: Task<Void, Never>?
 
   var body: some View {
     NavigationStack {
       ConversationView(messages: $messages, attachments: $attachments)
         .onSendMessage { userMessage in
+          demoSimulationTask?.cancel()
+          demoSimulationTask = nil
           messages.append(userMessage)
           withAnimation {
             self.attachments.removeAll()
@@ -259,17 +262,20 @@ struct ContentView: View {
           ToolbarItem(placement: .primaryAction) {
             Menu("Patterns", systemImage: "sparkles.rectangle.stack") {
               Button("Welcome & Starter Chips", systemImage: "hand.wave") {
-                withAnimation {
-                  messages.removeAll()
-                }
+                demoSimulationTask?.cancel()
+                demoSimulationTask = nil
+                messages.removeAll()
               }
 
               Button("Agentic Turn (Thinking + Tools + Plan)", systemImage: "cpu") {
+                demoSimulationTask?.cancel()
+                demoSimulationTask = nil
                 loadStaticAgenticShowcaseTurn()
               }
 
               Button("Simulate Live Agent Run", systemImage: "bolt.horizontal.circle") {
-                Task { @MainActor in
+                demoSimulationTask?.cancel()
+                demoSimulationTask = Task { @MainActor in
                   let prompt = DefaultMessage(
                     content: "Run an agent workflow with tools to audit our SwiftUI scroll physics",
                     participant: .user
@@ -282,9 +288,9 @@ struct ContentView: View {
               Divider()
 
               Button("Reset Default Thread", systemImage: "arrow.counterclockwise") {
-                withAnimation {
-                  messages = Self.defaultMessages
-                }
+                demoSimulationTask?.cancel()
+                demoSimulationTask = nil
+                messages = Self.defaultMessages
               }
             }
             .accessibilityIdentifier("patterns_menu_button")
@@ -301,7 +307,9 @@ struct ContentView: View {
             for item in selectedItems {
               do {
                 if let data = try await item.loadTransferable(type: Data.self) {
-                  if let platformImage = PlatformImage(data: data) {
+                  if let platformImage = PlatformImage.downsampled(from: data, maxPixelDimension: 600)
+                    ?? PlatformImage(data: data)
+                  {
                     attachments.append(
                       ImageAttachment(image: platformImage)
                     )
@@ -406,9 +414,7 @@ struct ContentView: View {
       isStreaming: false
     )
 
-    withAnimation(.snappy(duration: 0.25)) {
-      messages = [userTurn, assistantTurn]
-    }
+    messages = [userTurn, assistantTurn]
   }
 
   @MainActor
@@ -428,7 +434,7 @@ struct ContentView: View {
     messages.append(agentMessage)
 
     func syncAgentMessage() {
-      if let index = messages.firstIndex(where: { $0.id == agentMessage.id }) {
+      if let index = messages.lastIndex(where: { $0.id == agentMessage.id }) {
         messages[index] = agentMessage
       }
     }
@@ -496,12 +502,11 @@ struct ContentView: View {
       let fullReply = "### Agent Run Complete\n\nI inspected the `ConversationKit` sub-surfaces and verified that **Push and Pin** scroll clamping, live thinking timers, and grouped tool invocations work seamlessly together."
       var streamed = ""
       let chunkSize = 8
-      for chunkStart in stride(from: 0, to: fullReply.count, by: chunkSize) {
-        let chunkEnd = min(chunkStart + chunkSize, fullReply.count)
-        let chunk = fullReply[
-          fullReply.index(fullReply.startIndex, offsetBy: chunkStart)..<fullReply.index(fullReply.startIndex, offsetBy: chunkEnd)
-        ]
-        streamed.append(String(chunk))
+      var cursor = fullReply.startIndex
+      while cursor < fullReply.endIndex {
+        let next = fullReply.index(cursor, offsetBy: chunkSize, limitedBy: fullReply.endIndex) ?? fullReply.endIndex
+        streamed.append(contentsOf: fullReply[cursor..<next])
+        cursor = next
         agentMessage.content = streamed
         syncAgentMessage()
         try await Task.sleep(for: .milliseconds(45))
@@ -574,18 +579,13 @@ struct ContentView: View {
 
     do {
       let text = selectedResponse.text
-      for chunkStart in stride(from: 0, to: text.count, by: chunkSize) {
-        let chunkEnd = min(chunkStart + chunkSize, text.count)
-        let chunk = text[
-          text.index(
-            text.startIndex,
-            offsetBy: chunkStart
-          )..<text.index(text.startIndex, offsetBy: chunkEnd)
-        ]
-
-        generatedText.append(String(chunk))
+      var cursor = text.startIndex
+      while cursor < text.endIndex {
+        let next = text.index(cursor, offsetBy: chunkSize, limitedBy: text.endIndex) ?? text.endIndex
+        generatedText.append(contentsOf: text[cursor..<next])
+        cursor = next
         responseMessage.content = generatedText
-        if let index = messages.firstIndex(where: { $0.id == responseMessage.id }) {
+        if let index = messages.lastIndex(where: { $0.id == responseMessage.id }) {
           messages[index] = responseMessage
         }
 
@@ -595,12 +595,12 @@ struct ContentView: View {
         try Task.checkCancellation()
       }
       responseMessage.isStreaming = false
-      if let index = messages.firstIndex(where: { $0.id == responseMessage.id }) {
+      if let index = messages.lastIndex(where: { $0.id == responseMessage.id }) {
         messages[index] = responseMessage
       }
     } catch {
       responseMessage.isStreaming = false
-      if let index = messages.firstIndex(where: { $0.id == responseMessage.id }) {
+      if let index = messages.lastIndex(where: { $0.id == responseMessage.id }) {
         messages[index] = responseMessage
       }
     }
@@ -632,15 +632,13 @@ struct ContentView: View {
 
     for paragraph in paragraphs {
       let textToStream = (generatedText.isEmpty ? "" : "\n\n") + paragraph
-      for chunkStart in stride(from: 0, to: textToStream.count, by: chunkSize) {
-        let chunkEnd = min(chunkStart + chunkSize, textToStream.count)
-        let chunk = textToStream[
-          textToStream.index(textToStream.startIndex, offsetBy: chunkStart)..<textToStream.index(textToStream.startIndex, offsetBy: chunkEnd)
-        ]
-
-        generatedText.append(String(chunk))
+      var cursor = textToStream.startIndex
+      while cursor < textToStream.endIndex {
+        let next = textToStream.index(cursor, offsetBy: chunkSize, limitedBy: textToStream.endIndex) ?? textToStream.endIndex
+        generatedText.append(contentsOf: textToStream[cursor..<next])
+        cursor = next
         message.content = generatedText
-        if let index = messages.firstIndex(where: { $0.id == message.id }) {
+        if let index = messages.lastIndex(where: { $0.id == message.id }) {
           messages[index] = message
         }
 
@@ -652,7 +650,7 @@ struct ContentView: View {
           try Task.checkCancellation()
         } catch {
           message.isStreaming = false
-          if let index = messages.firstIndex(where: { $0.id == message.id }) {
+          if let index = messages.lastIndex(where: { $0.id == message.id }) {
             messages[index] = message
           }
           return // Stop streaming if cancelled
@@ -661,7 +659,7 @@ struct ContentView: View {
     }
 
     message.isStreaming = false
-    if let index = messages.firstIndex(where: { $0.id == message.id }) {
+    if let index = messages.lastIndex(where: { $0.id == message.id }) {
       messages[index] = message
     }
   }

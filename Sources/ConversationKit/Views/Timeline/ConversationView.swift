@@ -62,9 +62,21 @@ public struct ConversationView<Content, MessageType: Message, AttachmentType: At
     case bottomMarker
   }
 
+  private struct ScrollSyncTrigger<M: Equatable>: Equatable {
+    let count: Int
+    let lastMessage: M?
+  }
+
+  private func scrollSyncTrigger(for list: [MessageType]) -> ScrollSyncTrigger<MessageType> {
+    ScrollSyncTrigger(count: list.count, lastMessage: list.last)
+  }
+
   // Custom scroll tracking
   @State private var isAutoScrollingTop: Bool = false
   @State private var autoScrollTargetID: MessageType.ID?
+
+  /// Stable identity used for Equatable action wrappers so `EnvironmentValues` never invalidates the ScrollView on re-renders.
+  @State private var coordinatorID = UUID()
 
   /// The task currently executing an async turn (`onSendMessage`, `onRegenerateMessage`, `onRetryMessage`, or `onRetryToolCall`).
   @State private var sendingTask: Task<Void, Never>?
@@ -117,6 +129,7 @@ public struct ConversationView<Content, MessageType: Message, AttachmentType: At
   @Environment(\.onRetryMessageAction) private var onRetryMessageAction
   @Environment(\.onRetryToolCallAction) private var onRetryToolCallAction
   @Environment(\.activeComposerCapabilities) private var activeComposerCapabilities
+  @Environment(\.availableComposerCapabilities) private var availableComposerCapabilities
   @Environment(\.activeComposerTokens) private var activeComposerTokens
   @Environment(\.selectedComposerModelID) private var selectedComposerModelID
   @Environment(\.composerModels) private var composerModels
@@ -140,131 +153,156 @@ public struct ConversationView<Content, MessageType: Message, AttachmentType: At
     showsStandardMessageActions || onRegenerateMessageAction != nil || onRateMessageAction != nil
   }
 
+  private var regenerateCallback: (@MainActor (any Message) -> Void)? {
+    guard let onRegenerateMessageAction else { return nil }
+    return { targetMessage in
+      startTurnTask {
+        await onRegenerateMessageAction(targetMessage)
+      }
+    }
+  }
+
   public var body: some View {
     let currentMessages = displayedMessages
 
-    ScrollViewReader { proxy in
-      ScrollView {
-        LazyVStack(spacing: 16) {
-          if currentMessages.isEmpty, let welcomeConfig = welcomeConfiguration {
-            ConversationWelcomeView(configuration: welcomeConfig) { suggestion in
-              switch welcomeConfig.handoff {
-              case .immediateSend:
-                message = suggestion.prompt
-                submit()
-              case .populateComposer:
-                message = suggestion.prompt
-                focusedField = .message
-              }
-            }
-          }
-
-          ForEach(currentMessages) { message in
-            VStack(alignment: .leading, spacing: 8) {
-              content(message)
-
-              // Message Actions: Custom override takes precedence; otherwise standard action bar when opted in ([SF-3])
-              if message.participant == .other {
-                if let actions = messageActions {
-                  actions(message)
-                } else if !message.isStreaming && message.error == nil && shouldShowStandardActionBar {
-                  MessageActionBarView(message: message)
+    ZStack(alignment: .bottom) {
+      ScrollViewReader { proxy in
+        ScrollView {
+          LazyVStack(spacing: 16) {
+            if currentMessages.isEmpty, let welcomeConfig = welcomeConfiguration {
+              ConversationWelcomeView(configuration: welcomeConfig) { suggestion in
+                switch welcomeConfig.handoff {
+                case .immediateSend:
+                  message = suggestion.prompt
+                  submit()
+                case .populateComposer:
+                  message = suggestion.prompt
+                  focusedField = .message
                 }
               }
             }
-            .padding(.horizontal)
-            .id(ConversationScrollID.message(message.id))
-            .accessibilityIdentifier("message_row")
-          }
 
-          // Disclaimer View
-          if let lastMessage = currentMessages.last,
-             lastMessage.participant == .other,
-             let disclaimer = conversationDisclaimer {
-            disclaimer
+            ForEach(currentMessages) { message in
+              VStack(alignment: .leading, spacing: 8) {
+                content(message)
+
+                // Message Actions: Custom override takes precedence; otherwise standard action bar when opted in ([SF-3])
+                if message.participant == .other {
+                  if let actions = messageActions {
+                    actions(message)
+                  } else if !message.isStreaming && message.error == nil && shouldShowStandardActionBar {
+                    MessageActionBarView(
+                      message: message,
+                      onRegenerate: regenerateCallback
+                    )
+                  }
+                }
+              }
               .padding(.horizontal)
-              .padding(.top, 8)
-              .accessibilityIdentifier("conversation_disclaimer")
-          }
-        }
-        .padding(.bottom, 8)
-        .scrollTargetLayout()
-        .accessibilityIdentifier("conversation_list")
-      }
-      .accessibilityIdentifier("conversation_scroll_view")
-      .scrollTargetBehavior(.viewAligned)
-      .scrollBounceBehavior(.always)
-      .scrollDismissesKeyboard(.interactively)
-      .simultaneousGesture(
-        DragGesture().onChanged { _ in
-          // Stop sticky top anchoring if the user touches/scrolls the view
-          isAutoScrollingTop = false
-          autoScrollTargetID = nil
-        }
-      )
-      .onChange(of: currentMessages) { oldValue, newValue in
-        // 1. Detect if a brand new message was submitted by the user
-        let wasUserMessageAdded = oldValue.count < newValue.count && newValue.last?.participant == .user
+              .id(ConversationScrollID.message(message.id))
+              .accessibilityIdentifier("message_row")
+            }
 
-        if wasUserMessageAdded, let lastMessage = newValue.last {
-          // Anchor to the new user message, trigger auto-scrolling state
-          isAutoScrollingTop = true
-          autoScrollTargetID = lastMessage.id
-          withAnimation {
-            proxy.scrollTo(ConversationScrollID.message(lastMessage.id), anchor: .top)
+            // Disclaimer View
+            if let lastMessage = currentMessages.last,
+               lastMessage.participant == .other,
+               let disclaimer = conversationDisclaimer {
+              disclaimer
+                .padding(.horizontal)
+                .padding(.top, 8)
+                .accessibilityIdentifier("conversation_disclaimer")
+            }
+
+            Spacer()
+              .frame(height: (!composerModels.isEmpty || !availableComposerCapabilities.isEmpty) ? 140 : 100)
+              .id(ConversationScrollID.bottomMarker)
+          }
+          .scrollTargetLayout()
+          .accessibilityIdentifier("conversation_list")
+        }
+        .accessibilityIdentifier("conversation_scroll_view")
+        .scrollTargetBehavior(.viewAligned)
+        .scrollBounceBehavior(.always)
+        .scrollDismissesKeyboard(.interactively)
+        .simultaneousGesture(
+          DragGesture().onChanged { _ in
+            // Stop sticky top anchoring if the user touches/scrolls the view
+            isAutoScrollingTop = false
+            autoScrollTargetID = nil
+          }
+        )
+        .onChange(of: scrollSyncTrigger(for: currentMessages)) { oldValue, newValue in
+          if newValue.count == 0 {
+            isAutoScrollingTop = false
+            autoScrollTargetID = nil
+            return
+          }
+
+          // 1. Detect if a single brand new message was submitted by the user
+          let wasSingleUserMessageAppended = (newValue.count == oldValue.count + 1) && (newValue.lastMessage?.participant == .user)
+
+          if wasSingleUserMessageAppended, let lastID = newValue.lastMessage?.id {
+            isAutoScrollingTop = true
+            autoScrollTargetID = lastID
+            withAnimation(.easeOut(duration: 0.25)) {
+              proxy.scrollTo(ConversationScrollID.message(lastID), anchor: .top)
+            }
+          }
+          // 2. If we are currently anchored, and new tokens are arriving on the same thread
+          else if isAutoScrollingTop, let targetID = autoScrollTargetID {
+            proxy.scrollTo(ConversationScrollID.message(targetID), anchor: .top)
+
+            if sendingTask == nil || (newValue.lastMessage?.participant == .other && newValue.lastMessage?.isStreaming == false) {
+              isAutoScrollingTop = false
+              autoScrollTargetID = nil
+            }
           }
         }
-        // 2. If we are currently anchored, and new tokens are arriving (list mutated but user didn't scroll away)
-        else if isAutoScrollingTop, let targetID = autoScrollTargetID {
-          // Force the proxy to clamp to the top of the anchor without animation (seamless "riding" of the expanding content)
-          proxy.scrollTo(ConversationScrollID.message(targetID), anchor: .top)
-        }
+        .environment(
+          \.onRegenerateMessageAction,
+          onRegenerateMessageAction.map { action in
+            OnRegenerateMessageAction(id: coordinatorID) { targetMessage in
+              startTurnTask {
+                await action(targetMessage)
+              }
+            }
+          }
+        )
+        .environment(
+          \.onRetryMessageAction,
+          onRetryMessageAction.map { action in
+            OnRetryMessageAction(id: coordinatorID) { targetMessage in
+              startTurnTask {
+                await action(targetMessage)
+              }
+            }
+          }
+        )
+        .environment(
+          \.onRetryToolCallAction,
+          onRetryToolCallAction.map { action in
+            OnRetryToolCallAction(id: coordinatorID) { toolCall in
+              startTurnTask {
+                await action(toolCall)
+              }
+            }
+          }
+        )
       }
-      .safeAreaInset(edge: .bottom, spacing: 0) {
-        MessageComposerView(message: $message, attachments: $attachments)
-          .padding(.bottom, 10) // keep distance from keyboard
-          .focused($focusedField, equals: .message)
-          .isGenerating(sendingTask != nil)
-          .environment(\.selectedComposerModelID, selectedComposerModelID ?? $fallbackSelectedModelID)
-          .environment(\.activeComposerCapabilities, activeComposerCapabilities ?? $fallbackActiveCapabilities)
-          .environment(\.activeComposerTokens, activeComposerTokens ?? $fallbackActiveTokens)
-          .onStopAction {
-            sendingTask?.cancel()
-          }
-          .onSubmitAction {
-            submit()
-          }
-      }
-      .environment(
-        \.onRegenerateMessageAction,
-        onRegenerateMessageAction.map { action in
-          OnRegenerateMessageAction { targetMessage in
-            startTurnTask {
-              await action(targetMessage)
-            }
-          }
+
+      MessageComposerView(message: $message, attachments: $attachments)
+        .padding(.bottom, 10) // keep distance from keyboard
+        .focused($focusedField, equals: .message)
+        .isGenerating(sendingTask != nil)
+        .environment(\.selectedComposerModelID, selectedComposerModelID ?? $fallbackSelectedModelID)
+        .environment(\.activeComposerCapabilities, activeComposerCapabilities ?? $fallbackActiveCapabilities)
+        .environment(\.activeComposerTokens, activeComposerTokens ?? $fallbackActiveTokens)
+        .onStopAction {
+          sendingTask?.cancel()
         }
-      )
-      .environment(
-        \.onRetryMessageAction,
-        onRetryMessageAction.map { action in
-          OnRetryMessageAction { targetMessage in
-            startTurnTask {
-              await action(targetMessage)
-            }
-          }
+        .onSubmitAction {
+          submit()
         }
-      )
-      .environment(
-        \.onRetryToolCallAction,
-        onRetryToolCallAction.map { action in
-          OnRetryToolCallAction { toolCall in
-            startTurnTask {
-              await action(toolCall)
-            }
-          }
-        }
-      )
     }
   }
 

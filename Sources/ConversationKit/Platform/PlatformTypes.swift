@@ -5,6 +5,7 @@
 // Cross-platform type aliases following the Chameleon pattern:
 // centralize platform differences so view code stays clean.
 
+import ImageIO
 import SwiftUI
 
 #if canImport(UIKit)
@@ -38,6 +39,49 @@ extension PlatformImage {
       return UIImage(systemName: name)
     #elseif canImport(AppKit)
       return NSImage(systemSymbolName: name, accessibilityDescription: nil)
+    #endif
+  }
+
+  /// Downsamples raw image data using `ImageIO` without decoding the full-resolution bitmap into memory.
+  ///
+  /// - Parameters:
+  ///   - data: The raw encoded image data (e.g., JPEG, PNG, HEIC).
+  ///   - maxPixelDimension: Maximum width or height in pixels for the decoded thumbnail (defaults to `1024`).
+  /// - Returns: A downsampled `PlatformImage`, or `nil` if `data` is empty or cannot be decoded.
+  public static func downsampled(
+    from data: Data,
+    maxPixelDimension: CGFloat = 1024
+  ) -> PlatformImage? {
+    guard !data.isEmpty, maxPixelDimension > 0 else { return nil }
+    let sourceOptions: [CFString: Any] = [
+      kCGImageSourceShouldCache: false
+    ]
+    guard let imageSource = CGImageSourceCreateWithData(
+      data as CFData,
+      sourceOptions as CFDictionary
+    ) else {
+      return nil
+    }
+    let thumbnailOptions: [CFString: Any] = [
+      kCGImageSourceCreateThumbnailFromImageAlways: true,
+      kCGImageSourceShouldCacheImmediately: true,
+      kCGImageSourceCreateThumbnailWithTransform: true,
+      kCGImageSourceThumbnailMaxPixelSize: max(1, Int(maxPixelDimension.rounded()))
+    ]
+    guard let cgImage = CGImageSourceCreateThumbnailAtIndex(
+      imageSource,
+      0,
+      thumbnailOptions as CFDictionary
+    ) else {
+      return nil
+    }
+    #if canImport(UIKit)
+      return UIImage(cgImage: cgImage)
+    #elseif canImport(AppKit)
+      return NSImage(
+        cgImage: cgImage,
+        size: NSSize(width: cgImage.width, height: cgImage.height)
+      )
     #endif
   }
 }

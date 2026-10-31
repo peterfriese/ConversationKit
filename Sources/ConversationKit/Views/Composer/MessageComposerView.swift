@@ -89,6 +89,7 @@ private enum ComposerMetrics {
   #else
   static let buttonSize: CGFloat = 32
   #endif
+  static let triggerTrimSet = CharacterSet(charactersIn: "/@")
 }
 
 public struct MessageComposerView<AttachmentType: Attachment & View>: View {
@@ -131,9 +132,10 @@ public struct MessageComposerView<AttachmentType: Attachment & View>: View {
       return nil
     }
 
-    let components = text.split(whereSeparator: { $0.isWhitespace || $0.isNewline })
-    guard let lastWordSub = components.last else { return nil }
-    let lastWord = String(lastWordSub)
+    let wordStart = text.lastIndex(where: { $0.isWhitespace || $0.isNewline })
+      .map { text.index(after: $0) } ?? text.startIndex
+    let lastWord = String(text[wordStart..<text.endIndex])
+    guard !lastWord.isEmpty else { return nil }
 
     if lastWord.hasPrefix("/") {
       guard !slashCommands.isEmpty else { return nil }
@@ -141,8 +143,8 @@ public struct MessageComposerView<AttachmentType: Attachment & View>: View {
       guard !rawQuery.hasPrefix("/"), !rawQuery.contains("/") else { return nil }
       let filtered = slashCommands.filter { item in
         guard !rawQuery.isEmpty else { return true }
-        let cleanTrigger = item.trigger.trimmingCharacters(in: CharacterSet(charactersIn: "/@"))
-        let cleanValue = item.value.trimmingCharacters(in: CharacterSet(charactersIn: "/@"))
+        let cleanTrigger = item.trigger.trimmingCharacters(in: ComposerMetrics.triggerTrimSet)
+        let cleanValue = item.value.trimmingCharacters(in: ComposerMetrics.triggerTrimSet)
         return cleanTrigger.localizedCaseInsensitiveContains(rawQuery)
           || item.title.localizedCaseInsensitiveContains(rawQuery)
           || cleanValue.localizedCaseInsensitiveContains(rawQuery)
@@ -155,8 +157,8 @@ public struct MessageComposerView<AttachmentType: Attachment & View>: View {
       guard !rawQuery.hasPrefix("@") else { return nil }
       let filtered = mentions.filter { item in
         guard !rawQuery.isEmpty else { return true }
-        let cleanTrigger = item.trigger.trimmingCharacters(in: CharacterSet(charactersIn: "/@"))
-        let cleanValue = item.value.trimmingCharacters(in: CharacterSet(charactersIn: "/@"))
+        let cleanTrigger = item.trigger.trimmingCharacters(in: ComposerMetrics.triggerTrimSet)
+        let cleanValue = item.value.trimmingCharacters(in: ComposerMetrics.triggerTrimSet)
         return cleanTrigger.localizedCaseInsensitiveContains(rawQuery)
           || item.title.localizedCaseInsensitiveContains(rawQuery)
           || cleanValue.localizedCaseInsensitiveContains(rawQuery)
@@ -183,7 +185,7 @@ public struct MessageComposerView<AttachmentType: Attachment & View>: View {
       while let last = text.last, last == " " || last == "\t" {
         text.removeLast()
       }
-      if text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+      if !text.contains(where: { !$0.isWhitespace && !$0.isNewline }) {
         text = ""
       }
     }
@@ -282,7 +284,7 @@ public struct MessageComposerView<AttachmentType: Attachment & View>: View {
           }
 
           HStack(alignment: .bottom) {
-            let hasContent = !message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            let hasContent = message.contains(where: { !$0.isWhitespace && !$0.isNewline })
               || !attachments.isEmpty
               || !effectiveTokensBinding.wrappedValue.isEmpty
             let hasIncompleteOrFailedAttachment = attachments.contains { attachment in

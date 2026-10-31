@@ -28,13 +28,18 @@ public struct MessageActionBarView: View {
   @Environment(\.onRateMessageAction) private var onRateMessageAction
 
   private let message: any Message
+  private let onRegenerateOverride: (@MainActor (any Message) -> Void)?
 
   @State private var copyTrigger: UUID?
   @State private var showCopiedCheckmark: Bool = false
   @State private var overriddenRating: MessageRating??
 
-  public init(message: any Message) {
+  public init(
+    message: any Message,
+    onRegenerate: (@MainActor (any Message) -> Void)? = nil
+  ) {
     self.message = message
+    self.onRegenerateOverride = onRegenerate
   }
 
   public init(content: String?, rating: MessageRating? = nil) {
@@ -43,6 +48,7 @@ public struct MessageActionBarView: View {
       participant: .other,
       rating: rating
     )
+    self.onRegenerateOverride = nil
   }
 
   private var effectiveRating: MessageRating? {
@@ -82,10 +88,14 @@ public struct MessageActionBarView: View {
         showCopiedCheckmark = false
       }
 
-      if let onRegenerateMessageAction {
+      if onRegenerateOverride != nil || onRegenerateMessageAction != nil {
         Button {
-          Task { @MainActor in
-            await onRegenerateMessageAction(message)
+          if let onRegenerateOverride {
+            onRegenerateOverride(message)
+          } else if let onRegenerateMessageAction {
+            Task { @MainActor in
+              await onRegenerateMessageAction(message)
+            }
           }
         } label: {
           Image(systemName: "arrow.clockwise")

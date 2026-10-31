@@ -659,6 +659,14 @@ struct ConversationKitTests {
     #expect(symbol != nil)
   }
 
+  @Test("PlatformImage.downsampled returns nil for empty or invalid image data")
+  func platformImageDownsampledInvalidData() {
+    #expect(PlatformImage.downsampled(from: Data()) == nil)
+    #expect(PlatformImage.downsampled(from: Data([0x00, 0x01, 0x02, 0x03])) == nil)
+    #expect(PlatformImage.downsampled(from: Data("not an image".utf8), maxPixelDimension: 512) == nil)
+    #expect(PlatformImage.downsampled(from: Data("not an image".utf8), maxPixelDimension: 0) == nil)
+  }
+
   // MARK: - Adversarial & Boundary Chaos Tests (PRD-0001 AC-1 through AC-19)
 
   @Test("Adversarial: ThinkingTrace Equatable must not falsely equate distinct strings with identical UTF-8 length and boundary bytes (MF-4)")

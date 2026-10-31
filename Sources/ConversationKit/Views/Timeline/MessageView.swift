@@ -19,7 +19,7 @@
 import SwiftUI
 import MarkdownUI
 
-public struct MessageView: View {
+public struct MessageView: View, Equatable {
   @Environment(\.presentErrorAction) var presentErrorAction
   @Environment(\.onRetryMessageAction) private var onRetryMessageAction
 
@@ -82,6 +82,26 @@ public struct MessageView: View {
 
   public init<M: Message>(message: M) {
     self.init(message)
+  }
+
+  public static func == (lhs: MessageView, rhs: MessageView) -> Bool {
+    guard lhs.participant == rhs.participant,
+          lhs.isStreaming == rhs.isStreaming,
+          lhs.rating == rhs.rating,
+          lhs.message?.utf8.count == rhs.message?.utf8.count,
+          (lhs.error != nil) == (rhs.error != nil)
+    else {
+      return false
+    }
+
+    return lhs.imageURL == rhs.imageURL
+      && lhs.thinking == rhs.thinking
+      && lhs.toolCalls == rhs.toolCalls
+      && lhs.citations == rhs.citations
+      && lhs.plan == rhs.plan
+      && lhs.approvalRequest == rhs.approvalRequest
+      && lhs.message == rhs.message
+      && lhs.error?.localizedDescription == rhs.error?.localizedDescription
   }
 
   private var resolvedMessageForCallback: any Message {
@@ -155,19 +175,21 @@ public struct MessageView: View {
           .accessibilityIdentifier("message_error_banner")
         } else {
           // 1. Attached image
-          if let imageURL, let url = URL(string: imageURL) {
-            Spacer()
+          if let imageURL, !imageURL.isEmpty, let url = URL(string: imageURL) {
             AsyncImage(url: url) { phase in
               if let image = phase.image {
                 image
                   .resizable()
                   .aspectRatio(contentMode: .fill)
+                  .frame(maxWidth: 260, maxHeight: 280)
+                  .clipped()
                   .accessibilityLabel("Attached image")
               } else if phase.error != nil {
                 Image(systemName: "icloud.slash")
                   .accessibilityLabel("Image failed to load")
               } else {
                 ProgressView()
+                  .frame(width: 80, height: 80)
               }
             }
             .clipShape(RoundedRectangle(cornerRadius: 8.0))
@@ -196,7 +218,8 @@ public struct MessageView: View {
 
           // 6. Primary Markdown Content or Typing Indicator
           if let message, !message.isEmpty {
-            Markdown(message)
+            EquatableMarkdownText(text: message)
+              .equatable()
               .accessibilityIdentifier("message_text")
               .padding(participant == .user ? 16 : 0)
           } else if participant == .other && !hasAgenticSubsurfaces {
@@ -211,21 +234,46 @@ public struct MessageView: View {
         }
       }
       .frame(maxWidth: fullWidth ? .infinity : nil, alignment: .leading)
-      .background(participant == .user ? Color.platformGray4 : Color.clear)
-      .clipShape(
-        UnevenRoundedRectangle(
-          topLeadingRadius: participant == .user ? 20 : 0,
-          bottomLeadingRadius: participant == .user ? 20 : 0,
-          bottomTrailingRadius: participant == .user ? 8 : 0,
-          topTrailingRadius: participant == .user ? 20 : 0
-        )
-      )
+      .modifier(UserBubbleStyleModifier(isUser: participant == .user))
 
       if participant == .other {
         Spacer()
       }
     }
     .listRowSeparator(.hidden)
+  }
+}
+
+private struct UserBubbleStyleModifier: ViewModifier {
+  let isUser: Bool
+
+  func body(content: Content) -> some View {
+    if isUser {
+      content
+        .background(Color.platformGray4)
+        .clipShape(
+          UnevenRoundedRectangle(
+            topLeadingRadius: 20,
+            bottomLeadingRadius: 20,
+            bottomTrailingRadius: 8,
+            topTrailingRadius: 20
+          )
+        )
+    } else {
+      content
+    }
+  }
+}
+
+private struct EquatableMarkdownText: View, Equatable {
+  let text: String
+
+  static func == (lhs: EquatableMarkdownText, rhs: EquatableMarkdownText) -> Bool {
+    lhs.text.utf8.count == rhs.text.utf8.count && lhs.text == rhs.text
+  }
+
+  var body: some View {
+    Markdown(text)
   }
 }
 

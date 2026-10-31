@@ -86,11 +86,17 @@ public extension View {
 
 // MARK: - Turnkey Message Action Handlers
 
-public struct OnRegenerateMessageAction {
+public struct OnRegenerateMessageAction: Equatable {
+  public let id: UUID
   private let handler: @MainActor (any Message) async -> Void
 
-  public init(handler: @escaping @MainActor (any Message) async -> Void) {
+  public init(id: UUID = UUID(), handler: @escaping @MainActor (any Message) async -> Void) {
+    self.id = id
     self.handler = handler
+  }
+
+  public static func == (lhs: OnRegenerateMessageAction, rhs: OnRegenerateMessageAction) -> Bool {
+    lhs.id == rhs.id
   }
 
   @MainActor
@@ -99,11 +105,17 @@ public struct OnRegenerateMessageAction {
   }
 }
 
-public struct OnRateMessageAction {
+public struct OnRateMessageAction: Equatable {
+  public let id: UUID
   private let handler: @MainActor (any Message, MessageRating?) -> Void
 
-  public init(handler: @escaping @MainActor (any Message, MessageRating?) -> Void) {
+  public init(id: UUID = UUID(), handler: @escaping @MainActor (any Message, MessageRating?) -> Void) {
+    self.id = id
     self.handler = handler
+  }
+
+  public static func == (lhs: OnRateMessageAction, rhs: OnRateMessageAction) -> Bool {
+    lhs.id == rhs.id
   }
 
   @MainActor
@@ -112,11 +124,17 @@ public struct OnRateMessageAction {
   }
 }
 
-public struct OnRetryMessageAction {
+public struct OnRetryMessageAction: Equatable {
+  public let id: UUID
   private let handler: @MainActor (any Message) async -> Void
 
-  public init(handler: @escaping @MainActor (any Message) async -> Void) {
+  public init(id: UUID = UUID(), handler: @escaping @MainActor (any Message) async -> Void) {
+    self.id = id
     self.handler = handler
+  }
+
+  public static func == (lhs: OnRetryMessageAction, rhs: OnRetryMessageAction) -> Bool {
+    lhs.id == rhs.id
   }
 
   @MainActor
@@ -125,11 +143,17 @@ public struct OnRetryMessageAction {
   }
 }
 
-public struct OnRetryToolCallAction {
+public struct OnRetryToolCallAction: Equatable {
+  public let id: UUID
   private let handler: @MainActor (ToolCall) async -> Void
 
-  public init(handler: @escaping @MainActor (ToolCall) async -> Void) {
+  public init(id: UUID = UUID(), handler: @escaping @MainActor (ToolCall) async -> Void) {
+    self.id = id
     self.handler = handler
+  }
+
+  public static func == (lhs: OnRetryToolCallAction, rhs: OnRetryToolCallAction) -> Bool {
+    lhs.id == rhs.id
   }
 
   @MainActor
@@ -138,11 +162,20 @@ public struct OnRetryToolCallAction {
   }
 }
 
-public struct OnAgentApprovalAction {
+public struct OnAgentApprovalAction: Equatable {
+  public let id: UUID
   private let handler: @MainActor (ApprovalRequest, ApprovalRequest.Decision) async -> Void
 
-  public init(handler: @escaping @MainActor (ApprovalRequest, ApprovalRequest.Decision) async -> Void) {
+  public init(
+    id: UUID = UUID(),
+    handler: @escaping @MainActor (ApprovalRequest, ApprovalRequest.Decision) async -> Void
+  ) {
+    self.id = id
     self.handler = handler
+  }
+
+  public static func == (lhs: OnAgentApprovalAction, rhs: OnAgentApprovalAction) -> Bool {
+    lhs.id == rhs.id
   }
 
   @MainActor

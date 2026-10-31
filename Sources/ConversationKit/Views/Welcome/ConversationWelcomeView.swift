@@ -91,9 +91,7 @@ public struct ConversationWelcomeView: View {
             }
           }
           .padding(.horizontal)
-          .scrollTargetLayout()
         }
-        .scrollTargetBehavior(.viewAligned)
         .accessibilityIdentifier("welcome_chip_rail")
 
         VStack(alignment: .leading, spacing: 12) {
@@ -126,10 +124,7 @@ public struct ConversationWelcomeView: View {
             }
           }
 
-          LazyVGrid(
-            columns: [GridItem(.adaptive(minimum: 220), spacing: 12)],
-            spacing: 12
-          ) {
+          VStack(spacing: 10) {
             ForEach(displayedSlice) { suggestion in
               StarterPromptCard(suggestion: suggestion) {
                 onSelectSuggestion(suggestion)

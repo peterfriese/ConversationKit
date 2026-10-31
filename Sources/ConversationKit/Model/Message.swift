@@ -113,18 +113,19 @@ public struct DefaultMessage: Message, Sendable {
 extension DefaultMessage {
   public static func == (lhs: DefaultMessage, rhs: DefaultMessage) -> Bool {
     lhs.id == rhs.id &&
+    lhs.isStreaming == rhs.isStreaming &&
+    lhs.participant == rhs.participant &&
+    lhs.rating == rhs.rating &&
+    lhs.content?.utf8.count == rhs.content?.utf8.count &&
+    (lhs.error != nil) == (rhs.error != nil) &&
     lhs.content == rhs.content &&
     lhs.imageURL == rhs.imageURL &&
-    lhs.participant == rhs.participant &&
-    (lhs.error != nil) == (rhs.error != nil) &&
-    lhs.error?.localizedDescription == rhs.error?.localizedDescription &&
     lhs.thinking == rhs.thinking &&
     lhs.toolCalls == rhs.toolCalls &&
     lhs.citations == rhs.citations &&
     lhs.plan == rhs.plan &&
     lhs.approvalRequest == rhs.approvalRequest &&
-    lhs.isStreaming == rhs.isStreaming &&
-    lhs.rating == rhs.rating
+    lhs.error?.localizedDescription == rhs.error?.localizedDescription
   }
 
   public func hash(into hasher: inout Hasher) {
