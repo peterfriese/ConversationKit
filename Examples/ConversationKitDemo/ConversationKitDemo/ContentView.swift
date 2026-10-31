@@ -168,7 +168,7 @@ struct ContentView: View {
     ),
   ]
 
-  @State var messages: [DefaultMessage] = ContentView.defaultMessages
+  @State var messages: [DefaultMessage] = []
   @State var attachments = [ImageAttachment]()
   @State private var selectedItems = [PhotosPickerItem]()
   @State private var showingPhotoPicker = false

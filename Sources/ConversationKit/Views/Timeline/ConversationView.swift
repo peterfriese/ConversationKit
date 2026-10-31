@@ -244,14 +244,10 @@ public struct ConversationView<Content, MessageType: Message, AttachmentType: At
           if wasSingleUserMessageAppended, let lastID = newValue.lastMessage?.id {
             isAutoScrollingTop = true
             autoScrollTargetID = lastID
-            withAnimation(.easeOut(duration: 0.25)) {
+            withAnimation(.easeOut(duration: 0.3)) {
               proxy.scrollTo(ConversationScrollID.message(lastID), anchor: .top)
             }
-          }
-          // 2. If we are currently anchored, and new tokens are arriving on the same thread
-          else if isAutoScrollingTop, let targetID = autoScrollTargetID {
-            proxy.scrollTo(ConversationScrollID.message(targetID), anchor: .top)
-
+          } else if isAutoScrollingTop {
             if sendingTask == nil || (newValue.lastMessage?.participant == .other && newValue.lastMessage?.isStreaming == false) {
               isAutoScrollingTop = false
               autoScrollTargetID = nil
