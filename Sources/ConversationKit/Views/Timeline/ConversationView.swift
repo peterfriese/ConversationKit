@@ -29,8 +29,8 @@ private struct ScrollGeometrySnapshot: Equatable, Sendable {
 ///    and partitions them into `ConversationTurn.group(displayedMessages)`.
 /// 2. **Unoccluded Active Turn Viewport Runway (`[MF-3]`):** The active (last) turn reserves
 ///    `.frame(minHeight: activeTurnMinHeight, alignment: .top)` where `activeTurnMinHeight` is locked to
-///    `max(max(lockedUnoccludedHeight, currentVisibleHeight) - 56, 360)`. Even if the user taps Send while the software keyboard is open,
-///    `activeTurnMinHeight` already holds the full post-keyboard viewport height (minus the `56pt` of outer `LazyVStack` padding and bottom anchor spacing) and never shrinks during
+///    `max(lockedUnoccludedHeight, 320)`. Even if the user taps Send while the software keyboard is open,
+///    `activeTurnMinHeight` locks to the visible runway excluding top and bottom safe area insets and never shrinks during
 ///    keyboard dismissal.
 /// 3. **Single-Shot Top Scroll on Submission (`AC-3`, `AC-4`):** `proxy.scrollTo(newTurnID, anchor: .top)`
 ///    is invoked **only once** when a user submits a turn—never during AI token streaming—guaranteeing
@@ -214,12 +214,11 @@ public struct ConversationView<MessageType: Message, Content: View>: View {
     activeTurnToken != nil || displayedMessages.contains(where: \.isStreaming)
   }
 
-  /// Unoccluded active turn minimum height (`max(max(lockedUnoccludedHeight, currentVisibleHeight) - 56, 360)`, `[MF-3]`).
-  /// Subtracts the `56pt` of outer `LazyVStack` vertical padding (`12pt` top + `16pt` bottom) and
-  /// bottom anchor spacing (`24pt` spacing + `1pt` anchor) so the empty active turn runway fits
-  /// inside the visible viewport without creating artificial scroll overflow on 1-line responses.
+  /// Unoccluded active turn minimum height (`max(lockedUnoccludedHeight, 320)`, `[MF-3]`).
+  /// `lockedUnoccludedHeight` measures the visible runway between top navigation and bottom safeAreaBar insets,
+  /// ensuring that empty/short top-anchored turns fit inside the scroll runway without premature overflow.
   private var activeTurnMinHeight: CGFloat {
-    max(max(lockedUnoccludedHeight, currentVisibleHeight) - 56, 360)
+    max(lockedUnoccludedHeight, 320)
   }
 
   /// First-turn suggestion chips are visible only when configured, before the first message is sent, and while the draft is pristine (`F-8`, `AC-12`, `IVE-03`).
@@ -319,16 +318,18 @@ public struct ConversationView<MessageType: Message, Content: View>: View {
     .scrollEdgeEffectStyle(.soft, for: .bottom)
     .accessibilityIdentifier(ConversationAccessibilityID.timelineScrollView)
     .onScrollGeometryChange(for: ScrollGeometrySnapshot.self) { geo in
-      let unoccludedCandidate = max(
+      // Available scroll viewport height excluding top navigation and bottom safeAreaBar insets
+      let availableRunway = max(
         0,
-        geo.visibleRect.height
+        geo.containerSize.height - geo.contentInsets.top - geo.contentInsets.bottom
       )
+      // Distance from the bottom of the content to the bottom of the visible scroll area
       let distanceFromBottom = max(
         0,
         geo.contentSize.height - geo.visibleRect.maxY
       )
       return ScrollGeometrySnapshot(
-        unoccludedCandidateHeight: unoccludedCandidate,
+        unoccludedCandidateHeight: availableRunway,
         distanceFromBottom: distanceFromBottom
       )
     } action: { _, snapshot in
