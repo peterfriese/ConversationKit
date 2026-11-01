@@ -52,8 +52,11 @@ public struct MessageComposerStyleConfiguration {
   /// Vertical-growing prompt text field.
   public let textField: AnyView
 
-  /// Leading `+` menu trigger button for adding photos, files, or custom attachment actions.
+  /// Leading `+` menu trigger button for adding photos, files, or custom attachment actions (bordered or detached).
   public let attachmentButton: AnyView?
+
+  /// Leading borderless `+` menu trigger icon without circular background or border overlay.
+  public let borderlessAttachmentButton: AnyView?
 
   /// Horizontal scroll strip displaying pending `ConversationAttachment` cards with upload progress rings.
   public let attachmentsTray: AnyView?
@@ -61,8 +64,11 @@ public struct MessageComposerStyleConfiguration {
   /// Horizontal scroll bar displaying active `/command` and `@mention` `ComposerToken` pills.
   public let tokensBar: AnyView?
 
-  /// Integrated model selector menu pill (`ComposerModelOption`).
+  /// Integrated model selector menu pill (`ComposerModelOption`) displaying model name and badge.
   public let modelSelector: AnyView?
+
+  /// Compact circular icon-only model selector button (`ComposerModelOption`) without text label.
+  public let compactModelSelector: AnyView?
 
   /// Toggleable capability chips bar (`Think`, `Search`, `Image`, etc.).
   public let capabilitiesBar: AnyView?
@@ -114,7 +120,9 @@ public struct MessageComposerStyleConfiguration {
     hasAttachments: Bool? = nil,
     hasTokens: Bool? = nil,
     hasModels: Bool? = nil,
-    hasCapabilities: Bool? = nil
+    hasCapabilities: Bool? = nil,
+    compactModelSelector: AnyView? = nil,
+    borderlessAttachmentButton: AnyView? = nil
   ) {
     self.textField = textField
     self.attachmentButton = attachmentButton
@@ -130,16 +138,23 @@ public struct MessageComposerStyleConfiguration {
     self.canSubmit = canSubmit
     self.hasAttachments = hasAttachments ?? (attachmentsTray != nil)
     self.hasTokens = hasTokens ?? (tokensBar != nil)
-    self.hasModels = hasModels ?? (modelSelector != nil)
+    self.hasModels = hasModels ?? (modelSelector != nil || compactModelSelector != nil)
     self.hasCapabilities = hasCapabilities ?? (capabilitiesBar != nil)
+    self.compactModelSelector = compactModelSelector
+    self.borderlessAttachmentButton = borderlessAttachmentButton
   }
 }
 
 // MARK: - ClassicGlassMessageComposerStyle (.classicGlass / .automatic)
 
-/// Default Liquid Glass composer style featuring a classic single-row rounded pill (`cornerRadius: 22`)
-/// inside `GlassEffectContainer`, housing the leading `+` attachment button, growing prompt text field,
-/// optional model selector, keyboard dismiss, and send/stop button in a bottom-aligned input row (~48pt empty height).
+/// Default Liquid Glass composer style featuring a detached circular `+` button (`36×36pt`)
+/// and a central rounded pill (`cornerRadius: 22`) inside `GlassEffectContainer(spacing: 8)`.
+///
+/// When the user interacts with the detached `+` button, Liquid Glass physics smoothly bridge and
+/// "kiss" the adjacent composer frame via matching `.glassEffectID` (`"composer.classicPlus"` and
+/// `"composer.classicPill"`). Inside the central pill, the composer houses the growing prompt text field,
+/// a compact circular model icon button (`compactModelSelector`: `32×32pt`), focus-driven keyboard dismiss,
+/// and primary send/stop action.
 public struct ClassicGlassMessageComposerStyle: MessageComposerStyle, Sendable {
   /// Creates the default classic Liquid Glass composer style.
   public nonisolated init() {}
@@ -156,7 +171,7 @@ public struct ClassicGlassMessageComposerStyle: MessageComposerStyle, Sendable {
 ///
 /// Renders a unified 2-row Liquid Glass card (`cornerRadius: 24`, ~84pt empty height) with `attachmentsTray`,
 /// `tokensBar`, and full-width `textField` in the top section, and a dedicated bottom toolbar row housing
-/// `attachmentButton`, `modelSelector`, `Spacer()`, `dismissKeyboardButton` (when focused), and `submitButton` (when `canSubmit || isGenerating`).
+/// bordered `attachmentButton`, full `modelSelector` pill (with model name), `Spacer()`, `dismissKeyboardButton` (when focused), and `submitButton` (when `canSubmit || isGenerating`).
 public struct CardGlassMessageComposerStyle: MessageComposerStyle, Sendable {
   /// Creates a two-row card Liquid Glass composer style.
   public nonisolated init() {}
@@ -193,10 +208,35 @@ private struct ClassicGlassComposerBody: View {
 
   var body: some View {
     GlassEffectContainer(spacing: 8) {
-      classicPill
+      HStack(alignment: .bottom, spacing: 8) {
+        if let plusButton = configuration.borderlessAttachmentButton ?? configuration.attachmentButton {
+          detachedPlusButton(plusButton)
+        }
+
+        classicPill
+      }
     }
     .padding(.horizontal, 12)
     .padding(.vertical, 6)
+  }
+
+  @ViewBuilder
+  private func detachedPlusButton(_ button: AnyView) -> some View {
+    let buttonContent = button
+      .frame(width: 36, height: 36)
+
+    if reduceTransparency {
+      buttonContent
+        .background(Color.platformSecondaryBackground, in: Circle())
+        .overlay {
+          Circle()
+            .strokeBorder(Color.platformSeparator.opacity(0.45), lineWidth: 0.5)
+        }
+    } else {
+      buttonContent
+        .glassEffect(.regular.interactive(), in: .circle)
+        .glassEffectID("composer.classicPlus", in: glassNamespace)
+    }
   }
 
   @ViewBuilder
@@ -233,24 +273,20 @@ private struct ClassicGlassComposerBody: View {
     } else {
       panelContent
         .glassEffect(.regular.interactive(), in: .rect(cornerRadius: pillCornerRadius))
-        .glassEffectID("composer.classicPanel", in: glassNamespace)
+        .glassEffectID("composer.classicPill", in: glassNamespace)
     }
   }
 
   @ViewBuilder
   private var mainInputRow: some View {
     HStack(alignment: .bottom, spacing: 6) {
-      if let attachmentButton = configuration.attachmentButton {
-        attachmentButton
-          .frame(width: controlDiameter, height: controlDiameter)
-      }
-
       configuration.textField
         .frame(maxWidth: .infinity, minHeight: controlDiameter, alignment: .leading)
-        .padding(.leading, configuration.attachmentButton == nil ? 8 : 2)
+        .padding(.leading, 8)
         .padding(.trailing, hasTrailingControls ? 2 : 8)
 
-      if (configuration.hasModels || configuration.hasCapabilities), let modelSelector = configuration.modelSelector {
+      if (configuration.hasModels || configuration.hasCapabilities),
+         let modelSelector = configuration.compactModelSelector ?? configuration.modelSelector {
         modelSelector
           .frame(minHeight: controlDiameter)
           .fixedSize(horizontal: true, vertical: false)
@@ -386,10 +422,11 @@ private struct CardGlassComposerBody: View {
 
 // MARK: - CompactGlassMessageComposerStyle (.compactGlass)
 
-/// Single-row compact capsule Liquid Glass composer style for secondary sheets, popovers, and inspectors (`AC-16`).
+/// Single-row compact capsule Liquid Glass composer style (`cornerRadius: 22`) for secondary sheets, popovers, and inspectors (`AC-16`).
 ///
-/// Houses all controls (`attachmentButton`, `textField`, `modelSelector`, `dismissKeyboardButton`,
-/// and `submitButton`) inside a single unified Liquid Glass capsule.
+/// Houses a borderless `+` button (`borderlessAttachmentButton`), growing prompt `textField`, compact round model
+/// icon button (`compactModelSelector`: `32×32pt`), `dismissKeyboardButton` (when focused), and `submitButton` inside
+/// a unified single-line Liquid Glass capsule.
 public struct CompactGlassMessageComposerStyle: MessageComposerStyle, Sendable {
   /// Creates a compact single-row capsule Liquid Glass composer style.
   public nonisolated init() {}
@@ -408,6 +445,7 @@ private struct CompactGlassComposerBody: View {
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
   private let controlDiameter: CGFloat = 32
+  private let pillCornerRadius: CGFloat = 22
 
   private var showsSubmitButton: Bool {
     configuration.canSubmit || configuration.isGenerating
@@ -436,7 +474,7 @@ private struct CompactGlassComposerBody: View {
   @ViewBuilder
   private var capsulePill: some View {
     let rowContent = HStack(alignment: .center, spacing: 8) {
-      if let attachmentButton = configuration.attachmentButton {
+      if let attachmentButton = configuration.borderlessAttachmentButton ?? configuration.attachmentButton {
         attachmentButton
           .frame(width: controlDiameter, height: controlDiameter)
       }
@@ -445,7 +483,8 @@ private struct CompactGlassComposerBody: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.vertical, 4)
 
-      if (configuration.hasModels || configuration.hasCapabilities), let modelSelector = configuration.modelSelector {
+      if (configuration.hasModels || configuration.hasCapabilities),
+         let modelSelector = configuration.compactModelSelector ?? configuration.modelSelector {
         modelSelector
           .fixedSize(horizontal: true, vertical: false)
           .layoutPriority(1)
@@ -477,14 +516,17 @@ private struct CompactGlassComposerBody: View {
 
     if reduceTransparency {
       rowContent
-        .background(Color.platformSecondaryBackground, in: Capsule())
+        .background(
+          Color.platformSecondaryBackground,
+          in: RoundedRectangle(cornerRadius: pillCornerRadius, style: .continuous)
+        )
         .overlay {
-          Capsule()
+          RoundedRectangle(cornerRadius: pillCornerRadius, style: .continuous)
             .strokeBorder(Color.platformSeparator.opacity(0.45), lineWidth: 0.5)
         }
     } else {
       rowContent
-        .glassEffect(.regular.interactive(), in: .capsule)
+        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: pillCornerRadius))
         .glassEffectID("composer.compactCapsule", in: glassNamespace)
     }
   }

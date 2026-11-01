@@ -334,10 +334,10 @@ public struct MessageComposerView: View {
 
     return MessageComposerStyleConfiguration(
       textField: AnyView(promptTextField),
-      attachmentButton: attachmentsDisabled ? nil : AnyView(attachmentMenuButton),
+      attachmentButton: attachmentsDisabled ? nil : AnyView(attachmentMenu(isBorderless: false)),
       attachmentsTray: currentAttachments.isEmpty ? nil : AnyView(attachmentsTraySubview),
       tokensBar: currentTokens.isEmpty ? nil : AnyView(tokensBarSubview),
-      modelSelector: (hasModels || hasCapabilities) ? AnyView(modelSelectorSubview) : nil,
+      modelSelector: (hasModels || hasCapabilities) ? AnyView(modelSelectorSubview(isCompact: false)) : nil,
       capabilitiesBar: nil,
       dictationButton: onDictationAction.map { action in
         AnyView(dictationButtonSubview(action: action))
@@ -350,7 +350,9 @@ public struct MessageComposerView: View {
       hasAttachments: !currentAttachments.isEmpty,
       hasTokens: !currentTokens.isEmpty,
       hasModels: hasModels,
-      hasCapabilities: hasCapabilities
+      hasCapabilities: hasCapabilities,
+      compactModelSelector: (hasModels || hasCapabilities) ? AnyView(modelSelectorSubview(isCompact: true)) : nil,
+      borderlessAttachmentButton: attachmentsDisabled ? nil : AnyView(attachmentMenu(isBorderless: true))
     )
   }
 
@@ -387,7 +389,7 @@ public struct MessageComposerView: View {
   }
 
   @ViewBuilder
-  private var attachmentMenuButton: some View {
+  private func attachmentMenu(isBorderless: Bool) -> some View {
     Menu {
       Button("Photos", systemImage: "photo.on.rectangle.angled") {
         PlatformHapticEvent.triggerHaptic(.selection)
@@ -411,16 +413,24 @@ public struct MessageComposerView: View {
         customAttachmentActions()
       }
     } label: {
-      Image(systemName: "plus")
-        .font(.system(size: 15, weight: .medium))
-        .foregroundStyle(.primary)
-        .frame(width: 34, height: 34)
-        .background(Color.primary.opacity(0.06), in: Circle())
-        .overlay {
-          Circle()
-            .strokeBorder(Color.platformSeparator.opacity(0.45), lineWidth: 0.5)
-        }
-        .contentShape(Circle())
+      if isBorderless {
+        Image(systemName: "plus")
+          .font(.system(size: 16, weight: .medium))
+          .foregroundStyle(.primary)
+          .frame(width: 32, height: 32)
+          .contentShape(Circle())
+      } else {
+        Image(systemName: "plus")
+          .font(.system(size: 15, weight: .medium))
+          .foregroundStyle(.primary)
+          .frame(width: 34, height: 34)
+          .background(Color.primary.opacity(0.06), in: Circle())
+          .overlay {
+            Circle()
+              .strokeBorder(Color.platformSeparator.opacity(0.45), lineWidth: 0.5)
+          }
+          .contentShape(Circle())
+      }
     }
     .menuStyle(.button)
     .buttonStyle(.plain)
@@ -454,12 +464,13 @@ public struct MessageComposerView: View {
   }
 
   @ViewBuilder
-  private var modelSelectorSubview: some View {
+  private func modelSelectorSubview(isCompact: Bool) -> some View {
     ComposerModelSelectorMenu(
       models: composerModels,
       selectedModel: selectedModelBinding,
       capabilities: composerCapabilities,
-      activeCapabilities: activeCapabilitiesBinding
+      activeCapabilities: activeCapabilitiesBinding,
+      isCompact: isCompact
     )
   }
 

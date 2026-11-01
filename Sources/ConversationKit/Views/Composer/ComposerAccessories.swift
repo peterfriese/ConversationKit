@@ -249,6 +249,9 @@ public struct ComposerModelSelectorMenu: View {
   /// Two-way binding to the set of currently active capabilities.
   public var activeCapabilities: Binding<Set<ComposerCapability>>?
 
+  /// Whether to render only a compact circular icon button (`32×32pt`) without model name text.
+  public let isCompact: Bool
+
   /// Optional callback invoked when the user picks a model.
   public let onSelect: (@MainActor (ComposerModelOption) -> Void)?
 
@@ -261,6 +264,7 @@ public struct ComposerModelSelectorMenu: View {
     selectedModel: Binding<ComposerModelOption?>,
     capabilities: [ComposerCapability] = [],
     activeCapabilities: Binding<Set<ComposerCapability>>? = nil,
+    isCompact: Bool = false,
     onSelect: (@MainActor (ComposerModelOption) -> Void)? = nil,
     onToggleCapability: (@MainActor (ComposerCapability, Bool) -> Void)? = nil
   ) {
@@ -268,8 +272,29 @@ public struct ComposerModelSelectorMenu: View {
     self._selectedModel = selectedModel
     self.capabilities = capabilities
     self.activeCapabilities = activeCapabilities
+    self.isCompact = isCompact
     self.onSelect = onSelect
     self.onToggleCapability = onToggleCapability
+  }
+
+  /// Convenience initializer preserving parameter signature without `isCompact`.
+  public init(
+    models: [ComposerModelOption],
+    selectedModel: Binding<ComposerModelOption?>,
+    capabilities: [ComposerCapability] = [],
+    activeCapabilities: Binding<Set<ComposerCapability>>? = nil,
+    onSelect: (@MainActor (ComposerModelOption) -> Void)? = nil,
+    onToggleCapability: (@MainActor (ComposerCapability, Bool) -> Void)? = nil
+  ) {
+    self.init(
+      models: models,
+      selectedModel: selectedModel,
+      capabilities: capabilities,
+      activeCapabilities: activeCapabilities,
+      isCompact: false,
+      onSelect: onSelect,
+      onToggleCapability: onToggleCapability
+    )
   }
 
   private var activeModel: ComposerModelOption? {
@@ -354,52 +379,13 @@ public struct ComposerModelSelectorMenu: View {
   public var body: some View {
     if !models.isEmpty || !capabilities.isEmpty {
       Menu {
-        if !models.isEmpty {
-          if shouldGroupByCategory {
-            if !uncategorizedModels.isEmpty {
-              Picker("Model", selection: modelSelectionBinding) {
-                ForEach(uncategorizedModels) { option in
-                  Label(option.menuItemTitle, systemImage: option.systemImage)
-                    .tag(Optional(option))
-                }
-              }
-              .pickerStyle(.inline)
-            }
-
-            ForEach(categorizedModelGroups) { group in
-              Menu(group.category) {
-                Picker(group.category, selection: modelSelectionBinding) {
-                  ForEach(group.models) { option in
-                    Label(option.menuItemTitle, systemImage: option.systemImage)
-                      .tag(Optional(option))
-                  }
-                }
-                .pickerStyle(.inline)
-              }
-            }
-          } else {
-            Picker("Model", selection: modelSelectionBinding) {
-              ForEach(models) { option in
-                Label(option.menuItemTitle, systemImage: option.systemImage)
-                  .tag(Optional(option))
-              }
-            }
-            .pickerStyle(.inline)
-          }
-        }
-
-        if !capabilities.isEmpty {
-          Section("Capabilities") {
-            ForEach(capabilities) { cap in
-              Toggle(isOn: capabilityBinding(for: cap)) {
-                Label(cap.title, systemImage: cap.symbolName)
-              }
-              .accessibilityIdentifier(ConversationAccessibilityID.composerCapabilityChip(cap.id))
-            }
-          }
-        }
+        menuContent
       } label: {
-        menuPillLabel
+        if isCompact {
+          menuIconOnlyLabel
+        } else {
+          menuPillLabel
+        }
       }
       .menuStyle(.button)
       .buttonStyle(.plain)
@@ -408,6 +394,84 @@ public struct ComposerModelSelectorMenu: View {
       .accessibilityValue(accessibilityDescription)
       .accessibilityHint("Double-tap to switch the active AI model or toggle capabilities")
     }
+  }
+
+  @ViewBuilder
+  private var menuContent: some View {
+    if !models.isEmpty {
+      if shouldGroupByCategory {
+        if !uncategorizedModels.isEmpty {
+          Picker("Model", selection: modelSelectionBinding) {
+            ForEach(uncategorizedModels) { option in
+              Label(option.menuItemTitle, systemImage: option.systemImage)
+                .tag(Optional(option))
+            }
+          }
+          .pickerStyle(.inline)
+        }
+
+        ForEach(categorizedModelGroups) { group in
+          Menu(group.category) {
+            Picker(group.category, selection: modelSelectionBinding) {
+              ForEach(group.models) { option in
+                Label(option.menuItemTitle, systemImage: option.systemImage)
+                  .tag(Optional(option))
+              }
+            }
+            .pickerStyle(.inline)
+          }
+        }
+      } else {
+        Picker("Model", selection: modelSelectionBinding) {
+          ForEach(models) { option in
+            Label(option.menuItemTitle, systemImage: option.systemImage)
+              .tag(Optional(option))
+          }
+        }
+        .pickerStyle(.inline)
+      }
+    }
+
+    if !capabilities.isEmpty {
+      Section("Capabilities") {
+        ForEach(capabilities) { cap in
+          Toggle(isOn: capabilityBinding(for: cap)) {
+            Label(cap.title, systemImage: cap.symbolName)
+          }
+          .accessibilityIdentifier(ConversationAccessibilityID.composerCapabilityChip(cap.id))
+        }
+      }
+    }
+  }
+
+  @ViewBuilder
+  private var menuIconOnlyLabel: some View {
+    let current = activeModel
+    ZStack(alignment: .topTrailing) {
+      Image(systemName: current?.symbolName ?? "sparkles")
+        .font(.system(size: 13, weight: .semibold))
+        .foregroundStyle(.primary)
+        .frame(width: 32, height: 32)
+
+      if !activeCapabilitiesList.isEmpty {
+        Circle()
+          .fill(Color.accentColor)
+          .frame(width: 6, height: 6)
+          .overlay {
+            Circle()
+              .strokeBorder(Color.platformBackground, lineWidth: 1)
+          }
+          .padding(.top, 4)
+          .padding(.trailing, 4)
+      }
+    }
+    .frame(width: 32, height: 32)
+    .background(Color.primary.opacity(0.06), in: Circle())
+    .overlay {
+      Circle()
+        .strokeBorder(Color.platformSeparator.opacity(0.45), lineWidth: 0.5)
+    }
+    .contentShape(Circle())
   }
 
   @ViewBuilder

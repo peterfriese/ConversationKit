@@ -1417,14 +1417,20 @@ struct MessageComposerStyleTests {
     let dummyTextField = AnyView(Text("Input"))
     let dummySubmitButton = AnyView(Button("Send") {})
     let dummyAttachmentButton = AnyView(Button("+") {})
+    let dummyBorderlessAttachmentButton = AnyView(Button("+") {})
+    let dummyModelSelector = AnyView(Text("Sonnet"))
+    let dummyCompactModelSelector = AnyView(Image(systemName: "sparkles"))
 
     let config = MessageComposerStyleConfiguration(
       textField: dummyTextField,
       attachmentButton: dummyAttachmentButton,
+      modelSelector: dummyModelSelector,
       submitButton: dummySubmitButton,
       isFocused: true,
       isGenerating: false,
-      canSubmit: true
+      canSubmit: true,
+      compactModelSelector: dummyCompactModelSelector,
+      borderlessAttachmentButton: dummyBorderlessAttachmentButton
     )
 
     #expect(config.isFocused == true)
@@ -1432,7 +1438,17 @@ struct MessageComposerStyleTests {
     #expect(config.canSubmit == true)
     #expect(config.hasAttachments == false)
     #expect(config.hasTokens == false)
-    #expect(config.hasModels == false)
+    #expect(config.hasModels == true)
+    #expect(config.compactModelSelector != nil)
+    #expect(config.borderlessAttachmentButton != nil)
+
+    // Verify hasModels defaults to true when only compactModelSelector is provided
+    let compactOnlyConfig = MessageComposerStyleConfiguration(
+      textField: dummyTextField,
+      submitButton: dummySubmitButton,
+      compactModelSelector: dummyCompactModelSelector
+    )
+    #expect(compactOnlyConfig.hasModels == true)
 
     // 1. Classic Glass (.classicGlass & .automatic)
     let classicStyle = ClassicGlassMessageComposerStyle.classicGlass
@@ -1455,6 +1471,45 @@ struct MessageComposerStyleTests {
     _ = anyClassic.makeBody(configuration: config)
     _ = anyCard.makeBody(configuration: config)
     _ = anyCompact.makeBody(configuration: config)
+  }
+
+  @Test("ComposerModelSelectorMenu supports compact icon-only mode for single-line styles")
+  @MainActor
+  func composerModelSelectorMenuCompactMode() {
+    let models = [
+      ComposerModelOption(id: "gpt-4o", name: "GPT-4o", symbolName: "sparkles")
+    ]
+    var selectedModel: ComposerModelOption? = models.first
+    let selectedModelBinding = Binding<ComposerModelOption?>(
+      get: { selectedModel },
+      set: { selectedModel = $0 }
+    )
+    var activeCapabilities: Set<ComposerCapability> = [.think]
+    let activeCapabilitiesBinding = Binding<Set<ComposerCapability>>(
+      get: { activeCapabilities },
+      set: { activeCapabilities = $0 }
+    )
+
+    // Compact mode
+    let compactMenu = ComposerModelSelectorMenu(
+      models: models,
+      selectedModel: selectedModelBinding,
+      capabilities: [.think, .search],
+      activeCapabilities: activeCapabilitiesBinding,
+      isCompact: true
+    )
+    #expect(compactMenu.isCompact == true)
+    _ = compactMenu.body
+
+    // Standard mode defaults isCompact to false
+    let standardMenu = ComposerModelSelectorMenu(
+      models: models,
+      selectedModel: selectedModelBinding,
+      capabilities: [.think, .search],
+      activeCapabilities: activeCapabilitiesBinding
+    )
+    #expect(standardMenu.isCompact == false)
+    _ = standardMenu.body
   }
 
   @Test("Custom MessageComposerStyle conformance compiles and executes makeBody")
