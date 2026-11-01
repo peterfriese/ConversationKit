@@ -1,5 +1,5 @@
 //
-// ContentView.swift
+// FoundationModelChatView.swift
 // AIChatDemo
 //
 // Created by Peter Friese on 07.07.25.
@@ -20,65 +20,46 @@ import ConversationKit
 import FoundationModels
 import SwiftUI
 
-@available(iOS 26.0, macCatalyst 26.0, *)
-struct FoundationModelChatView {
+@available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *)
+struct FoundationModelChatView: View {
   @State private var messages: [DefaultMessage] = [
     DefaultMessage(content: "Hello! How can I help you today?", participant: .other)
   ]
-  @State private var errorWrapper: ErrorWrapper?
-  
-  let session = LanguageModelSession()
-}
 
-@available(iOS 26.0, macCatalyst 26.0, *)
-extension FoundationModelChatView: View {
+  private let session = LanguageModelSession()
+
   var body: some View {
     NavigationStack {
       ConversationView(messages: $messages)
-        .navigationTitle("Chat")
-        .navigationBarTitleDisplayMode(.inline)
-        .onSendMessage { message in
-          if let defaultMessage = message as? DefaultMessage {
-            messages.append(defaultMessage)
-          }
-          var responseMessage: DefaultMessage
+        .onSendMessage { submission in
+          messages.append(submission.message)
+
+          let responseMessage: DefaultMessage
           do {
-            let response = try await session.respond(to: message.content ?? "")
-            let responseText = response.content
-            responseMessage = DefaultMessage(content: responseText, participant: .other)
+            let response = try await session.respond(to: submission.text)
+            responseMessage = DefaultMessage(
+              content: response.content,
+              participant: .other
+            )
           } catch {
-            let responseText = "An error has occurred. Try again later."
-            responseMessage = DefaultMessage(content: responseText, participant: .other, error: error)
+            responseMessage = DefaultMessage(
+              content: "An error has occurred. Try again later.",
+              participant: .other,
+              error: error
+            )
           }
           messages.append(responseMessage)
         }
-        .onError { error in
-          errorWrapper = ErrorWrapper(error: error)
-        }
-        .sheet(item: $errorWrapper) { wrapper in
-          NavigationStack {
-            VStack {
-              Text(wrapper.error.localizedDescription)
-                .padding()
-              Spacer()
-            }
-            .navigationTitle("Error details")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-              ToolbarItem(placement: .cancellationAction) {
-                Button("Dismiss", systemImage: "xmark") {
-                  errorWrapper = nil
-                }
-              }
-            }
-          }
-        }
+        .navigationTitle("On-Device Chat")
+        #if os(iOS)
+        .navigationBarTitleDisplayMode(.inline)
+        #endif
     }
   }
 }
 
 #Preview {
-  if #available(iOS 26.0, macCatalyst 26.0, *) {
+  if #available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *) {
     FoundationModelChatView()
   } else {
     Text("The Apple Foundation Models framework requires iOS 26+.")

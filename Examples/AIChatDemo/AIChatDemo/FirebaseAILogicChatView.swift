@@ -18,14 +18,16 @@
 
 import ConversationKit
 import FirebaseAI
-import SwiftUI
 import PhotosUI
+import SwiftUI
+import UniformTypeIdentifiers
 
+@MainActor
 @Observable
-class FirebaseAILogicChatViewModel {
+final class FirebaseAILogicChatViewModel {
   var messages: [DefaultMessage] = []
-  var attachments = [ImageAttachment]()
-  var selectedItems = [PhotosPickerItem]()
+  var attachments: [ConversationAttachment] = []
+  var selectedItems: [PhotosPickerItem] = []
 
   private let model: GenerativeModel
   private let chat: Chat
@@ -48,36 +50,43 @@ class FirebaseAILogicChatViewModel {
     chat = model.startChat(history: history)
   }
 
-  func sendMessage(_ message: any Message) async {
-    if let defaultMessage = message as? DefaultMessage {
-      messages.append(defaultMessage)
-    }
-    var responseText: String
+  func sendMessage(_ submission: ConversationSubmission<DefaultMessage>) async {
+    messages.append(submission.message)
+
+    let responseText: String
     do {
-      // Convert attachments (UIImage) into InlineDataPart which conforms to Part/PartsRepresentable.
-      let imageParts: [InlineDataPart] = attachments.compactMap { attachment in
-        // Prefer JPEG to reduce size; fall back to PNG if JPEG encoding fails.
-        if let jpegData = attachment.image.jpegData(compressionQuality: 0.85) {
-          return InlineDataPart(data: jpegData, mimeType: "image/jpeg")
-        } else if let pngData = attachment.image.pngData() {
-          return InlineDataPart(data: pngData, mimeType: "image/png")
-        } else {
+      let imageParts: [InlineDataPart] = submission.attachments.compactMap { attachment in
+        switch attachment.payload {
+        case .image(let imageBox):
+          #if canImport(UIKit)
+          if let jpegData = imageBox.image.jpegData(compressionQuality: 0.85) {
+            return InlineDataPart(data: jpegData, mimeType: "image/jpeg")
+          }
+          #endif
+          if let pngData = imageBox.pngData() {
+            return InlineDataPart(data: pngData, mimeType: "image/png")
+          }
           return nil
+
+        case .data(let data, let contentType, _):
+          let mimeType = contentType.preferredMIMEType ?? "application/octet-stream"
+          return InlineDataPart(data: data, mimeType: mimeType)
+
+        case .file(let url):
+          guard let data = try? Data(contentsOf: url) else { return nil }
+          let mimeType = attachment.contentType.preferredMIMEType ?? "application/octet-stream"
+          return InlineDataPart(data: data, mimeType: mimeType)
         }
       }
 
-      // Build a single message with images and text. String is PartsRepresentable via TextPart.
-      // Use the variadic sendMessage overload by passing an array (which itself conforms to PartsRepresentable).
-      let parts: [PartsRepresentable] = imageParts + [message.content ?? ""]
-      withAnimation {
-        attachments.removeAll()
-      }
+      let parts: [PartsRepresentable] = imageParts + [submission.text]
       let response = try await chat.sendMessage(parts)
       responseText = response.text ?? ""
     } catch {
       responseText =
-      "I'm sorry, I don't understand that. Please try again. \(error.localizedDescription)"
+        "I'm sorry, I don't understand that. Please try again. \(error.localizedDescription)"
     }
+
     let response = DefaultMessage(content: responseText, participant: .other)
     messages.append(response)
   }
@@ -90,16 +99,18 @@ struct FirebaseAILogicChatView: View {
   var body: some View {
     NavigationStack {
       ConversationView(messages: $viewModel.messages, attachments: $viewModel.attachments)
+        .onSendMessage { submission in
+          await viewModel.sendMessage(submission)
+        }
         .attachmentActions {
           Button("Photos", systemImage: "photo.on.rectangle.angled") {
             showingPhotoPicker = true
           }
         }
-        .navigationTitle("Chat")
+        .navigationTitle("Firebase AI Chat")
+        #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
-        .onSendMessage { message in
-          await viewModel.sendMessage(message)
-        }
+        #endif
         .photosPicker(
           isPresented: $showingPhotoPicker,
           selection: $viewModel.selectedItems,
@@ -107,15 +118,18 @@ struct FirebaseAILogicChatView: View {
           matching: .images
         )
         .onChange(of: viewModel.selectedItems) {
-          Task {
-            for item in viewModel.selectedItems {
+          Task { @MainActor in
+            for (index, item) in viewModel.selectedItems.enumerated() {
               do {
-                if let data = try await item.loadTransferable(type: Data.self) {
-                  if let uiImage = UIImage(data: data) {
-                    viewModel.attachments.append(
-                      ImageAttachment(image: uiImage)
+                if let data = try await item.loadTransferable(type: Data.self),
+                  let imageBox = PlatformImageBox(data: data)
+                {
+                  viewModel.attachments.append(
+                    ConversationAttachment(
+                      imageBox: imageBox,
+                      filename: "Photo-\(index + 1).jpg"
                     )
-                  }
+                  )
                 }
               } catch {
                 print("Failed to load image attachment: \(error.localizedDescription)")

@@ -1,5 +1,5 @@
 //
-// FirebaseAILogicChatView.swift
+// FirebaseAILogicChatWithMetadataView.swift
 // AIChatDemo
 //
 // Created by Peter Friese on 07.07.25.
@@ -18,35 +18,49 @@
 
 import ConversationKit
 import FirebaseAI
-import SwiftUI
 import PhotosUI
+import SwiftUI
+import UniformTypeIdentifiers
 
 struct ChatMessage: Message {
-  var id: UUID = .init()
-  
+  var id: String
   var content: String?
-  var imageURL: String?
   var participant: Participant
-  var error: (any Error)?
-  
+  var createdAt: Date
+  var attachments: [ConversationAttachment]
+  var tokens: [ComposerToken]
+  var selectedModelID: String?
+  var messageError: MessageError?
+
   let usageMetadata: GenerateContentResponse.UsageMetadata?
   let finishReason: FinishReason?
   let citationMetadata: CitationMetadata?
   let groundingMetadata: GroundingMetadata?
   let promptFeedback: PromptFeedback?
 
-  init(content: String? = nil,
-       imageURL: String? = nil,
-       participant: Participant,
-       error: (any Error)? = nil,
-       usageMetadata: GenerateContentResponse.UsageMetadata? = nil,
-       finishReason: FinishReason? = nil,
-       citationMetadata: CitationMetadata? = nil,
-       groundingMetadata: GroundingMetadata? = nil,
-       promptFeedback: PromptFeedback? = nil) {
+  init(
+    id: String = UUID().uuidString,
+    content: String? = nil,
+    participant: Participant,
+    createdAt: Date = .now,
+    attachments: [ConversationAttachment] = [],
+    tokens: [ComposerToken] = [],
+    selectedModelID: String? = nil,
+    error: (any Error)? = nil,
+    usageMetadata: GenerateContentResponse.UsageMetadata? = nil,
+    finishReason: FinishReason? = nil,
+    citationMetadata: CitationMetadata? = nil,
+    groundingMetadata: GroundingMetadata? = nil,
+    promptFeedback: PromptFeedback? = nil
+  ) {
+    self.id = id
     self.content = content
-    self.imageURL = imageURL
     self.participant = participant
+    self.createdAt = createdAt
+    self.attachments = attachments
+    self.tokens = tokens
+    self.selectedModelID = selectedModelID
+    self.messageError = error.map { MessageError(error: $0) }
     self.usageMetadata = usageMetadata
     self.finishReason = finishReason
     self.citationMetadata = citationMetadata
@@ -54,37 +68,49 @@ struct ChatMessage: Message {
     self.promptFeedback = promptFeedback
   }
 
-  init(content: String?, imageURL: String?, participant: Participant) {
-    self.init(content: content,
-              imageURL: imageURL,
-              participant: participant,
-              error: nil,
-              usageMetadata: nil,
-              finishReason: nil,
-              citationMetadata: nil,
-              groundingMetadata: nil,
-              promptFeedback: nil)
+  static func makeUserMessage(
+    id: String,
+    content: String?,
+    attachments: [ConversationAttachment],
+    tokens: [ComposerToken],
+    selectedModelID: String?
+  ) -> ChatMessage {
+    ChatMessage(
+      id: id,
+      content: content,
+      participant: .user,
+      createdAt: .now,
+      attachments: attachments,
+      tokens: tokens,
+      selectedModelID: selectedModelID
+    )
   }
-}
 
-extension ChatMessage: Equatable {
-  public static func == (lhs: ChatMessage, rhs: ChatMessage) -> Bool {
+  static func == (lhs: ChatMessage, rhs: ChatMessage) -> Bool {
     lhs.id == rhs.id
+      && lhs.content == rhs.content
+      && lhs.participant == rhs.participant
+      && lhs.attachments == rhs.attachments
+      && lhs.tokens == rhs.tokens
+      && lhs.messageError == rhs.messageError
   }
-}
 
-extension ChatMessage: Hashable {
-  public func hash(into hasher: inout Hasher) {
+  func hash(into hasher: inout Hasher) {
     hasher.combine(id)
+    hasher.combine(content)
+    hasher.combine(participant)
+    hasher.combine(attachments)
+    hasher.combine(tokens)
+    hasher.combine(messageError)
   }
 }
 
-
+@MainActor
 @Observable
-class FirebaseAILogicChatWithMetadataViewModel {
+final class FirebaseAILogicChatWithMetadataViewModel {
   var messages: [ChatMessage] = []
-  var attachments = [ImageAttachment]()
-  var selectedItems = [PhotosPickerItem]()
+  var attachments: [ConversationAttachment] = []
+  var selectedItems: [PhotosPickerItem] = []
 
   private let model: GenerativeModel
   private let chat: Chat
@@ -107,10 +133,9 @@ class FirebaseAILogicChatWithMetadataViewModel {
     chat = model.startChat(history: history)
   }
 
-  func sendMessage(_ message: any Message) async {
-    if let chatMessage = message as? ChatMessage {
-      messages.append(chatMessage)
-    }
+  func sendMessage(_ submission: ConversationSubmission<ChatMessage>) async {
+    messages.append(submission.message)
+
     var responseText: String
     var usageMetadata: GenerateContentResponse.UsageMetadata?
     var finishReason: FinishReason?
@@ -119,28 +144,35 @@ class FirebaseAILogicChatWithMetadataViewModel {
     var promptFeedback: PromptFeedback?
 
     do {
-      // Convert attachments (UIImage) into InlineDataPart which conforms to Part/PartsRepresentable.
-      let imageParts: [InlineDataPart] = attachments.compactMap { attachment in
-        // Prefer JPEG to reduce size; fall back to PNG if JPEG encoding fails.
-        if let jpegData = attachment.image.jpegData(compressionQuality: 0.85) {
-          return InlineDataPart(data: jpegData, mimeType: "image/jpeg")
-        } else if let pngData = attachment.image.pngData() {
-          return InlineDataPart(data: pngData, mimeType: "image/png")
-        } else {
+      let imageParts: [InlineDataPart] = submission.attachments.compactMap { attachment in
+        switch attachment.payload {
+        case .image(let imageBox):
+          #if canImport(UIKit)
+          if let jpegData = imageBox.image.jpegData(compressionQuality: 0.85) {
+            return InlineDataPart(data: jpegData, mimeType: "image/jpeg")
+          }
+          #endif
+          if let pngData = imageBox.pngData() {
+            return InlineDataPart(data: pngData, mimeType: "image/png")
+          }
           return nil
+
+        case .data(let data, let contentType, _):
+          let mimeType = contentType.preferredMIMEType ?? "application/octet-stream"
+          return InlineDataPart(data: data, mimeType: mimeType)
+
+        case .file(let url):
+          guard let data = try? Data(contentsOf: url) else { return nil }
+          let mimeType = attachment.contentType.preferredMIMEType ?? "application/octet-stream"
+          return InlineDataPart(data: data, mimeType: mimeType)
         }
       }
 
-      // Build a single message with images and text. String is PartsRepresentable via TextPart.
-      // Use the variadic sendMessage overload by passing an array (which itself conforms to PartsRepresentable).
-      let parts: [PartsRepresentable] = imageParts + [message.content ?? ""]
-      withAnimation {
-        attachments.removeAll()
-      }
+      let parts: [PartsRepresentable] = imageParts + [submission.text]
       let response = try await chat.sendMessage(parts)
       responseText = response.text ?? ""
       usageMetadata = response.usageMetadata
-      
+
       if let candidate = response.candidates.first {
         finishReason = candidate.finishReason
         citationMetadata = candidate.citationMetadata
@@ -149,8 +181,9 @@ class FirebaseAILogicChatWithMetadataViewModel {
       promptFeedback = response.promptFeedback
     } catch {
       responseText =
-      "I'm sorry, I don't understand that. Please try again. \(error.localizedDescription)"
+        "I'm sorry, I don't understand that. Please try again. \(error.localizedDescription)"
     }
+
     let response = ChatMessage(
       content: responseText,
       participant: .other,
@@ -248,14 +281,15 @@ struct FirebaseAILogicChatWithMetadataView: View {
     }
 
     if let promptFeedback = message.promptFeedback,
-       let blockReason = promptFeedback.blockReason {
+      let blockReason = promptFeedback.blockReason
+    {
       Text("Prompt Blocked: \(blockReason.rawValue)")
         .font(.caption2)
-        .foregroundColor(.red)
+        .foregroundStyle(.red)
       if let blockMsg = promptFeedback.blockReasonMessage {
         Text(blockMsg)
           .font(.caption2)
-          .foregroundColor(.red)
+          .foregroundStyle(.red)
       }
     }
   }
@@ -263,14 +297,12 @@ struct FirebaseAILogicChatWithMetadataView: View {
   @ViewBuilder
   private func messageContent(for message: ChatMessage) -> some View {
     VStack(alignment: .leading, spacing: 4) {
-      MessageView(
-        message: message.content,
-        imageURL: message.imageURL ?? "",
-        participant: message.participant
-      )
-      VStack(alignment: .leading, spacing: 4) {
-        tokenBar(for: message)
-        metadataDebugView(for: message)
+      MessageView(message: message)
+      if message.participant == .other {
+        VStack(alignment: .leading, spacing: 4) {
+          tokenBar(for: message)
+          metadataDebugView(for: message)
+        }
       }
     }
   }
@@ -280,16 +312,18 @@ struct FirebaseAILogicChatWithMetadataView: View {
       ConversationView(messages: $viewModel.messages, attachments: $viewModel.attachments) { message in
         messageContent(for: message)
       }
+      .onSendMessage { submission in
+        await viewModel.sendMessage(submission)
+      }
       .attachmentActions {
         Button("Photos", systemImage: "photo.on.rectangle.angled") {
           showingPhotoPicker = true
         }
       }
-      .navigationTitle("Chat")
+      .navigationTitle("Firebase AI (Metadata)")
+      #if os(iOS)
       .navigationBarTitleDisplayMode(.inline)
-      .onSendMessage { message in
-        await viewModel.sendMessage(message)
-      }
+      #endif
       .photosPicker(
         isPresented: $showingPhotoPicker,
         selection: $viewModel.selectedItems,
@@ -297,15 +331,18 @@ struct FirebaseAILogicChatWithMetadataView: View {
         matching: .images
       )
       .onChange(of: viewModel.selectedItems) {
-        Task {
-          for item in viewModel.selectedItems {
+        Task { @MainActor in
+          for (index, item) in viewModel.selectedItems.enumerated() {
             do {
-              if let data = try await item.loadTransferable(type: Data.self) {
-                if let uiImage = UIImage(data: data) {
-                  viewModel.attachments.append(
-                    ImageAttachment(image: uiImage)
+              if let data = try await item.loadTransferable(type: Data.self),
+                let imageBox = PlatformImageBox(data: data)
+              {
+                viewModel.attachments.append(
+                  ConversationAttachment(
+                    imageBox: imageBox,
+                    filename: "Photo-\(index + 1).jpg"
                   )
-                }
+                )
               }
             } catch {
               print("Failed to load image attachment: \(error.localizedDescription)")

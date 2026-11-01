@@ -1,2 +1,0 @@
-// Platform surface
-import SwiftUI

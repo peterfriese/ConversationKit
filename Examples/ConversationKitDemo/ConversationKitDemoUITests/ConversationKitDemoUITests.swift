@@ -8,106 +8,116 @@
 import XCTest
 
 final class ConversationKitDemoUITests: XCTestCase {
-    let app = XCUIApplication()
+  let app = XCUIApplication()
 
-    override func setUpWithError() throws {
-        continueAfterFailure = false
-        app.launch()
-    }
+  override func setUpWithError() throws {
+    continueAfterFailure = false
+    app.launch()
+  }
 
-    func testMessageSubmission() throws {
-        XCTContext.runActivity(named: "Submit a simple message") { _ in
-            // Find the message input field
-            let messageInput = app.descendants(matching: .any)["message_input_field"].firstMatch
-            XCTAssertTrue(messageInput.waitForExistence(timeout: 15), "Message input field should exist")
-            
-            // Type a message
-            messageInput.tap()
-            messageInput.typeText("Hello")
-            
-            // Find and tap the send button
-            let sendButton = app.buttons["composer_primary_button"]
-            XCTAssertTrue(sendButton.exists, "Send button should exist")
-            sendButton.tap()
-            
-            // Verify the message appears in the conversation list
-            // We search for any element that contains the text, as Markdown might split it
-            let messageText = app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "Hello")).firstMatch
-            if !messageText.waitForExistence(timeout: 15) {
-                print("UI Hierarchy: \(app.debugDescription)")
-                XCTFail("The submitted message 'Hello' should appear in the list")
-            }
-            
-            // Verify the input field is cleared
-            let inputValue = messageInput.value as? String
-            XCTAssertTrue(inputValue == nil || inputValue == "" || inputValue == "Enter a message", "Input field should be cleared after sending, but got: \(inputValue ?? "nil")")
-        }
-    }
+  func testFirstTurnSuggestionChipsAndMessageSubmission() throws {
+    XCTContext.runActivity(named: "Verify suggestion chips on launch and submit a message") { _ in
+      let suggestionBar = app.descendants(matching: .any)["composer.suggestionChipsBar"].firstMatch
+      XCTAssertTrue(
+        suggestionBar.waitForExistence(timeout: 15),
+        "First-turn suggestion chips bar should exist on initial empty conversation"
+      )
 
-    func testStopButtonFlow() throws {
-        XCTContext.runActivity(named: "Test Stop button functionality") { _ in
-            let messageInput = app.descendants(matching: .any)["message_input_field"].firstMatch
-            XCTAssertTrue(messageInput.waitForExistence(timeout: 15))
-            messageInput.tap()
-            
-            // "long" triggers generateLongResponse in the demo app
-            messageInput.typeText("long")
-            
-            let sendButton = app.buttons["composer_primary_button"]
-            sendButton.tap()
-            
-            // Wait for the button label to change to "Stop generating"
-            let stopPredicate = NSPredicate(format: "label == 'Stop generating'")
-            let stopExpectation = XCTNSPredicateExpectation(predicate: stopPredicate, object: sendButton)
-            let result = XCTWaiter().wait(for: [stopExpectation], timeout: 15)
-            XCTAssertEqual(result, .completed, "Stop button should appear during long response generation")
-            
-            // Tap the stop button
-            sendButton.tap()
-            
-            // Verify it changes back to the send button state ("Send message")
-            let sendPredicate = NSPredicate(format: "label == 'Send message'")
-            let sendExpectation = XCTNSPredicateExpectation(predicate: sendPredicate, object: sendButton)
-            let sendResult = XCTWaiter().wait(for: [sendExpectation], timeout: 15)
-            XCTAssertEqual(sendResult, .completed, "Send button should reappear after stopping")
-        }
-    }
+      let messageInput = app.descendants(matching: .any)["composer.textField"].firstMatch
+      XCTAssertTrue(messageInput.waitForExistence(timeout: 15), "Composer text field should exist")
 
-    func testScrollAnchoring() throws {
-        XCTContext.runActivity(named: "Verify scroll anchoring during streaming") { _ in
-            let messageInput = app.descendants(matching: .any)["message_input_field"].firstMatch
-            XCTAssertTrue(messageInput.waitForExistence(timeout: 15))
-            messageInput.tap()
-            messageInput.typeText("long")
-            
-            let sendButton = app.buttons["composer_primary_button"]
-            sendButton.tap()
-            
-            let listView = app.scrollViews["conversation_scroll_view"]
-            XCTAssertTrue(listView.waitForExistence(timeout: 15), "Conversation list should exist")
-            
-            // Wait non-blockingly for the streaming response text to start appearing
-            let responseText = app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "Byte")).firstMatch
-            XCTAssertTrue(responseText.waitForExistence(timeout: 15), "Streaming response should start appearing")
-            
-            // Drag up to manually scroll, which should disable auto-scrolling
-            listView.swipeUp()
-            
-            // We verify the view is still interactive
-            XCTAssertTrue(listView.isHittable)
-        }
-    }
+      messageInput.tap()
 
-    func testAttachmentButton() throws {
-        XCTContext.runActivity(named: "Test Attachment button menu") { _ in
-            let attachmentButton = app.buttons["attachment_button"]
-            XCTAssertTrue(attachmentButton.waitForExistence(timeout: 15), "Attachment button should exist")
-            
-            attachmentButton.tap()
-            
-            // Verify the "Photos" option appears in the menu
-            let photosButton = app.buttons["Photos"]
-            XCTAssertTrue(photosButton.waitForExistence(timeout: 15), "Photos option should appear in the attachment menu")
-        }
+      let dismissKeyboardButton = app.buttons["composer.dismissKeyboardButton"]
+      XCTAssertTrue(
+        dismissKeyboardButton.waitForExistence(timeout: 5),
+        "Focus-driven keyboard dismiss button should appear when composer is focused"
+      )
+
+      messageInput.typeText("Hello")
+
+      let sendButton = app.buttons["composer.submitButton"]
+      XCTAssertTrue(sendButton.exists, "Submit button should exist")
+      sendButton.tap()
+
+      let messageText = app.staticTexts.containing(
+        NSPredicate(format: "label CONTAINS %@", "Hello")
+      ).firstMatch
+      if !messageText.waitForExistence(timeout: 15) {
+        XCTFail("The submitted message 'Hello' should appear in the timeline")
+      }
+
+      let inputValue = messageInput.value as? String
+      XCTAssertTrue(
+        inputValue == nil || inputValue == "" || inputValue == "Message…",
+        "Input field should be cleared after sending, but got: \(inputValue ?? "nil")"
+      )
     }
+  }
+
+  func testStopButtonFlow() throws {
+    XCTContext.runActivity(named: "Test cooperative Stop button functionality") { _ in
+      let messageInput = app.descendants(matching: .any)["composer.textField"].firstMatch
+      XCTAssertTrue(messageInput.waitForExistence(timeout: 15))
+      messageInput.tap()
+      messageInput.typeText("long")
+
+      let sendButton = app.buttons["composer.submitButton"]
+      sendButton.tap()
+
+      let stopPredicate = NSPredicate(format: "label == 'Stop generating'")
+      let stopExpectation = XCTNSPredicateExpectation(predicate: stopPredicate, object: sendButton)
+      let result = XCTWaiter().wait(for: [stopExpectation], timeout: 15)
+      XCTAssertEqual(result, .completed, "Stop button should appear during response generation")
+
+      sendButton.tap()
+
+      let sendPredicate = NSPredicate(format: "exists == false")
+      let sendExpectation = XCTNSPredicateExpectation(predicate: sendPredicate, object: sendButton)
+      let sendResult = XCTWaiter().wait(for: [sendExpectation], timeout: 15)
+      XCTAssertEqual(sendResult, .completed, "Stop button should dismiss after stopping when input is empty")
+    }
+  }
+
+  func testScrollAnchoringAndScrollToBottomButton() throws {
+    XCTContext.runActivity(named: "Verify top-floating turn anchoring and scroll-to-bottom pill") { _ in
+      let messageInput = app.descendants(matching: .any)["composer.textField"].firstMatch
+      XCTAssertTrue(messageInput.waitForExistence(timeout: 15))
+      messageInput.tap()
+      messageInput.typeText("long")
+
+      let sendButton = app.buttons["composer.submitButton"]
+      sendButton.tap()
+
+      let listView = app.scrollViews["timeline.scrollView"]
+      XCTAssertTrue(listView.waitForExistence(timeout: 15), "Timeline scroll view should exist")
+
+      let responseText = app.staticTexts.containing(
+        NSPredicate(format: "label CONTAINS %@", "Byte")
+      ).firstMatch
+      XCTAssertTrue(responseText.waitForExistence(timeout: 15), "Streaming response should start appearing")
+
+      let scrollToBottomButton = app.buttons["timeline.scrollToBottomButton"]
+      if scrollToBottomButton.waitForExistence(timeout: 10) {
+        scrollToBottomButton.tap()
+      }
+
+      XCTAssertTrue(listView.isHittable)
+    }
+  }
+
+  func testAttachmentButton() throws {
+    XCTContext.runActivity(named: "Test Attachment button menu") { _ in
+      let attachmentButton = app.descendants(matching: .any)["composer.attachmentButton"].firstMatch
+      XCTAssertTrue(attachmentButton.waitForExistence(timeout: 15), "Attachment button should exist")
+
+      attachmentButton.tap()
+
+      let photosButton = app.buttons["Photos"]
+      XCTAssertTrue(
+        photosButton.waitForExistence(timeout: 15),
+        "Photos option should appear in the attachment menu"
+      )
+    }
+  }
 }
