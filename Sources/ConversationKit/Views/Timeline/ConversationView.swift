@@ -259,12 +259,22 @@ public struct ConversationView<MessageType: Message, Content: View>: View {
         bottomChromeBar(proxy: proxy)
       }
     }
+    .task {
+      try? await Task.sleep(for: .milliseconds(500))
+      if !draftText.isEmpty {
+        isComposerFocused = true
+      }
+    }
     .onAppear {
       if !hasSeededInitialPrompt {
         hasSeededInitialPrompt = true
         let cleaned = ComposerTextBuffer.cleanText(initialUserPrompt)
         if !cleaned.isEmpty && draftText.isEmpty {
           draftText = cleaned
+          Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(150))
+            isComposerFocused = true
+          }
         }
       }
       if !messages.isEmpty {

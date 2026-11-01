@@ -432,7 +432,7 @@ public struct MessageComposerView: View {
           .contentShape(Circle())
       }
     }
-    .frame(width: 44, height: 44)
+    .frame(width: isBorderless ? 34 : 44, height: isBorderless ? 34 : 44)
     .menuStyle(.button)
     .buttonStyle(.plain)
     .accessibilityIdentifier(ConversationAccessibilityID.composerAttachmentButton)

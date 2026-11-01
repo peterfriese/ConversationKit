@@ -148,7 +148,7 @@ public struct MessageComposerStyleConfiguration {
 // MARK: - ClassicGlassMessageComposerStyle (.classicGlass / .automatic)
 
 /// Default Liquid Glass composer style featuring a detached circular `+` button (`44×44pt`)
-/// and a central rounded pill (`minHeight: 44`, `cornerRadius: 22`) inside `GlassEffectContainer(spacing: 28)`.
+/// and a central rounded pill (`minHeight: 44`, `cornerRadius: 22`) inside `GlassEffectContainer(spacing: 8)`.
 ///
 /// When the user interacts with the detached `+` button, Liquid Glass physics smoothly bridge and
 /// "kiss" the adjacent composer frame via matching `.glassEffectID` (`"composer.classicPlus"` and
@@ -191,7 +191,7 @@ private struct ClassicGlassComposerBody: View {
   @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-  private let controlDiameter: CGFloat = 34
+  private let controlDiameter: CGFloat = 44
   private let pillCornerRadius: CGFloat = 22
 
   private var showsSubmitButton: Bool {
@@ -207,9 +207,9 @@ private struct ClassicGlassComposerBody: View {
   }
 
   var body: some View {
-    GlassEffectContainer(spacing: 28) {
-      HStack(alignment: .bottom, spacing: 6) {
-        if let plusButton = configuration.borderlessAttachmentButton ?? configuration.attachmentButton {
+    GlassEffectContainer(spacing: 8) {
+      HStack(alignment: .bottom, spacing: 8) {
+        if let plusButton = configuration.attachmentButton {
           detachedPlusButton(plusButton)
         }
 
@@ -224,7 +224,7 @@ private struct ClassicGlassComposerBody: View {
   private func detachedPlusButton(_ button: AnyView) -> some View {
     if reduceTransparency {
       button
-        .frame(width: 44, height: 44)
+        .frame(width: controlDiameter, height: controlDiameter)
         .background(Color.platformSecondaryBackground, in: Circle())
         .overlay {
           Circle()
@@ -232,7 +232,7 @@ private struct ClassicGlassComposerBody: View {
         }
     } else {
       button
-        .frame(width: 44, height: 44)
+        .frame(width: controlDiameter, height: controlDiameter)
         .glassEffect(.regular.interactive(), in: .circle)
         .glassEffectID("composer.classicPlus", in: glassNamespace)
     }
@@ -258,7 +258,7 @@ private struct ClassicGlassComposerBody: View {
         .padding(.bottom, 5)
         .padding(.horizontal, 7)
     }
-    .frame(minHeight: 44)
+    .frame(minHeight: controlDiameter)
 
     if reduceTransparency {
       panelContent
@@ -281,14 +281,14 @@ private struct ClassicGlassComposerBody: View {
   private var mainInputRow: some View {
     HStack(alignment: .bottom, spacing: 6) {
       configuration.textField
-        .frame(maxWidth: .infinity, minHeight: controlDiameter, alignment: .leading)
+        .frame(maxWidth: .infinity, minHeight: 34, alignment: .leading)
         .padding(.leading, 8)
         .padding(.trailing, hasTrailingControls ? 2 : 8)
 
       if (configuration.hasModels || configuration.hasCapabilities),
          let modelSelector = configuration.compactModelSelector ?? configuration.modelSelector {
         modelSelector
-          .frame(width: configuration.compactModelSelector != nil ? controlDiameter : nil, height: controlDiameter)
+          .frame(width: configuration.compactModelSelector != nil ? 34 : nil, height: 34)
           .fixedSize(horizontal: true, vertical: false)
           .layoutPriority(1)
       }
@@ -296,18 +296,18 @@ private struct ClassicGlassComposerBody: View {
       HStack(alignment: .bottom, spacing: 6) {
         if let dictationButton = configuration.dictationButton {
           dictationButton
-            .frame(width: controlDiameter, height: controlDiameter)
+            .frame(width: 34, height: 34)
         }
 
         if configuration.isFocused, let dismissKeyboardButton = configuration.dismissKeyboardButton {
           dismissKeyboardButton
-            .frame(width: controlDiameter, height: controlDiameter)
+            .frame(width: 34, height: 34)
             .transition(.scale(scale: 0.8).combined(with: .opacity))
         }
 
         if showsSubmitButton {
           configuration.submitButton
-            .frame(width: controlDiameter, height: controlDiameter)
+            .frame(width: 34, height: 34)
             .transition(.scale(scale: 0.8).combined(with: .opacity))
         }
       }
@@ -481,11 +481,12 @@ private struct CompactGlassComposerBody: View {
 
       configuration.textField
         .frame(maxWidth: .infinity, minHeight: controlDiameter, alignment: .leading)
+        .padding(.vertical, 5)
 
       if (configuration.hasModels || configuration.hasCapabilities),
          let modelSelector = configuration.compactModelSelector ?? configuration.modelSelector {
         modelSelector
-          .frame(width: configuration.compactModelSelector != nil ? controlDiameter : nil, height: controlDiameter)
+          .frame(width: controlDiameter, height: controlDiameter)
           .fixedSize(horizontal: true, vertical: false)
           .layoutPriority(1)
       }
@@ -511,8 +512,8 @@ private struct CompactGlassComposerBody: View {
       .animation(reduceMotion ? nil : .snappy(duration: 0.22), value: configuration.isFocused)
       .animation(reduceMotion ? nil : .snappy(duration: 0.22), value: showsSubmitButton)
     }
-    .padding(.horizontal, 12)
-    .padding(.vertical, 6)
+    .padding(.horizontal, 10)
+    .padding(.vertical, 5)
 
     if reduceTransparency {
       rowContent

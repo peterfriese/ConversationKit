@@ -105,7 +105,20 @@ struct ContentView: View {
 
   @State private var selectedModel: ComposerModelOption? = Self.availableModels.first
   @State private var activeCapabilities: Set<ComposerCapability> = [.think, .search]
-  @State private var composerStyleOption: DemoComposerStyleOption = .classicGlass
+  @State private var composerStyleOption: DemoComposerStyleOption = {
+    if ProcessInfo.processInfo.arguments.contains("-compactGlass") {
+      return .compactGlass
+    }
+    return .classicGlass
+  }()
+
+  private var initialUserPrompt: String {
+    if let idx = ProcessInfo.processInfo.arguments.firstIndex(of: "-prompt"),
+       idx + 1 < ProcessInfo.processInfo.arguments.count {
+      return ProcessInfo.processInfo.arguments[idx + 1]
+    }
+    return ""
+  }
   @State private var thinkingStyleOption: DemoThinkingStyleOption = .collapsibleHeader
   @State private var bubbleStyleOption: DemoBubbleStyleOption = .tailedBubble
   @State private var simulateUploadProgress: Bool = false
@@ -260,7 +273,7 @@ struct ContentView: View {
 
   var body: some View {
     NavigationStack {
-      ConversationView(messages: $messages, attachments: $attachments)
+      ConversationView(messages: $messages, attachments: $attachments, userPrompt: initialUserPrompt)
         .onSendMessage { submission in
           await handleSubmission(submission)
         }
