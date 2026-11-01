@@ -604,6 +604,100 @@ struct ComposerTokenAndSentinelBufferTests {
     activeCapabilitiesBinding.wrappedValue.remove(.think)
     #expect(menu.activeCapabilities?.wrappedValue == Set<ComposerCapability>([.search]))
   }
+
+  @Test("ComposerModelOption supports category, default nil, and Codable/Hashable roundtrip")
+  func composerModelOptionCategoryAndCodable() throws {
+    let defaultModel = ComposerModelOption(id: "m-1", name: "Model 1")
+    #expect(defaultModel.category == nil)
+
+    let categorizedModel = ComposerModelOption(
+      id: "sonnet",
+      name: "Claude Sonnet 4.6",
+      subtitle: "Fast reasoning",
+      badge: "Pro",
+      symbolName: "sparkles",
+      category: "Anthropic"
+    )
+    #expect(categorizedModel.category == "Anthropic")
+
+    let convenienceModel = ComposerModelOption(
+      id: "gpt-4o",
+      title: "GPT-4o",
+      subtitle: "Omni",
+      systemImage: "brain",
+      badge: "Fast",
+      category: "OpenAI"
+    )
+    #expect(convenienceModel.category == "OpenAI")
+
+    // Codable roundtrip
+    let encoder = JSONEncoder()
+    let decoder = JSONDecoder()
+    let data = try encoder.encode(categorizedModel)
+    let decoded = try decoder.decode(ComposerModelOption.self, from: data)
+    #expect(decoded == categorizedModel)
+    #expect(decoded.category == "Anthropic")
+
+    // Backwards compatibility: decode JSON without category key
+    let legacyJSON = """
+    {"id":"legacy","name":"Legacy Model"}
+    """.data(using: .utf8)!
+    let decodedLegacy = try decoder.decode(ComposerModelOption.self, from: legacyJSON)
+    #expect(decodedLegacy.category == nil)
+    #expect(decodedLegacy.name == "Legacy Model")
+  }
+
+  @Test("ComposerModelSelectorMenu supports categorized models and selection callback")
+  @MainActor
+  func modelSelectorCategorizedModelsAndCallbacks() {
+    let models = [
+      ComposerModelOption(id: "c-1", name: "Sonnet", category: "Anthropic"),
+      ComposerModelOption(id: "c-2", name: "Opus", category: "Anthropic"),
+      ComposerModelOption(id: "o-1", name: "GPT-4o", category: "OpenAI"),
+      ComposerModelOption(id: "u-1", name: "Auto")
+    ]
+    var selectedModel: ComposerModelOption? = models[0]
+    var callbackModel: ComposerModelOption?
+    var callbackToggledCap: (ComposerCapability, Bool)?
+
+    let selectedModelBinding = Binding<ComposerModelOption?>(
+      get: { selectedModel },
+      set: { selectedModel = $0 }
+    )
+    var activeCapabilities: Set<ComposerCapability> = [.think]
+    let activeCapabilitiesBinding = Binding<Set<ComposerCapability>>(
+      get: { activeCapabilities },
+      set: { activeCapabilities = $0 }
+    )
+
+    let menu = ComposerModelSelectorMenu(
+      models: models,
+      selectedModel: selectedModelBinding,
+      capabilities: [.think, .search],
+      activeCapabilities: activeCapabilitiesBinding,
+      onSelect: { option in
+        callbackModel = option
+      },
+      onToggleCapability: { cap, state in
+        callbackToggledCap = (cap, state)
+      }
+    )
+
+    #expect(menu.models.count == 4)
+    #expect(menu.selectedModel?.id == "c-1")
+
+    // Verify onSelect callback
+    menu.onSelect?(models[1])
+    #expect(callbackModel?.id == "c-2")
+
+    // Verify onToggleCapability callback
+    menu.onToggleCapability?(.search, true)
+    #expect(callbackToggledCap?.0 == .search)
+    #expect(callbackToggledCap?.1 == true)
+
+    // Verify body constructs cleanly
+    _ = menu.body
+  }
 }
 
 // MARK: - 4. ThinkingAndAgenticModelsTests (AC-11, AC-18, MUST-FIX-3)

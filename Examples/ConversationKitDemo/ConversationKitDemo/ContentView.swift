@@ -219,21 +219,40 @@ struct ContentView: View {
       name: "Claude Sonnet 4.6",
       subtitle: "Fast & balanced reasoning",
       badge: "Default",
-      symbolName: "sparkles"
+      symbolName: "sparkles",
+      category: "Anthropic"
+    ),
+    ComposerModelOption(
+      id: "claude-4-5-haiku",
+      name: "Claude Haiku 4.5",
+      subtitle: "Ultra fast lightweight model",
+      badge: "Fast",
+      symbolName: "bolt.fill",
+      category: "Anthropic"
     ),
     ComposerModelOption(
       id: "gemini-3-pro",
       name: "Gemini 3 Pro",
       subtitle: "Deep multimodal & code analysis",
       badge: "Pro",
-      symbolName: "wand.and.stars"
+      symbolName: "wand.and.stars",
+      category: "Google"
+    ),
+    ComposerModelOption(
+      id: "gemini-3-flash",
+      name: "Gemini 3 Flash",
+      subtitle: "High speed multimodal",
+      badge: "Fast",
+      symbolName: "bolt.fill",
+      category: "Google"
     ),
     ComposerModelOption(
       id: "foundation-model-local",
       name: "Apple Intelligence",
       subtitle: "On-device Apple Intelligence",
       badge: "Local",
-      symbolName: "cpu"
+      symbolName: "cpu",
+      category: "On-Device"
     ),
   ]
 

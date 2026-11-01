@@ -33,6 +33,8 @@ public struct ComposerModelOption: Identifiable, Hashable, Sendable, Codable {
   public var badge: String?
   /// Optional SF Symbol name displayed alongside the model name.
   public var symbolName: String?
+  /// Optional grouping category for submenus in the model selector (e.g., `"Anthropic"`, `"OpenAI"`).
+  public let category: String?
 
   /// Alias for `name` preserving terminology parity with `title`.
   public var title: String {
@@ -52,13 +54,15 @@ public struct ComposerModelOption: Identifiable, Hashable, Sendable, Codable {
     name: String,
     subtitle: String? = nil,
     badge: String? = nil,
-    symbolName: String? = "sparkles"
+    symbolName: String? = "sparkles",
+    category: String? = nil
   ) {
     self.id = id
     self.name = name
     self.subtitle = subtitle
     self.badge = badge
     self.symbolName = symbolName
+    self.category = category
   }
 
   /// Convenience initializer accepting `title` and `systemImage`.
@@ -67,13 +71,15 @@ public struct ComposerModelOption: Identifiable, Hashable, Sendable, Codable {
     title: String,
     subtitle: String? = nil,
     systemImage: String = "sparkles",
-    badge: String? = nil
+    badge: String? = nil,
+    category: String? = nil
   ) {
     self.id = id
     self.name = title
     self.subtitle = subtitle
     self.badge = badge
     self.symbolName = systemImage
+    self.category = category
   }
 }
 

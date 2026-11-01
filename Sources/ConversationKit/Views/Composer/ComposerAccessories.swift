@@ -290,51 +290,109 @@ public struct ComposerModelSelectorMenu: View {
     }
   }
 
+  private var shouldGroupByCategory: Bool {
+    models.count > 5 || models.contains(where: { $0.category != nil })
+  }
+
+  private struct ModelCategoryGroup: Identifiable {
+    var id: String { category }
+    let category: String
+    let models: [ComposerModelOption]
+  }
+
+  private var categorizedModelGroups: [ModelCategoryGroup] {
+    var groups: [String: [ComposerModelOption]] = [:]
+    var order: [String] = []
+    for model in models {
+      guard let category = model.category, !category.isEmpty else { continue }
+      if groups[category] == nil {
+        order.append(category)
+        groups[category] = []
+      }
+      groups[category]?.append(model)
+    }
+    return order.compactMap { category in
+      guard let list = groups[category], !list.isEmpty else { return nil }
+      return ModelCategoryGroup(category: category, models: list)
+    }
+  }
+
+  private var uncategorizedModels: [ComposerModelOption] {
+    models.filter { $0.category == nil || $0.category?.isEmpty == true }
+  }
+
+  private var modelSelectionBinding: Binding<ComposerModelOption?> {
+    Binding(
+      get: { selectedModel ?? models.first },
+      set: { option in
+        PlatformHapticEvent.triggerHaptic(.selection)
+        selectedModel = option
+        if let option {
+          onSelect?(option)
+        }
+      }
+    )
+  }
+
+  private func capabilityBinding(for cap: ComposerCapability) -> Binding<Bool> {
+    Binding<Bool>(
+      get: {
+        activeCapabilities?.wrappedValue.contains(cap) == true
+      },
+      set: { isEnabled in
+        PlatformHapticEvent.triggerHaptic(.selection)
+        if isEnabled {
+          activeCapabilities?.wrappedValue.insert(cap)
+        } else {
+          activeCapabilities?.wrappedValue.remove(cap)
+        }
+        onToggleCapability?(cap, isEnabled)
+      }
+    )
+  }
+
   public var body: some View {
     if !models.isEmpty || !capabilities.isEmpty {
       Menu {
         if !models.isEmpty {
-          Section("Model") {
-            ForEach(models) { option in
-              Button {
-                PlatformHapticEvent.triggerHaptic(.selection)
-                selectedModel = option
-                onSelect?(option)
-              } label: {
-                HStack {
+          if shouldGroupByCategory {
+            if !uncategorizedModels.isEmpty {
+              Picker("Model", selection: modelSelectionBinding) {
+                ForEach(uncategorizedModels) { option in
                   Label(option.menuItemTitle, systemImage: option.systemImage)
-                  if activeModel?.id == option.id {
-                    Image(systemName: "checkmark")
-                  }
-                }
-                if let subtitle = option.subtitle, !subtitle.isEmpty {
-                  Text(subtitle)
+                    .tag(Optional(option))
                 }
               }
+              .pickerStyle(.inline)
             }
+
+            ForEach(categorizedModelGroups) { group in
+              Menu(group.category) {
+                Picker(group.category, selection: modelSelectionBinding) {
+                  ForEach(group.models) { option in
+                    Label(option.menuItemTitle, systemImage: option.systemImage)
+                      .tag(Optional(option))
+                  }
+                }
+                .pickerStyle(.inline)
+              }
+            }
+          } else {
+            Picker("Model", selection: modelSelectionBinding) {
+              ForEach(models) { option in
+                Label(option.menuItemTitle, systemImage: option.systemImage)
+                  .tag(Optional(option))
+              }
+            }
+            .pickerStyle(.inline)
           }
         }
 
         if !capabilities.isEmpty {
           Section("Capabilities") {
             ForEach(capabilities) { cap in
-              let isActive = activeCapabilities?.wrappedValue.contains(cap) == true
-              Button {
-                PlatformHapticEvent.triggerHaptic(.selection)
-                if isActive {
-                  activeCapabilities?.wrappedValue.remove(cap)
-                  onToggleCapability?(cap, false)
-                } else {
-                  activeCapabilities?.wrappedValue.insert(cap)
-                  onToggleCapability?(cap, true)
-                }
-              } label: {
-                HStack {
-                  Label(cap.title, systemImage: cap.symbolName)
-                  if isActive {
-                    Image(systemName: "checkmark")
-                  }
-                }
+              Toggle(isOn: capabilityBinding(for: cap)) {
+                Label(cap.title, systemImage: cap.symbolName)
               }
               .accessibilityIdentifier(ConversationAccessibilityID.composerCapabilityChip(cap.id))
             }
@@ -375,6 +433,7 @@ public struct ComposerModelSelectorMenu: View {
               .foregroundStyle(Color.accentColor)
           }
         }
+        .animation(.snappy(duration: 0.2), value: activeCapabilitiesList)
       }
 
       Image(systemName: "chevron.up.chevron.down")
@@ -533,14 +592,24 @@ public struct ComposerCapabilitiesBar: View {
             name: "Sonnet 4.6",
             subtitle: "Balanced speed & intelligence",
             badge: "Pro",
-            symbolName: "sparkles"
+            symbolName: "sparkles",
+            category: "Anthropic"
           ),
           ComposerModelOption(
             id: "opus",
             name: "Opus 4.6",
             subtitle: "Deep architectural reasoning",
             badge: "Max",
-            symbolName: "brain"
+            symbolName: "brain",
+            category: "Anthropic"
+          ),
+          ComposerModelOption(
+            id: "gpt-4o",
+            name: "GPT-4o",
+            subtitle: "Omni multimodal intelligence",
+            badge: "Fast",
+            symbolName: "sparkles",
+            category: "OpenAI"
           )
         ],
         selectedModel: $selectedModel,
