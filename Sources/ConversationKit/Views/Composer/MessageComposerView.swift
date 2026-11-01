@@ -422,14 +422,9 @@ public struct MessageComposerView: View {
           .contentShape(Circle())
       } else {
         Image(systemName: "plus")
-          .font(.system(size: effectiveDiameter > 36 ? 16 : 14, weight: .medium))
+          .font(.system(size: 18, weight: .medium))
           .foregroundStyle(.primary)
-          .frame(maxWidth: .infinity, maxHeight: .infinity)
-          .background(Color.primary.opacity(0.06), in: Circle())
-          .overlay {
-            Circle()
-              .strokeBorder(Color.platformSeparator.opacity(0.45), lineWidth: 0.5)
-          }
+          .frame(width: 44, height: 44)
           .contentShape(Circle())
       }
     }

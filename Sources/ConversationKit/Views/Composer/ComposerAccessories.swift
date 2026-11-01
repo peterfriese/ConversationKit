@@ -249,7 +249,7 @@ public struct ComposerModelSelectorMenu: View {
   /// Two-way binding to the set of currently active capabilities.
   public var activeCapabilities: Binding<Set<ComposerCapability>>?
 
-  /// Whether to render only a compact circular icon button (`32×32pt`) without model name text.
+  /// Whether to render only a compact circular icon button (`34×34pt`) without model name text.
   public let isCompact: Bool
 
   /// Optional callback invoked when the user picks a model.
@@ -378,7 +378,7 @@ public struct ComposerModelSelectorMenu: View {
 
   public var body: some View {
     if !models.isEmpty || !capabilities.isEmpty {
-      let menu = Menu {
+      Menu {
         menuContent
       } label: {
         if isCompact {
@@ -387,20 +387,11 @@ public struct ComposerModelSelectorMenu: View {
           menuPillLabel
         }
       }
-      .menuStyle(.button)
-      .buttonStyle(.plain)
+      .menuIndicator(.hidden)
       .accessibilityIdentifier(ConversationAccessibilityID.composerModelSelector)
       .accessibilityLabel("AI Model")
       .accessibilityValue(accessibilityDescription)
       .accessibilityHint("Double-tap to switch the active AI model or toggle capabilities")
-
-      if isCompact {
-        menu
-          .frame(width: 32, height: 32)
-          .fixedSize()
-      } else {
-        menu
-      }
     }
   }
 
@@ -457,20 +448,15 @@ public struct ComposerModelSelectorMenu: View {
     let current = activeModel
     ZStack(alignment: .topTrailing) {
       Image(systemName: current?.symbolName ?? "sparkles")
-        .font(.system(size: 13, weight: .semibold))
+        .font(.system(size: 14, weight: .semibold))
         .foregroundStyle(.primary)
-        .frame(width: 32, height: 32)
 
       if !activeCapabilitiesList.isEmpty {
         Circle()
           .fill(Color.accentColor)
           .frame(width: 6, height: 6)
-          .overlay {
-            Circle()
-              .strokeBorder(Color.platformBackground, lineWidth: 1)
-          }
-          .padding(.top, 3)
-          .padding(.trailing, 3)
+          .padding(.top, 2)
+          .padding(.trailing, 2)
       }
     }
     .frame(width: 32, height: 32)
@@ -480,6 +466,8 @@ public struct ComposerModelSelectorMenu: View {
         .strokeBorder(Color.platformSeparator.opacity(0.45), lineWidth: 0.5)
     }
     .contentShape(Circle())
+    .fixedSize(horizontal: true, vertical: false)
+    .layoutPriority(1)
   }
 
   @ViewBuilder

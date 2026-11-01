@@ -150,11 +150,8 @@ public struct MessageComposerStyleConfiguration {
 /// Default Liquid Glass composer style featuring a detached circular `+` button (`44×44pt`)
 /// and a central rounded pill (`minHeight: 44`, `cornerRadius: 22`) inside `GlassEffectContainer(spacing: 8)`.
 ///
-/// When the user interacts with the detached `+` button, Liquid Glass physics smoothly bridge and
-/// "kiss" the adjacent composer frame via matching `.glassEffectID` (`"composer.classicPlus"` and
-/// `"composer.classicPill"`). Inside the central pill, the composer houses the growing prompt text field,
-/// a compact circular model icon button (`compactModelSelector`: `32×32pt`), focus-driven keyboard dismiss,
-/// and primary send/stop action.
+/// Inside the central pill, the composer houses the growing prompt text field, a compact circular model
+/// icon button (`compactModelSelector`: `34×34pt`), focus-driven keyboard dismiss, and primary send/stop action.
 public struct ClassicGlassMessageComposerStyle: MessageComposerStyle, Sendable {
   /// Creates the default classic Liquid Glass composer style.
   public nonisolated init() {}
@@ -187,7 +184,6 @@ public struct CardGlassMessageComposerStyle: MessageComposerStyle, Sendable {
 private struct ClassicGlassComposerBody: View {
   let configuration: MessageComposerStyleConfiguration
 
-  @Namespace private var glassNamespace
   @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -232,9 +228,8 @@ private struct ClassicGlassComposerBody: View {
         }
     } else {
       button
-        .frame(width: controlDiameter, height: controlDiameter)
+        .frame(width: 44, height: 44)
         .glassEffect(.regular.interactive(), in: .circle)
-        .glassEffectID("composer.classicPlus", in: glassNamespace)
     }
   }
 
@@ -254,9 +249,6 @@ private struct ClassicGlassComposerBody: View {
       }
 
       mainInputRow
-        .padding(.top, (configuration.hasAttachments || configuration.hasTokens) ? 0 : 6)
-        .padding(.bottom, 6)
-        .padding(.horizontal, 6)
     }
     .frame(minHeight: controlDiameter)
 
@@ -272,8 +264,7 @@ private struct ClassicGlassComposerBody: View {
         }
     } else {
       panelContent
-        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: pillCornerRadius))
-        .glassEffectID("composer.classicPill", in: glassNamespace)
+        .glassEffect(.regular, in: .rect(cornerRadius: pillCornerRadius))
     }
   }
 
@@ -283,38 +274,41 @@ private struct ClassicGlassComposerBody: View {
       configuration.textField
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.leading, 14)
-        .padding(.trailing, hasTrailingControls ? 2 : 14)
-        .padding(.top, 10)
-        .padding(.bottom, 10)
+        .padding(.trailing, hasTrailingControls ? 4 : 14)
+        .padding(.vertical, 10)
 
-      if (configuration.hasModels || configuration.hasCapabilities),
-         let modelSelector = configuration.compactModelSelector ?? configuration.modelSelector {
-        modelSelector
-          .frame(width: configuration.compactModelSelector != nil ? 32 : nil, height: 32)
-          .fixedSize(horizontal: true, vertical: false)
-          .layoutPriority(1)
+      if hasTrailingControls {
+        HStack(alignment: .bottom, spacing: 6) {
+          if (configuration.hasModels || configuration.hasCapabilities),
+             let modelSelector = configuration.compactModelSelector ?? configuration.modelSelector {
+            modelSelector
+              .frame(width: configuration.compactModelSelector != nil ? 34 : nil, height: 34)
+              .fixedSize(horizontal: true, vertical: false)
+              .layoutPriority(1)
+          }
+
+          if let dictationButton = configuration.dictationButton {
+            dictationButton
+              .frame(width: 34, height: 34)
+          }
+
+          if configuration.isFocused, let dismissKeyboardButton = configuration.dismissKeyboardButton {
+            dismissKeyboardButton
+              .frame(width: 34, height: 34)
+              .transition(.scale(scale: 0.8).combined(with: .opacity))
+          }
+
+          if showsSubmitButton {
+            configuration.submitButton
+              .frame(width: 34, height: 34)
+              .transition(.scale(scale: 0.8).combined(with: .opacity))
+          }
+        }
+        .padding(.trailing, 6)
+        .padding(.bottom, 5)
+        .animation(reduceMotion ? nil : .snappy(duration: 0.22), value: configuration.isFocused)
+        .animation(reduceMotion ? nil : .snappy(duration: 0.22), value: showsSubmitButton)
       }
-
-      HStack(alignment: .bottom, spacing: 6) {
-        if let dictationButton = configuration.dictationButton {
-          dictationButton
-            .frame(width: 32, height: 32)
-        }
-
-        if configuration.isFocused, let dismissKeyboardButton = configuration.dismissKeyboardButton {
-          dismissKeyboardButton
-            .frame(width: 32, height: 32)
-            .transition(.scale(scale: 0.8).combined(with: .opacity))
-        }
-
-        if showsSubmitButton {
-          configuration.submitButton
-            .frame(width: 32, height: 32)
-            .transition(.scale(scale: 0.8).combined(with: .opacity))
-        }
-      }
-      .animation(reduceMotion ? nil : .snappy(duration: 0.22), value: configuration.isFocused)
-      .animation(reduceMotion ? nil : .snappy(duration: 0.22), value: showsSubmitButton)
     }
   }
 }
@@ -531,7 +525,7 @@ private struct CompactGlassComposerBody: View {
         }
     } else {
       rowContent
-        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: pillCornerRadius))
+        .glassEffect(.regular, in: .rect(cornerRadius: pillCornerRadius))
         .glassEffectID("composer.compactCapsule", in: glassNamespace)
     }
   }

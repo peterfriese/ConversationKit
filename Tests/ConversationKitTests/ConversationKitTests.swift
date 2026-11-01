@@ -1502,6 +1502,27 @@ struct MessageComposerStyleTests {
     _ = compact.makeBody(configuration: multilineConfig)
   }
 
+  @Test("ClassicGlass composer style single-line rest configuration renders 44pt geometry cleanly")
+  @MainActor
+  func classicGlassSingleLineGeometry() {
+    let dummyTextField = AnyView(Text("Hello"))
+    let dummyAttachmentButton = AnyView(Button("+") {})
+    let dummySubmitButton = AnyView(Button("Send") {})
+
+    let singleLineConfig = MessageComposerStyleConfiguration(
+      textField: dummyTextField,
+      attachmentButton: dummyAttachmentButton,
+      submitButton: dummySubmitButton,
+      isFocused: false,
+      isGenerating: false,
+      canSubmit: true
+    )
+
+    let classic = ClassicGlassMessageComposerStyle.classicGlass
+    let body = classic.makeBody(configuration: singleLineConfig)
+    _ = body
+  }
+
   @Test("ComposerModelSelectorMenu supports compact icon-only mode for single-line styles")
   @MainActor
   func composerModelSelectorMenuCompactMode() {
