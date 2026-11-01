@@ -137,10 +137,9 @@ public struct MessageComposerStyleConfiguration {
 
 // MARK: - ClassicGlassMessageComposerStyle (.classicGlass / .automatic)
 
-/// Default Liquid Glass composer style featuring a single unified rounded-rectangle Liquid Glass panel
-/// (`cornerRadius: 24`) inside `GlassEffectContainer`, housing the prompt text field on top and all
-/// controls (`attachmentButton`, `modelSelector`, `dismissKeyboardButton`, and
-/// `submitButton`) harmoniously inside the bottom toolbar row (`F-6`, `F-11`, `AC-15`, `AC-16`).
+/// Default Liquid Glass composer style featuring a classic single-row rounded pill (`cornerRadius: 22`)
+/// inside `GlassEffectContainer`, housing the leading `+` attachment button, growing prompt text field,
+/// optional model selector, keyboard dismiss, and send/stop button in a bottom-aligned input row (~48pt empty height).
 public struct ClassicGlassMessageComposerStyle: MessageComposerStyle, Sendable {
   /// Creates the default classic Liquid Glass composer style.
   public nonisolated init() {}
@@ -155,10 +154,9 @@ public struct ClassicGlassMessageComposerStyle: MessageComposerStyle, Sendable {
 
 /// Two-row modern AI assistant card composer style inside `GlassEffectContainer` (`AC-16`).
 ///
-/// Renders a unified Liquid Glass panel (`cornerRadius: 24`) with `attachmentsTray`, `tokensBar`,
-/// and `textField` in the top section, and an integrated bottom toolbar row housing `attachmentButton`,
-/// `modelSelector` (housing capabilities inside its menu), `Spacer(minLength: 8)`, `dictationButton`,
-/// `dismissKeyboardButton` (when `isFocused`), and `submitButton` (when `canSubmit || isGenerating`).
+/// Renders a unified 2-row Liquid Glass card (`cornerRadius: 24`, ~84pt empty height) with `attachmentsTray`,
+/// `tokensBar`, and full-width `textField` in the top section, and a dedicated bottom toolbar row housing
+/// `attachmentButton`, `modelSelector`, `Spacer()`, `dismissKeyboardButton` (when focused), and `submitButton` (when `canSubmit || isGenerating`).
 public struct CardGlassMessageComposerStyle: MessageComposerStyle, Sendable {
   /// Creates a two-row card Liquid Glass composer style.
   public nonisolated init() {}
@@ -174,11 +172,112 @@ public struct CardGlassMessageComposerStyle: MessageComposerStyle, Sendable {
 private struct ClassicGlassComposerBody: View {
   let configuration: MessageComposerStyleConfiguration
 
+  @Namespace private var glassNamespace
+  @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+  private let controlDiameter: CGFloat = 34
+  private let pillCornerRadius: CGFloat = 22
+
+  private var showsSubmitButton: Bool {
+    configuration.canSubmit || configuration.isGenerating
+  }
+
+  private var hasTrailingControls: Bool {
+    configuration.hasModels ||
+    configuration.hasCapabilities ||
+    configuration.dictationButton != nil ||
+    configuration.isFocused ||
+    showsSubmitButton
+  }
+
   var body: some View {
-    UnifiedGlassComposerPanel(
-      configuration: configuration,
-      glassEffectID: "composer.classicPanel"
-    )
+    GlassEffectContainer(spacing: 8) {
+      classicPill
+    }
+    .padding(.horizontal, 12)
+    .padding(.vertical, 6)
+  }
+
+  @ViewBuilder
+  private var classicPill: some View {
+    let panelContent = VStack(alignment: .leading, spacing: 6) {
+      if configuration.hasAttachments, let attachmentsTray = configuration.attachmentsTray {
+        attachmentsTray
+          .padding(.horizontal, 10)
+          .padding(.top, 8)
+      }
+
+      if configuration.hasTokens, let tokensBar = configuration.tokensBar {
+        tokensBar
+          .padding(.horizontal, 10)
+          .padding(.top, configuration.hasAttachments ? 2 : 8)
+      }
+
+      mainInputRow
+        .padding(.top, (configuration.hasAttachments || configuration.hasTokens) ? 0 : 7)
+        .padding(.bottom, 7)
+        .padding(.horizontal, 7)
+    }
+
+    if reduceTransparency {
+      panelContent
+        .background(
+          Color.platformSecondaryBackground,
+          in: RoundedRectangle(cornerRadius: pillCornerRadius, style: .continuous)
+        )
+        .overlay {
+          RoundedRectangle(cornerRadius: pillCornerRadius, style: .continuous)
+            .strokeBorder(Color.platformSeparator.opacity(0.45), lineWidth: 0.5)
+        }
+    } else {
+      panelContent
+        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: pillCornerRadius))
+        .glassEffectID("composer.classicPanel", in: glassNamespace)
+    }
+  }
+
+  @ViewBuilder
+  private var mainInputRow: some View {
+    HStack(alignment: .bottom, spacing: 6) {
+      if let attachmentButton = configuration.attachmentButton {
+        attachmentButton
+          .frame(width: controlDiameter, height: controlDiameter)
+      }
+
+      configuration.textField
+        .frame(maxWidth: .infinity, minHeight: controlDiameter, alignment: .leading)
+        .padding(.leading, configuration.attachmentButton == nil ? 8 : 2)
+        .padding(.trailing, hasTrailingControls ? 2 : 8)
+
+      if (configuration.hasModels || configuration.hasCapabilities), let modelSelector = configuration.modelSelector {
+        modelSelector
+          .frame(minHeight: controlDiameter)
+          .fixedSize(horizontal: true, vertical: false)
+          .layoutPriority(1)
+      }
+
+      HStack(alignment: .bottom, spacing: 6) {
+        if let dictationButton = configuration.dictationButton {
+          dictationButton
+            .frame(width: controlDiameter, height: controlDiameter)
+        }
+
+        if configuration.isFocused, let dismissKeyboardButton = configuration.dismissKeyboardButton {
+          dismissKeyboardButton
+            .frame(width: controlDiameter, height: controlDiameter)
+            .transition(.scale(scale: 0.8).combined(with: .opacity))
+        }
+
+        if showsSubmitButton {
+          configuration.submitButton
+            .frame(width: controlDiameter, height: controlDiameter)
+            .transition(.scale(scale: 0.8).combined(with: .opacity))
+        }
+      }
+      .animation(reduceMotion ? nil : .snappy(duration: 0.22), value: configuration.isFocused)
+      .animation(reduceMotion ? nil : .snappy(duration: 0.22), value: showsSubmitButton)
+    }
   }
 }
 
@@ -187,26 +286,12 @@ private struct ClassicGlassComposerBody: View {
 private struct CardGlassComposerBody: View {
   let configuration: MessageComposerStyleConfiguration
 
-  var body: some View {
-    UnifiedGlassComposerPanel(
-      configuration: configuration,
-      glassEffectID: "composer.cardPanel"
-    )
-  }
-}
-
-// MARK: - UnifiedGlassComposerPanel
-
-private struct UnifiedGlassComposerPanel: View {
-  let configuration: MessageComposerStyleConfiguration
-  let glassEffectID: String
-
   @Namespace private var glassNamespace
   @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
   private let controlDiameter: CGFloat = 34
-  private let panelCornerRadius: CGFloat = 24
+  private let cardCornerRadius: CGFloat = 24
 
   private var showsSubmitButton: Bool {
     configuration.canSubmit || configuration.isGenerating
@@ -214,14 +299,14 @@ private struct UnifiedGlassComposerPanel: View {
 
   var body: some View {
     GlassEffectContainer(spacing: 10) {
-      unifiedPanel
+      cardPanel
     }
     .padding(.horizontal, 12)
     .padding(.vertical, 6)
   }
 
   @ViewBuilder
-  private var unifiedPanel: some View {
+  private var cardPanel: some View {
     let panelContent = VStack(alignment: .leading, spacing: 0) {
       if configuration.hasAttachments, let attachmentsTray = configuration.attachmentsTray {
         attachmentsTray
@@ -285,16 +370,16 @@ private struct UnifiedGlassComposerPanel: View {
       panelContent
         .background(
           Color.platformSecondaryBackground,
-          in: RoundedRectangle(cornerRadius: panelCornerRadius, style: .continuous)
+          in: RoundedRectangle(cornerRadius: cardCornerRadius, style: .continuous)
         )
         .overlay {
-          RoundedRectangle(cornerRadius: panelCornerRadius, style: .continuous)
+          RoundedRectangle(cornerRadius: cardCornerRadius, style: .continuous)
             .strokeBorder(Color.platformSeparator.opacity(0.45), lineWidth: 0.5)
         }
     } else {
       panelContent
-        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: panelCornerRadius))
-        .glassEffectID(glassEffectID, in: glassNamespace)
+        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: cardCornerRadius))
+        .glassEffectID("composer.cardPanel", in: glassNamespace)
     }
   }
 }
@@ -408,8 +493,8 @@ private struct CompactGlassComposerBody: View {
 // MARK: - Static Style Presets
 
 extension MessageComposerStyle where Self == ClassicGlassMessageComposerStyle {
-  /// Default style: Unified rounded-rectangle Liquid Glass panel (`cornerRadius: 24`) with top prompt area
-  /// and integrated bottom toolbar housing `+`, model selector, capabilities, keyboard dismiss, and send/stop.
+  /// Default style: Classic single-row rounded pill (`cornerRadius: 22`, ~48pt empty height)
+  /// housing attachment button, growing text field, model selector, keyboard dismiss, and send/stop.
   public nonisolated static var classicGlass: ClassicGlassMessageComposerStyle {
     ClassicGlassMessageComposerStyle()
   }
@@ -421,7 +506,7 @@ extension MessageComposerStyle where Self == ClassicGlassMessageComposerStyle {
 }
 
 extension MessageComposerStyle where Self == CardGlassMessageComposerStyle {
-  /// Two-row unified Liquid Glass AI assistant card with top input area and bottom accessory toolbar.
+  /// Two-row unified Liquid Glass AI assistant card (`cornerRadius: 24`, ~84pt empty height) with top input area and bottom accessory toolbar.
   public nonisolated static var cardGlass: CardGlassMessageComposerStyle {
     CardGlassMessageComposerStyle()
   }

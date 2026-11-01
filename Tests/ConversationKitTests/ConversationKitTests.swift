@@ -1405,3 +1405,79 @@ struct AdversarialAndPerformanceStressTests {
     )
   }
 }
+
+// MARK: - 7. MessageComposerStyleTests (AC-16)
+
+@Suite("Message Composer Style Presets & Ergonomics (AC-16)")
+struct MessageComposerStyleTests {
+
+  @Test("Style presets and type-erased wrapper construct and makeBody cleanly")
+  @MainActor
+  func stylePresetsConstructionAndMakeBody() {
+    let dummyTextField = AnyView(Text("Input"))
+    let dummySubmitButton = AnyView(Button("Send") {})
+    let dummyAttachmentButton = AnyView(Button("+") {})
+
+    let config = MessageComposerStyleConfiguration(
+      textField: dummyTextField,
+      attachmentButton: dummyAttachmentButton,
+      submitButton: dummySubmitButton,
+      isFocused: true,
+      isGenerating: false,
+      canSubmit: true
+    )
+
+    #expect(config.isFocused == true)
+    #expect(config.isGenerating == false)
+    #expect(config.canSubmit == true)
+    #expect(config.hasAttachments == false)
+    #expect(config.hasTokens == false)
+    #expect(config.hasModels == false)
+
+    // 1. Classic Glass (.classicGlass & .automatic)
+    let classicStyle = ClassicGlassMessageComposerStyle.classicGlass
+    let automaticStyle = ClassicGlassMessageComposerStyle.automatic
+    _ = classicStyle.makeBody(configuration: config)
+    _ = automaticStyle.makeBody(configuration: config)
+
+    // 2. Card Glass (.cardGlass)
+    let cardStyle = CardGlassMessageComposerStyle.cardGlass
+    _ = cardStyle.makeBody(configuration: config)
+
+    // 3. Compact Glass (.compactGlass)
+    let compactStyle = CompactGlassMessageComposerStyle.compactGlass
+    _ = compactStyle.makeBody(configuration: config)
+
+    // 4. AnyMessageComposerStyle wrapper
+    let anyClassic = AnyMessageComposerStyle(.classicGlass)
+    let anyCard = AnyMessageComposerStyle(.cardGlass)
+    let anyCompact = AnyMessageComposerStyle(.compactGlass)
+    _ = anyClassic.makeBody(configuration: config)
+    _ = anyCard.makeBody(configuration: config)
+    _ = anyCompact.makeBody(configuration: config)
+  }
+
+  @Test("Custom MessageComposerStyle conformance compiles and executes makeBody")
+  @MainActor
+  func customMessageComposerStyleConformance() {
+    struct CustomTestComposerStyle: MessageComposerStyle {
+      func makeBody(configuration: Configuration) -> some View {
+        HStack {
+          configuration.textField
+          configuration.submitButton
+        }
+      }
+    }
+
+    let custom = CustomTestComposerStyle()
+    let config = MessageComposerStyleConfiguration(
+      textField: AnyView(Text("Prompt")),
+      submitButton: AnyView(Button("Submit") {})
+    )
+    let customBody = custom.makeBody(configuration: config)
+    _ = customBody
+
+    let anyCustom = AnyMessageComposerStyle(custom)
+    _ = anyCustom.makeBody(configuration: config)
+  }
+}
