@@ -89,6 +89,8 @@ public struct ConversationView<MessageType: Message, Content: View>: View {
   @State private var hasSentFirstMessage: Bool = false
   @State private var activeTurnToken: UUID?
   @State private var sendingTask: Task<Void, Never>?
+  @State private var pendingScrollTargetTurnID: String?
+  @State private var keyboardFocusTask: Task<Void, Never>?
 
   // Scroll & Unoccluded Viewport Runway State (`[MF-3]`, `AC-14`)
   @State private var lockedUnoccludedHeight: CGFloat = 0
@@ -282,6 +284,7 @@ public struct ConversationView<MessageType: Message, Content: View>: View {
     }
     .onDisappear {
       sendingTask?.cancel()
+      keyboardFocusTask?.cancel()
     }
   }
 
@@ -295,12 +298,21 @@ public struct ConversationView<MessageType: Message, Content: View>: View {
     ScrollView(.vertical) {
       if currentTurns.isEmpty {
         emptyStateContainer
+          .transition(.opacity)
       } else {
         LazyVStack(alignment: .leading, spacing: 24) {
           ForEach(currentTurns) { turn in
             let isLastTurn = (turn.id == lastTurnID)
             turnContainerView(for: turn, isLastTurn: isLastTurn)
               .id(turn.id)
+              .transition(
+                reduceMotion
+                  ? .opacity
+                  : .asymmetric(
+                      insertion: .move(edge: .bottom).combined(with: .opacity),
+                      removal: .opacity
+                    )
+              )
               .accessibilityIdentifier(ConversationAccessibilityID.turnContainer(turn.id))
           }
 
@@ -312,11 +324,61 @@ public struct ConversationView<MessageType: Message, Content: View>: View {
         .padding(.horizontal, 16)
         .padding(.top, 12)
         .padding(.bottom, 16)
+        .transition(
+          reduceMotion
+            ? .opacity
+            : .asymmetric(
+                insertion: .move(edge: .bottom).combined(with: .opacity),
+                removal: .opacity
+              )
+        )
       }
     }
     .scrollDismissesKeyboard(.interactively)
     .scrollEdgeEffectStyle(.soft, for: .bottom)
     .accessibilityIdentifier(ConversationAccessibilityID.timelineScrollView)
+    .onChange(of: turns.last?.id) { _, newLastID in
+      if let targetTurnID = pendingScrollTargetTurnID, targetTurnID == newLastID {
+        pendingScrollTargetTurnID = nil
+        withAnimation(
+          reduceMotion
+            ? .easeOut(duration: 0.15)
+            : .spring(duration: 0.42, bounce: 0.05)
+        ) {
+          proxy.scrollTo(targetTurnID, anchor: .top)
+        }
+      }
+    }
+    .onChange(of: pendingScrollTargetTurnID) { _, newTargetID in
+      if let newTargetID, turns.last?.id == newTargetID {
+        pendingScrollTargetTurnID = nil
+        withAnimation(
+          reduceMotion
+            ? .easeOut(duration: 0.15)
+            : .spring(duration: 0.42, bounce: 0.05)
+        ) {
+          proxy.scrollTo(newTargetID, anchor: .top)
+        }
+      }
+    }
+    .onChange(of: isComposerFocused) { _, isFocused in
+      if isFocused && !displayedMessages.isEmpty {
+        keyboardFocusTask?.cancel()
+        keyboardFocusTask = Task { @MainActor in
+          // Brief delay to allow software keyboard safe-area adjustments to begin
+          try? await Task.sleep(for: .milliseconds(60))
+          guard !Task.isCancelled, isComposerFocused else { return }
+          withAnimation(
+            reduceMotion
+              ? .easeOut(duration: 0.15)
+              : .spring(duration: 0.34, bounce: 0.0)
+          ) {
+            proxy.scrollTo(Self.bottomAnchorID, anchor: .bottom)
+            isScrolledAwayFromBottom = false
+          }
+        }
+      }
+    }
     .onScrollGeometryChange(for: ScrollGeometrySnapshot.self) { geo in
       // Available scroll viewport height excluding top navigation and bottom safeAreaBar insets
       let availableRunway = max(
@@ -529,10 +591,12 @@ public struct ConversationView<MessageType: Message, Content: View>: View {
 
     // 2. Synchronous @MainActor transaction: set optimistic message, dismiss suggestion chips, clear draft & focus
     isComposerFocused = false
+    keyboardFocusTask?.cancel()
+    keyboardFocusTask = nil
     draftText = ""
     tokensBinding.wrappedValue.removeAll()
     attachmentsBinding.wrappedValue.removeAll()
-    optimisticUserMessage = userMessage
+    pendingScrollTargetTurnID = newTurnID
 
     if !hasSentFirstMessage {
       if reduceMotion {
@@ -544,16 +608,15 @@ public struct ConversationView<MessageType: Message, Content: View>: View {
       }
     }
 
-    // 3. Single-shot top-floating scroll to the new turn's top anchor (NEVER called on streaming tokens!)
     withAnimation(
       reduceMotion
         ? .easeOut(duration: 0.15)
-        : .spring(duration: 0.38, bounce: 0.0)
+        : .spring(duration: 0.42, bounce: 0.05)
     ) {
-      proxy.scrollTo(newTurnID, anchor: .top)
+      optimisticUserMessage = userMessage
     }
 
-    // 4. Token-guarded async turn execution
+    // 3. Token-guarded async turn execution
     sendingTask?.cancel()
     let turnToken = UUID()
     activeTurnToken = turnToken

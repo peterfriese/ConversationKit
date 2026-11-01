@@ -268,6 +268,32 @@ struct TurnGroupingAndOptimisticDiffingTests {
     messageWithExistentialError.error = nil
     #expect(messageWithExistentialError == baseMessage)
   }
+
+  @Test("Multi-turn sequence guarantees turns.last?.id matches latest user turn for upward pushing")
+  func multiTurnUpwardPushSequence() {
+    // Turn 1
+    let u1 = DefaultMessage(id: "turn-1-user", content: "Hello", participant: .user)
+    let a1 = DefaultMessage(id: "turn-1-ai", content: "Hi there!", participant: .other)
+    let turn1List = ConversationTurn.group([u1, a1])
+    #expect(turn1List.count == 1)
+    #expect(turn1List.last?.id == "turn-1-user")
+
+    // Turn 2 submitted
+    let u2 = DefaultMessage(id: "turn-2-user", content: "What is 2+2?", participant: .user)
+    let turn2List = ConversationTurn.group([u1, a1, u2])
+    #expect(turn2List.count == 2)
+    #expect(turn2List[0].id == "turn-1-user")
+    #expect(turn2List.last?.id == "turn-2-user")
+
+    // Turn 2 completed, Turn 3 submitted
+    let a2 = DefaultMessage(id: "turn-2-ai", content: "4", participant: .other)
+    let u3 = DefaultMessage(id: "turn-3-user", content: "Thanks!", participant: .user)
+    let turn3List = ConversationTurn.group([u1, a1, u2, a2, u3])
+    #expect(turn3List.count == 3)
+    #expect(turn3List[0].id == "turn-1-user")
+    #expect(turn3List[1].id == "turn-2-user")
+    #expect(turn3List.last?.id == "turn-3-user")
+  }
 }
 
 // MARK: - 2. AttachmentPipelineAndSecurityTests (AC-6, AC-7, MUST-FIX-1, MUST-FIX-2, MUST-FIX-5)
