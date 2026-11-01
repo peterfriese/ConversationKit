@@ -417,13 +417,13 @@ public struct MessageComposerView: View {
         Image(systemName: "plus")
           .font(.system(size: 16, weight: .medium))
           .foregroundStyle(.primary)
-          .frame(width: 32, height: 32)
+          .frame(maxWidth: .infinity, maxHeight: .infinity)
           .contentShape(Circle())
       } else {
         Image(systemName: "plus")
           .font(.system(size: 15, weight: .medium))
           .foregroundStyle(.primary)
-          .frame(width: 34, height: 34)
+          .frame(maxWidth: .infinity, maxHeight: .infinity)
           .background(Color.primary.opacity(0.06), in: Circle())
           .overlay {
             Circle()
@@ -432,6 +432,7 @@ public struct MessageComposerView: View {
           .contentShape(Circle())
       }
     }
+    .frame(width: 44, height: 44)
     .menuStyle(.button)
     .buttonStyle(.plain)
     .accessibilityIdentifier(ConversationAccessibilityID.composerAttachmentButton)

@@ -1473,6 +1473,35 @@ struct MessageComposerStyleTests {
     _ = anyCompact.makeBody(configuration: config)
   }
 
+  @Test("ClassicGlass and CompactGlass composer styles render cleanly with bottom-anchored action buttons")
+  @MainActor
+  func bottomAnchoredStylesRenderCleanly() {
+    let dummyTextField = AnyView(Text("Three-line\nuser message\ngrows vertically"))
+    let dummyAttachmentButton = AnyView(Button("+") {})
+    let dummyBorderlessAttachmentButton = AnyView(Button("+") {})
+    let dummyCompactModelSelector = AnyView(Image(systemName: "sparkles"))
+    let dummySubmitButton = AnyView(Button("Send") {})
+    let dummyDismissButton = AnyView(Button("Dismiss") {})
+
+    let multilineConfig = MessageComposerStyleConfiguration(
+      textField: dummyTextField,
+      attachmentButton: dummyAttachmentButton,
+      submitButton: dummySubmitButton,
+      dismissKeyboardButton: dummyDismissButton,
+      isFocused: true,
+      isGenerating: false,
+      canSubmit: true,
+      compactModelSelector: dummyCompactModelSelector,
+      borderlessAttachmentButton: dummyBorderlessAttachmentButton
+    )
+
+    let classic = ClassicGlassMessageComposerStyle.classicGlass
+    let compact = CompactGlassMessageComposerStyle.compactGlass
+
+    _ = classic.makeBody(configuration: multilineConfig)
+    _ = compact.makeBody(configuration: multilineConfig)
+  }
+
   @Test("ComposerModelSelectorMenu supports compact icon-only mode for single-line styles")
   @MainActor
   func composerModelSelectorMenuCompactMode() {

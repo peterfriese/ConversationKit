@@ -249,7 +249,7 @@ public struct ComposerModelSelectorMenu: View {
   /// Two-way binding to the set of currently active capabilities.
   public var activeCapabilities: Binding<Set<ComposerCapability>>?
 
-  /// Whether to render only a compact circular icon button (`32×32pt`) without model name text.
+  /// Whether to render only a compact circular icon button (`34×34pt`) without model name text.
   public let isCompact: Bool
 
   /// Optional callback invoked when the user picks a model.
@@ -451,7 +451,7 @@ public struct ComposerModelSelectorMenu: View {
       Image(systemName: current?.symbolName ?? "sparkles")
         .font(.system(size: 13, weight: .semibold))
         .foregroundStyle(.primary)
-        .frame(width: 32, height: 32)
+        .frame(width: 34, height: 34)
 
       if !activeCapabilitiesList.isEmpty {
         Circle()
@@ -465,7 +465,7 @@ public struct ComposerModelSelectorMenu: View {
           .padding(.trailing, 4)
       }
     }
-    .frame(width: 32, height: 32)
+    .frame(width: 34, height: 34)
     .background(Color.primary.opacity(0.06), in: Circle())
     .overlay {
       Circle()
