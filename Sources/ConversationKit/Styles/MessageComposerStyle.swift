@@ -148,10 +148,10 @@ public struct MessageComposerStyleConfiguration {
 // MARK: - ClassicGlassMessageComposerStyle (.classicGlass / .automatic)
 
 /// Default Liquid Glass composer style featuring a detached circular `+` button (`44×44pt`)
-/// and a central rounded pill (`minHeight: 44`, `cornerRadius: 22`) inside `GlassEffectContainer(spacing: 8)`.
+/// and independent sibling controls inside `GlassEffectContainer(spacing: 8)`.
 ///
-/// Inside the central pill, the composer houses the growing prompt text field, a compact circular model
-/// icon button (`compactModelSelector`: `34×34pt`), focus-driven keyboard dismiss, and primary send/stop action.
+/// Houses a detached circular `+` button (`44×44pt`), a central rounded text pill (`minHeight: 44`, `cornerRadius: 22`),
+/// a detached compact circular model icon button (`34×34pt`), focus-driven keyboard dismiss (`34×34pt`), and primary send/stop action (`34×34pt`).
 public struct ClassicGlassMessageComposerStyle: MessageComposerStyle, Sendable {
   /// Creates the default classic Liquid Glass composer style.
   public nonisolated init() {}
@@ -194,23 +194,29 @@ private struct ClassicGlassComposerBody: View {
     configuration.canSubmit || configuration.isGenerating
   }
 
-  private var hasTrailingControls: Bool {
-    configuration.hasModels ||
-    configuration.hasCapabilities ||
-    configuration.dictationButton != nil ||
-    configuration.isFocused ||
-    showsSubmitButton
-  }
-
   var body: some View {
     GlassEffectContainer(spacing: 8) {
-      HStack(alignment: .bottom, spacing: 8) {
+      HStack(alignment: .bottom, spacing: configuration.isFocused ? 4 : 8) {
         if let plusButton = configuration.attachmentButton {
           detachedPlusButton(plusButton)
         }
 
-        classicPill
+        centerTextPill
+
+        if let modelSelector = configuration.compactModelSelector ?? configuration.modelSelector {
+          detachedModelButton(modelSelector)
+        }
+
+        if configuration.isFocused, let dismissButton = configuration.dismissKeyboardButton {
+          detachedActionButton(dismissButton)
+        }
+
+        if showsSubmitButton {
+          detachedActionButton(configuration.submitButton)
+        }
       }
+      .animation(reduceMotion ? nil : .spring(duration: 0.35, bounce: 0.15), value: configuration.isFocused)
+      .animation(reduceMotion ? nil : .snappy(duration: 0.22), value: showsSubmitButton)
     }
     .padding(.horizontal, 12)
     .padding(.vertical, 6)
@@ -234,7 +240,7 @@ private struct ClassicGlassComposerBody: View {
   }
 
   @ViewBuilder
-  private var classicPill: some View {
+  private var centerTextPill: some View {
     let panelContent = VStack(alignment: .leading, spacing: 6) {
       if configuration.hasAttachments, let attachmentsTray = configuration.attachmentsTray {
         attachmentsTray
@@ -248,7 +254,10 @@ private struct ClassicGlassComposerBody: View {
           .padding(.top, configuration.hasAttachments ? 2 : 8)
       }
 
-      mainInputRow
+      configuration.textField
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
     }
     .frame(minHeight: controlDiameter)
 
@@ -269,47 +278,18 @@ private struct ClassicGlassComposerBody: View {
   }
 
   @ViewBuilder
-  private var mainInputRow: some View {
-    HStack(alignment: .bottom, spacing: 6) {
-      configuration.textField
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.leading, 14)
-        .padding(.trailing, hasTrailingControls ? 4 : 14)
-        .padding(.vertical, 10)
+  private func detachedModelButton(_ button: AnyView) -> some View {
+    button
+      .frame(width: 34, height: 34)
+      .fixedSize(horizontal: true, vertical: false)
+      .layoutPriority(1)
+  }
 
-      if hasTrailingControls {
-        HStack(alignment: .bottom, spacing: 6) {
-          if (configuration.hasModels || configuration.hasCapabilities),
-             let modelSelector = configuration.compactModelSelector ?? configuration.modelSelector {
-            modelSelector
-              .frame(width: configuration.compactModelSelector != nil ? 34 : nil, height: 34)
-              .fixedSize(horizontal: true, vertical: false)
-              .layoutPriority(1)
-          }
-
-          if let dictationButton = configuration.dictationButton {
-            dictationButton
-              .frame(width: 34, height: 34)
-          }
-
-          if configuration.isFocused, let dismissKeyboardButton = configuration.dismissKeyboardButton {
-            dismissKeyboardButton
-              .frame(width: 34, height: 34)
-              .transition(.scale(scale: 0.8).combined(with: .opacity))
-          }
-
-          if showsSubmitButton {
-            configuration.submitButton
-              .frame(width: 34, height: 34)
-              .transition(.scale(scale: 0.8).combined(with: .opacity))
-          }
-        }
-        .padding(.trailing, 6)
-        .padding(.bottom, 5)
-        .animation(reduceMotion ? nil : .snappy(duration: 0.22), value: configuration.isFocused)
-        .animation(reduceMotion ? nil : .snappy(duration: 0.22), value: showsSubmitButton)
-      }
-    }
+  @ViewBuilder
+  private func detachedActionButton(_ button: AnyView) -> some View {
+    button
+      .frame(width: 34, height: 34)
+      .transition(.scale(scale: 0.8).combined(with: .opacity))
   }
 }
 

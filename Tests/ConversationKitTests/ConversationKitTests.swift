@@ -1521,6 +1521,58 @@ struct MessageComposerStyleTests {
     let classic = ClassicGlassMessageComposerStyle.classicGlass
     let body = classic.makeBody(configuration: singleLineConfig)
     _ = body
+
+    let focusedConfig = MessageComposerStyleConfiguration(
+      textField: dummyTextField,
+      attachmentButton: dummyAttachmentButton,
+      submitButton: dummySubmitButton,
+      isFocused: true,
+      isGenerating: false,
+      canSubmit: true
+    )
+    let focusedBody = classic.makeBody(configuration: focusedConfig)
+    _ = focusedBody
+  }
+
+  @Test("ClassicGlass composer body renders independent siblings inside GlassEffectContainer")
+  @MainActor
+  func classicGlassIndependentSiblingsArchitecture() {
+    let dummyTextField = AnyView(Text("Prompt text"))
+    let dummyPlusButton = AnyView(Button("+") {})
+    let dummyModelButton = AnyView(Button("Model") {})
+    let dummyDismissButton = AnyView(Button("Dismiss") {})
+    let dummySubmitButton = AnyView(Button("Send") {})
+    let dummyTray = AnyView(Text("Attachments"))
+    let dummyTokens = AnyView(Text("Tokens"))
+
+    let fullConfig = MessageComposerStyleConfiguration(
+      textField: dummyTextField,
+      attachmentButton: dummyPlusButton,
+      attachmentsTray: dummyTray,
+      tokensBar: dummyTokens,
+      modelSelector: dummyModelButton,
+      submitButton: dummySubmitButton,
+      dismissKeyboardButton: dummyDismissButton,
+      isFocused: true,
+      isGenerating: false,
+      canSubmit: true,
+      compactModelSelector: dummyModelButton
+    )
+
+    let classic = ClassicGlassMessageComposerStyle.classicGlass
+    let fullBody = classic.makeBody(configuration: fullConfig)
+    _ = fullBody
+
+    // Minimal config without optional controls
+    let minimalConfig = MessageComposerStyleConfiguration(
+      textField: dummyTextField,
+      submitButton: dummySubmitButton,
+      isFocused: false,
+      isGenerating: false,
+      canSubmit: false
+    )
+    let minimalBody = classic.makeBody(configuration: minimalConfig)
+    _ = minimalBody
   }
 
   @Test("ComposerModelSelectorMenu supports compact icon-only mode for single-line styles")
