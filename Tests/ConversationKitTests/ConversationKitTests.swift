@@ -8,6 +8,7 @@
 
 import CoreGraphics
 import Foundation
+import SwiftUI
 import Testing
 import UniformTypeIdentifiers
 @testable import ConversationKit
@@ -563,6 +564,45 @@ struct ComposerTokenAndSentinelBufferTests {
     #expect(midSegments[0] == ComposerTextBuffer.HighlightSegment(text: "PRD-0001-", isMatched: false))
     #expect(midSegments[1] == ComposerTextBuffer.HighlightSegment(text: "CONVERSATION", isMatched: true))
     #expect(midSegments[2] == ComposerTextBuffer.HighlightSegment(text: "KIT", isMatched: false))
+  }
+
+  @Test("ComposerModelSelectorMenu integrates capabilities and toggles active membership (F-9, AC-13)")
+  @MainActor
+  func modelSelectorCapabilitiesIntegration() {
+    let models = [
+      ComposerModelOption(id: "gpt-4o", name: "GPT-4o"),
+      ComposerModelOption(id: "claude-3-7", name: "Claude 3.7 Sonnet")
+    ]
+    var selectedModel: ComposerModelOption? = models.first
+    var activeCapabilities: Set<ComposerCapability> = [.think]
+    let capabilities: [ComposerCapability] = [.think, .search, .image]
+
+    let selectedModelBinding = Binding<ComposerModelOption?>(
+      get: { selectedModel },
+      set: { selectedModel = $0 }
+    )
+    let activeCapabilitiesBinding = Binding<Set<ComposerCapability>>(
+      get: { activeCapabilities },
+      set: { activeCapabilities = $0 }
+    )
+
+    let menu = ComposerModelSelectorMenu(
+      models: models,
+      selectedModel: selectedModelBinding,
+      capabilities: capabilities,
+      activeCapabilities: activeCapabilitiesBinding
+    )
+
+    #expect(menu.capabilities == capabilities)
+    #expect(menu.models == models)
+    #expect(menu.activeCapabilities?.wrappedValue == Set<ComposerCapability>([.think]))
+
+    // Verify mutating binding updates active capabilities
+    activeCapabilitiesBinding.wrappedValue.insert(.search)
+    #expect(menu.activeCapabilities?.wrappedValue == Set<ComposerCapability>([.think, .search]))
+
+    activeCapabilitiesBinding.wrappedValue.remove(.think)
+    #expect(menu.activeCapabilities?.wrappedValue == Set<ComposerCapability>([.search]))
   }
 }
 

@@ -234,7 +234,7 @@ public struct ComposerTokensBar: View {
 
 /// Integrated native `Menu` pill inside `MessageComposerView` displaying the active
 /// `ComposerModelOption` (symbol, name, optional capability badge) and checkmark menu items
-/// for switching models (`F-9`, `AC-13`).
+/// for switching models and toggling capabilities (`F-9`, `AC-13`).
 @MainActor
 public struct ComposerModelSelectorMenu: View {
   /// Available model options to display in the menu.
@@ -243,41 +243,100 @@ public struct ComposerModelSelectorMenu: View {
   /// Two-way binding to the currently selected `ComposerModelOption?`.
   @Binding public var selectedModel: ComposerModelOption?
 
+  /// Capability options available to toggle inside the menu.
+  public let capabilities: [ComposerCapability]
+
+  /// Two-way binding to the set of currently active capabilities.
+  public var activeCapabilities: Binding<Set<ComposerCapability>>?
+
   /// Optional callback invoked when the user picks a model.
   public let onSelect: (@MainActor (ComposerModelOption) -> Void)?
+
+  /// Optional callback invoked when a capability is toggled.
+  public let onToggleCapability: (@MainActor (ComposerCapability, Bool) -> Void)?
 
   /// Creates a `ComposerModelSelectorMenu`.
   public init(
     models: [ComposerModelOption],
     selectedModel: Binding<ComposerModelOption?>,
-    onSelect: (@MainActor (ComposerModelOption) -> Void)? = nil
+    capabilities: [ComposerCapability] = [],
+    activeCapabilities: Binding<Set<ComposerCapability>>? = nil,
+    onSelect: (@MainActor (ComposerModelOption) -> Void)? = nil,
+    onToggleCapability: (@MainActor (ComposerCapability, Bool) -> Void)? = nil
   ) {
     self.models = models
     self._selectedModel = selectedModel
+    self.capabilities = capabilities
+    self.activeCapabilities = activeCapabilities
     self.onSelect = onSelect
+    self.onToggleCapability = onToggleCapability
   }
 
   private var activeModel: ComposerModelOption? {
     selectedModel ?? models.first
   }
 
+  private var activeCapabilitiesList: [ComposerCapability] {
+    capabilities.filter { activeCapabilities?.wrappedValue.contains($0) == true }
+  }
+
+  private var accessibilityDescription: String {
+    let modelName = activeModel?.name ?? "Model"
+    if activeCapabilitiesList.isEmpty {
+      return modelName
+    } else {
+      let capTitles = activeCapabilitiesList.map(\.title).joined(separator: ", ")
+      return "\(modelName), active capabilities: \(capTitles)"
+    }
+  }
+
   public var body: some View {
-    if !models.isEmpty {
+    if !models.isEmpty || !capabilities.isEmpty {
       Menu {
-        ForEach(models) { option in
-          Button {
-            PlatformHapticEvent.triggerHaptic(.selection)
-            selectedModel = option
-            onSelect?(option)
-          } label: {
-            HStack {
-              Label(option.menuItemTitle, systemImage: option.systemImage)
-              if activeModel?.id == option.id {
-                Image(systemName: "checkmark")
+        if !models.isEmpty {
+          Section("Model") {
+            ForEach(models) { option in
+              Button {
+                PlatformHapticEvent.triggerHaptic(.selection)
+                selectedModel = option
+                onSelect?(option)
+              } label: {
+                HStack {
+                  Label(option.menuItemTitle, systemImage: option.systemImage)
+                  if activeModel?.id == option.id {
+                    Image(systemName: "checkmark")
+                  }
+                }
+                if let subtitle = option.subtitle, !subtitle.isEmpty {
+                  Text(subtitle)
+                }
               }
             }
-            if let subtitle = option.subtitle, !subtitle.isEmpty {
-              Text(subtitle)
+          }
+        }
+
+        if !capabilities.isEmpty {
+          Section("Capabilities") {
+            ForEach(capabilities) { cap in
+              let isActive = activeCapabilities?.wrappedValue.contains(cap) == true
+              Button {
+                PlatformHapticEvent.triggerHaptic(.selection)
+                if isActive {
+                  activeCapabilities?.wrappedValue.remove(cap)
+                  onToggleCapability?(cap, false)
+                } else {
+                  activeCapabilities?.wrappedValue.insert(cap)
+                  onToggleCapability?(cap, true)
+                }
+              } label: {
+                HStack {
+                  Label(cap.title, systemImage: cap.symbolName)
+                  if isActive {
+                    Image(systemName: "checkmark")
+                  }
+                }
+              }
+              .accessibilityIdentifier(ConversationAccessibilityID.composerCapabilityChip(cap.id))
             }
           }
         }
@@ -288,8 +347,8 @@ public struct ComposerModelSelectorMenu: View {
       .buttonStyle(.plain)
       .accessibilityIdentifier(ConversationAccessibilityID.composerModelSelector)
       .accessibilityLabel("AI Model")
-      .accessibilityValue(activeModel?.name ?? "None")
-      .accessibilityHint("Double-tap to switch the active AI model")
+      .accessibilityValue(accessibilityDescription)
+      .accessibilityHint("Double-tap to switch the active AI model or toggle capabilities")
     }
   }
 
@@ -307,6 +366,16 @@ public struct ComposerModelSelectorMenu: View {
         .font(.subheadline.weight(.regular))
         .foregroundStyle(.primary)
         .lineLimit(1)
+
+      if !activeCapabilitiesList.isEmpty {
+        HStack(spacing: 3) {
+          ForEach(activeCapabilitiesList) { cap in
+            Image(systemName: cap.symbolName)
+              .font(.system(size: 10, weight: .semibold))
+              .foregroundStyle(Color.accentColor)
+          }
+        }
+      }
 
       Image(systemName: "chevron.up.chevron.down")
         .font(.system(size: 9, weight: .semibold))
@@ -456,10 +525,6 @@ public struct ComposerCapabilitiesBar: View {
     )
 
     HStack {
-      ComposerCapabilitiesBar(
-        capabilities: [.think, .search, .image],
-        activeCapabilities: $activeCapabilities
-      )
       Spacer()
       ComposerModelSelectorMenu(
         models: [
@@ -478,7 +543,9 @@ public struct ComposerCapabilitiesBar: View {
             symbolName: "brain"
           )
         ],
-        selectedModel: $selectedModel
+        selectedModel: $selectedModel,
+        capabilities: [.think, .search, .image],
+        activeCapabilities: $activeCapabilities
       )
     }
   }

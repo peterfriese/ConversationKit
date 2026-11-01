@@ -139,7 +139,7 @@ public struct MessageComposerStyleConfiguration {
 
 /// Default Liquid Glass composer style featuring a single unified rounded-rectangle Liquid Glass panel
 /// (`cornerRadius: 24`) inside `GlassEffectContainer`, housing the prompt text field on top and all
-/// controls (`attachmentButton`, `modelSelector`, `capabilitiesBar`, `dismissKeyboardButton`, and
+/// controls (`attachmentButton`, `modelSelector`, `dismissKeyboardButton`, and
 /// `submitButton`) harmoniously inside the bottom toolbar row (`F-6`, `F-11`, `AC-15`, `AC-16`).
 public struct ClassicGlassMessageComposerStyle: MessageComposerStyle, Sendable {
   /// Creates the default classic Liquid Glass composer style.
@@ -147,10 +147,7 @@ public struct ClassicGlassMessageComposerStyle: MessageComposerStyle, Sendable {
 
   @MainActor
   public func makeBody(configuration: Configuration) -> some View {
-    UnifiedGlassComposerPanel(
-      configuration: configuration,
-      glassEffectID: "composer.classicPanel"
-    )
+    ClassicGlassComposerBody(configuration: configuration)
   }
 }
 
@@ -160,7 +157,7 @@ public struct ClassicGlassMessageComposerStyle: MessageComposerStyle, Sendable {
 ///
 /// Renders a unified Liquid Glass panel (`cornerRadius: 24`) with `attachmentsTray`, `tokensBar`,
 /// and `textField` in the top section, and an integrated bottom toolbar row housing `attachmentButton`,
-/// `modelSelector`, `capabilitiesBar`, `Spacer(minLength: 8)`, `dictationButton`,
+/// `modelSelector` (housing capabilities inside its menu), `Spacer(minLength: 8)`, `dictationButton`,
 /// `dismissKeyboardButton` (when `isFocused`), and `submitButton` (when `canSubmit || isGenerating`).
 public struct CardGlassMessageComposerStyle: MessageComposerStyle, Sendable {
   /// Creates a two-row card Liquid Glass composer style.
@@ -168,6 +165,29 @@ public struct CardGlassMessageComposerStyle: MessageComposerStyle, Sendable {
 
   @MainActor
   public func makeBody(configuration: Configuration) -> some View {
+    CardGlassComposerBody(configuration: configuration)
+  }
+}
+
+// MARK: - ClassicGlassComposerBody
+
+private struct ClassicGlassComposerBody: View {
+  let configuration: MessageComposerStyleConfiguration
+
+  var body: some View {
+    UnifiedGlassComposerPanel(
+      configuration: configuration,
+      glassEffectID: "composer.classicPanel"
+    )
+  }
+}
+
+// MARK: - CardGlassComposerBody
+
+private struct CardGlassComposerBody: View {
+  let configuration: MessageComposerStyleConfiguration
+
+  var body: some View {
     UnifiedGlassComposerPanel(
       configuration: configuration,
       glassEffectID: "composer.cardPanel"
@@ -227,15 +247,11 @@ private struct UnifiedGlassComposerPanel: View {
             .frame(width: controlDiameter, height: controlDiameter)
         }
 
-        if configuration.hasModels, let modelSelector = configuration.modelSelector {
+        if (configuration.hasModels || configuration.hasCapabilities), let modelSelector = configuration.modelSelector {
           modelSelector
             .frame(minHeight: controlDiameter)
             .fixedSize(horizontal: true, vertical: false)
             .layoutPriority(1)
-        }
-
-        if configuration.hasCapabilities, let capabilitiesBar = configuration.capabilitiesBar {
-          capabilitiesBar
         }
 
         Spacer(minLength: 8)
@@ -344,7 +360,7 @@ private struct CompactGlassComposerBody: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.vertical, 4)
 
-      if configuration.hasModels, let modelSelector = configuration.modelSelector {
+      if (configuration.hasModels || configuration.hasCapabilities), let modelSelector = configuration.modelSelector {
         modelSelector
           .fixedSize(horizontal: true, vertical: false)
           .layoutPriority(1)

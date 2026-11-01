@@ -249,10 +249,7 @@ struct ContentView: View {
         .slashCommands(Self.availableCommands)
         .resourceMentions(Self.availableMentions)
         .composerModels(Self.availableModels, selection: $selectedModel)
-        .composerCapabilities(
-          composerStyleOption == .cardGlass ? [.think, .search, .image] : [],
-          active: $activeCapabilities
-        )
+        .composerCapabilities([.think, .search, .image], active: $activeCapabilities)
         .composerTokens($tokens)
         .messageComposerStyle(composerStyleOption.anyStyle)
         .thinkingStateStyle(thinkingStyleOption.anyStyle)

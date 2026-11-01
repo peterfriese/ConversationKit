@@ -337,8 +337,8 @@ public struct MessageComposerView: View {
       attachmentButton: attachmentsDisabled ? nil : AnyView(attachmentMenuButton),
       attachmentsTray: currentAttachments.isEmpty ? nil : AnyView(attachmentsTraySubview),
       tokensBar: currentTokens.isEmpty ? nil : AnyView(tokensBarSubview),
-      modelSelector: hasModels ? AnyView(modelSelectorSubview) : nil,
-      capabilitiesBar: hasCapabilities ? AnyView(capabilitiesBarSubview) : nil,
+      modelSelector: (hasModels || hasCapabilities) ? AnyView(modelSelectorSubview) : nil,
+      capabilitiesBar: nil,
       dictationButton: onDictationAction.map { action in
         AnyView(dictationButtonSubview(action: action))
       },
@@ -457,7 +457,9 @@ public struct MessageComposerView: View {
   private var modelSelectorSubview: some View {
     ComposerModelSelectorMenu(
       models: composerModels,
-      selectedModel: selectedModelBinding
+      selectedModel: selectedModelBinding,
+      capabilities: composerCapabilities,
+      activeCapabilities: activeCapabilitiesBinding
     )
   }
 
