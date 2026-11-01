@@ -342,8 +342,8 @@ public struct MessageComposerView: View {
       dictationButton: onDictationAction.map { action in
         AnyView(dictationButtonSubview(action: action))
       },
-      submitButton: AnyView(submitButtonSubview),
-      dismissKeyboardButton: effectiveIsFocused ? AnyView(dismissKeyboardButtonSubview) : nil,
+      submitButton: AnyView(submitButtonSubview()),
+      dismissKeyboardButton: effectiveIsFocused ? AnyView(dismissKeyboardButtonSubview()) : nil,
       isFocused: effectiveIsFocused,
       isGenerating: isGenerating,
       canSubmit: canSubmit,
@@ -352,7 +352,7 @@ public struct MessageComposerView: View {
       hasModels: hasModels,
       hasCapabilities: hasCapabilities,
       compactModelSelector: (hasModels || hasCapabilities) ? AnyView(modelSelectorSubview(isCompact: true)) : nil,
-      borderlessAttachmentButton: attachmentsDisabled ? nil : AnyView(attachmentMenu(isBorderless: true))
+      borderlessAttachmentButton: attachmentsDisabled ? nil : AnyView(attachmentMenu(isBorderless: true, diameter: 32))
     )
   }
 
@@ -389,7 +389,8 @@ public struct MessageComposerView: View {
   }
 
   @ViewBuilder
-  private func attachmentMenu(isBorderless: Bool) -> some View {
+  private func attachmentMenu(isBorderless: Bool, diameter: CGFloat? = nil) -> some View {
+    let effectiveDiameter = diameter ?? (isBorderless ? 32 : 44)
     Menu {
       Button("Photos", systemImage: "photo.on.rectangle.angled") {
         PlatformHapticEvent.triggerHaptic(.selection)
@@ -421,7 +422,7 @@ public struct MessageComposerView: View {
           .contentShape(Circle())
       } else {
         Image(systemName: "plus")
-          .font(.system(size: 15, weight: .medium))
+          .font(.system(size: effectiveDiameter > 36 ? 16 : 14, weight: .medium))
           .foregroundStyle(.primary)
           .frame(maxWidth: .infinity, maxHeight: .infinity)
           .background(Color.primary.opacity(0.06), in: Circle())
@@ -432,7 +433,7 @@ public struct MessageComposerView: View {
           .contentShape(Circle())
       }
     }
-    .frame(width: isBorderless ? 34 : 44, height: isBorderless ? 34 : 44)
+    .frame(width: effectiveDiameter, height: effectiveDiameter)
     .menuStyle(.button)
     .buttonStyle(.plain)
     .accessibilityIdentifier(ConversationAccessibilityID.composerAttachmentButton)
@@ -476,6 +477,11 @@ public struct MessageComposerView: View {
   }
 
   @ViewBuilder
+  private func attachmentButton(isBorderless: Bool, diameter: CGFloat? = nil) -> some View {
+    attachmentMenu(isBorderless: isBorderless, diameter: diameter)
+  }
+
+  @ViewBuilder
   private var capabilitiesBarSubview: some View {
     ComposerCapabilitiesBar(
       capabilities: composerCapabilities,
@@ -501,14 +507,14 @@ public struct MessageComposerView: View {
   }
 
   @ViewBuilder
-  private var submitButtonSubview: some View {
+  private func submitButtonSubview(diameter: CGFloat = 34) -> some View {
     Button {
       handlePrimaryAction()
     } label: {
       Image(systemName: isGenerating ? "stop.fill" : "arrow.up")
-        .font(isGenerating ? .system(size: 12, weight: .black) : .system(size: 15, weight: .semibold))
+        .font(isGenerating ? .system(size: diameter > 32 ? 12 : 11, weight: .black) : .system(size: diameter > 32 ? 15 : 13.5, weight: .semibold))
         .foregroundStyle(Color.white)
-        .frame(width: 34, height: 34)
+        .frame(width: diameter, height: diameter)
         .background(Color.accentColor, in: Circle())
         .contentShape(Circle())
     }
@@ -524,14 +530,14 @@ public struct MessageComposerView: View {
   }
 
   @ViewBuilder
-  private var dismissKeyboardButtonSubview: some View {
+  private func dismissKeyboardButtonSubview(diameter: CGFloat = 34) -> some View {
     Button {
       dismissKeyboard()
     } label: {
       Image(systemName: "keyboard.chevron.compact.down")
-        .font(.system(size: 17, weight: .regular))
+        .font(.system(size: diameter > 32 ? 17 : 15, weight: .regular))
         .foregroundStyle(.secondary)
-        .frame(width: 34, height: 34)
+        .frame(width: diameter, height: diameter)
         .contentShape(Rectangle())
     }
     .buttonStyle(.plain)

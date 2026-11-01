@@ -153,7 +153,7 @@ public struct MessageComposerStyleConfiguration {
 /// When the user interacts with the detached `+` button, Liquid Glass physics smoothly bridge and
 /// "kiss" the adjacent composer frame via matching `.glassEffectID` (`"composer.classicPlus"` and
 /// `"composer.classicPill"`). Inside the central pill, the composer houses the growing prompt text field,
-/// a compact circular model icon button (`compactModelSelector`: `34×34pt`), focus-driven keyboard dismiss,
+/// a compact circular model icon button (`compactModelSelector`: `32×32pt`), focus-driven keyboard dismiss,
 /// and primary send/stop action.
 public struct ClassicGlassMessageComposerStyle: MessageComposerStyle, Sendable {
   /// Creates the default classic Liquid Glass composer style.
@@ -254,9 +254,9 @@ private struct ClassicGlassComposerBody: View {
       }
 
       mainInputRow
-        .padding(.top, (configuration.hasAttachments || configuration.hasTokens) ? 0 : 5)
-        .padding(.bottom, 5)
-        .padding(.horizontal, 7)
+        .padding(.top, (configuration.hasAttachments || configuration.hasTokens) ? 0 : 6)
+        .padding(.bottom, 6)
+        .padding(.horizontal, 6)
     }
     .frame(minHeight: controlDiameter)
 
@@ -281,14 +281,16 @@ private struct ClassicGlassComposerBody: View {
   private var mainInputRow: some View {
     HStack(alignment: .bottom, spacing: 6) {
       configuration.textField
-        .frame(maxWidth: .infinity, minHeight: 34, alignment: .leading)
-        .padding(.leading, 8)
-        .padding(.trailing, hasTrailingControls ? 2 : 8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.leading, 14)
+        .padding(.trailing, hasTrailingControls ? 2 : 14)
+        .padding(.top, 10)
+        .padding(.bottom, 10)
 
       if (configuration.hasModels || configuration.hasCapabilities),
          let modelSelector = configuration.compactModelSelector ?? configuration.modelSelector {
         modelSelector
-          .frame(width: configuration.compactModelSelector != nil ? 34 : nil, height: 34)
+          .frame(width: configuration.compactModelSelector != nil ? 32 : nil, height: 32)
           .fixedSize(horizontal: true, vertical: false)
           .layoutPriority(1)
       }
@@ -296,18 +298,18 @@ private struct ClassicGlassComposerBody: View {
       HStack(alignment: .bottom, spacing: 6) {
         if let dictationButton = configuration.dictationButton {
           dictationButton
-            .frame(width: 34, height: 34)
+            .frame(width: 32, height: 32)
         }
 
         if configuration.isFocused, let dismissKeyboardButton = configuration.dismissKeyboardButton {
           dismissKeyboardButton
-            .frame(width: 34, height: 34)
+            .frame(width: 32, height: 32)
             .transition(.scale(scale: 0.8).combined(with: .opacity))
         }
 
         if showsSubmitButton {
           configuration.submitButton
-            .frame(width: 34, height: 34)
+            .frame(width: 32, height: 32)
             .transition(.scale(scale: 0.8).combined(with: .opacity))
         }
       }
@@ -326,7 +328,7 @@ private struct CardGlassComposerBody: View {
   @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-  private let controlDiameter: CGFloat = 34
+  private let controlDiameter: CGFloat = 32
   private let cardCornerRadius: CGFloat = 24
 
   private var showsSubmitButton: Bool {
@@ -370,7 +372,7 @@ private struct CardGlassComposerBody: View {
 
         if (configuration.hasModels || configuration.hasCapabilities), let modelSelector = configuration.modelSelector {
           modelSelector
-            .frame(minHeight: controlDiameter)
+            .frame(height: controlDiameter)
             .fixedSize(horizontal: true, vertical: false)
             .layoutPriority(1)
         }
@@ -425,7 +427,7 @@ private struct CardGlassComposerBody: View {
 /// Single-row compact capsule Liquid Glass composer style (`cornerRadius: 22`) for secondary sheets, popovers, and inspectors (`AC-16`).
 ///
 /// Houses a borderless `+` button (`borderlessAttachmentButton`), growing prompt `textField`, compact round model
-/// icon button (`compactModelSelector`: `34×34pt`), `dismissKeyboardButton` (when focused), and `submitButton` inside
+/// icon button (`compactModelSelector`: `32×32pt`), `dismissKeyboardButton` (when focused), and `submitButton` inside
 /// a unified single-line Liquid Glass capsule with bottom baseline alignment.
 public struct CompactGlassMessageComposerStyle: MessageComposerStyle, Sendable {
   /// Creates a compact single-row capsule Liquid Glass composer style.
@@ -444,7 +446,7 @@ private struct CompactGlassComposerBody: View {
   @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-  private let controlDiameter: CGFloat = 34
+  private let controlDiameter: CGFloat = 32
   private let pillCornerRadius: CGFloat = 22
 
   private var showsSubmitButton: Bool {
@@ -481,7 +483,9 @@ private struct CompactGlassComposerBody: View {
 
       configuration.textField
         .frame(maxWidth: .infinity, minHeight: controlDiameter, alignment: .leading)
-        .padding(.vertical, 5)
+        .padding(.leading, 10)
+        .padding(.trailing, 0)
+        .padding(.vertical, 0)
 
       if (configuration.hasModels || configuration.hasCapabilities),
          let modelSelector = configuration.compactModelSelector ?? configuration.modelSelector {
@@ -512,8 +516,8 @@ private struct CompactGlassComposerBody: View {
       .animation(reduceMotion ? nil : .snappy(duration: 0.22), value: configuration.isFocused)
       .animation(reduceMotion ? nil : .snappy(duration: 0.22), value: showsSubmitButton)
     }
-    .padding(.horizontal, 10)
-    .padding(.vertical, 5)
+    .padding(.horizontal, 12)
+    .padding(.vertical, 6)
 
     if reduceTransparency {
       rowContent

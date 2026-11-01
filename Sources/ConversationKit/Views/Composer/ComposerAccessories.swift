@@ -249,7 +249,7 @@ public struct ComposerModelSelectorMenu: View {
   /// Two-way binding to the set of currently active capabilities.
   public var activeCapabilities: Binding<Set<ComposerCapability>>?
 
-  /// Whether to render only a compact circular icon button (`34×34pt`) without model name text.
+  /// Whether to render only a compact circular icon button (`32×32pt`) without model name text.
   public let isCompact: Bool
 
   /// Optional callback invoked when the user picks a model.
@@ -378,7 +378,7 @@ public struct ComposerModelSelectorMenu: View {
 
   public var body: some View {
     if !models.isEmpty || !capabilities.isEmpty {
-      Menu {
+      let menu = Menu {
         menuContent
       } label: {
         if isCompact {
@@ -393,6 +393,14 @@ public struct ComposerModelSelectorMenu: View {
       .accessibilityLabel("AI Model")
       .accessibilityValue(accessibilityDescription)
       .accessibilityHint("Double-tap to switch the active AI model or toggle capabilities")
+
+      if isCompact {
+        menu
+          .frame(width: 32, height: 32)
+          .fixedSize()
+      } else {
+        menu
+      }
     }
   }
 
@@ -451,7 +459,7 @@ public struct ComposerModelSelectorMenu: View {
       Image(systemName: current?.symbolName ?? "sparkles")
         .font(.system(size: 13, weight: .semibold))
         .foregroundStyle(.primary)
-        .frame(width: 34, height: 34)
+        .frame(width: 32, height: 32)
 
       if !activeCapabilitiesList.isEmpty {
         Circle()
@@ -461,11 +469,11 @@ public struct ComposerModelSelectorMenu: View {
             Circle()
               .strokeBorder(Color.platformBackground, lineWidth: 1)
           }
-          .padding(.top, 4)
-          .padding(.trailing, 4)
+          .padding(.top, 3)
+          .padding(.trailing, 3)
       }
     }
-    .frame(width: 34, height: 34)
+    .frame(width: 32, height: 32)
     .background(Color.primary.opacity(0.06), in: Circle())
     .overlay {
       Circle()
@@ -506,7 +514,7 @@ public struct ComposerModelSelectorMenu: View {
     }
     .padding(.leading, 5)
     .padding(.trailing, 10)
-    .frame(height: 34)
+    .frame(height: 32)
     .background(Color.primary.opacity(0.06), in: Capsule())
     .overlay {
       Capsule()
