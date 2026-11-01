@@ -90,7 +90,6 @@ public struct ConversationView<MessageType: Message, Content: View>: View {
   @State private var activeTurnToken: UUID?
   @State private var sendingTask: Task<Void, Never>?
   @State private var pendingScrollTargetTurnID: String?
-  @State private var keyboardFocusTask: Task<Void, Never>?
 
   // Scroll & Unoccluded Viewport Runway State (`[MF-3]`, `AC-14`)
   @State private var lockedUnoccludedHeight: CGFloat = 0
@@ -284,7 +283,6 @@ public struct ConversationView<MessageType: Message, Content: View>: View {
     }
     .onDisappear {
       sendingTask?.cancel()
-      keyboardFocusTask?.cancel()
     }
   }
 
@@ -358,24 +356,6 @@ public struct ConversationView<MessageType: Message, Content: View>: View {
             : .spring(duration: 0.42, bounce: 0.05)
         ) {
           proxy.scrollTo(newTargetID, anchor: .top)
-        }
-      }
-    }
-    .onChange(of: isComposerFocused) { _, isFocused in
-      if isFocused && !displayedMessages.isEmpty {
-        keyboardFocusTask?.cancel()
-        keyboardFocusTask = Task { @MainActor in
-          // Brief delay to allow software keyboard safe-area adjustments to begin
-          try? await Task.sleep(for: .milliseconds(60))
-          guard !Task.isCancelled, isComposerFocused else { return }
-          withAnimation(
-            reduceMotion
-              ? .easeOut(duration: 0.15)
-              : .spring(duration: 0.34, bounce: 0.0)
-          ) {
-            proxy.scrollTo(Self.bottomAnchorID, anchor: .bottom)
-            isScrolledAwayFromBottom = false
-          }
         }
       }
     }
@@ -591,8 +571,6 @@ public struct ConversationView<MessageType: Message, Content: View>: View {
 
     // 2. Synchronous @MainActor transaction: set optimistic message, dismiss suggestion chips, clear draft & focus
     isComposerFocused = false
-    keyboardFocusTask?.cancel()
-    keyboardFocusTask = nil
     draftText = ""
     tokensBinding.wrappedValue.removeAll()
     attachmentsBinding.wrappedValue.removeAll()
