@@ -614,14 +614,14 @@ public struct ConversationView<MessageType: Message, Content: View>: View {
   private func scrollTurnToTop(_ turnID: String, proxy: ScrollViewProxy) {
     scrollTask?.cancel()
     scrollTask = Task { @MainActor in
-      // Pass 1 (t = 0ms): Immediate scroll request so LazyVStack begins scrolling toward
+      // Pass 1 (t = 0ms): Immediate scroll request so VStack begins scrolling toward
       // and realizing the target turn container even if the previous turn was long or scrolled up.
       withAnimation(scrollAnimation) {
         proxy.scrollTo(turnID, anchor: .top)
       }
 
       // Pass 2 (t = 60ms): Confirm top anchor after `onSendMessage` appends `submission.message`
-      // and the initial `assistantMessage` placeholder (t ~ 1–16ms) and LazyVStack realizes
+      // and the initial `assistantMessage` placeholder (t ~ 1–16ms) and VStack realizes
       // the new turn's full `activeTurnMinHeight` runway.
       try? await Task.sleep(for: .milliseconds(60))
       guard !Task.isCancelled, pendingScrollTargetTurnID == turnID else { return }

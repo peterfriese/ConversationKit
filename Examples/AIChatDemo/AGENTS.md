@@ -2,33 +2,25 @@
 
 ## Component Overview
 
-This component is an example application that demonstrates how to integrate `ConversationKit` with AI services. It's a native iOS application built with SwiftUI. The primary technology stack is Swift and SwiftUI.
+`AIChatDemo` is a reference application demonstrating how to integrate **ConversationKit v2** with real-world cloud and on-device AI SDKs (**Firebase AI Logic** and **Apple Foundation Models**) on iOS 26+, macCatalyst 26+, and macOS 26+.
 
 ## Key Files and Structure
 
-*   **`AIChatDemoApp.swift`**: The main entry point of the application. It sets up a `TabView` with three different chat examples.
-*   **`FirebaseAILogicChatView.swift`**: This view demonstrates how to integrate `ConversationKit` with Firebase AI, demonstrating multimodal inputs.
-*   **`FirebaseAILogicChatWithMetadataView.swift`**: This is a more advanced example of Firebase AI integration that shows how to use a custom `Message` type to display metadata from the AI service.
-*   **`FoundationModelChatView.swift`**: This view demonstrates how to integrate `ConversationKit` with on-device foundation models.
-*   **`AIChatDemo.xcodeproj`**: The Xcode project file for the application.
+*   **`AIChatDemo/AIChatDemoApp.swift`**: Main `@main` entry point configuring a `TabView` with three live AI chat experiences.
+*   **`AIChatDemo/FirebaseAILogicChatView.swift`**: Demonstrates Layer 1/2 integration with `FirebaseAI` (`gemini-2.5-flash`) using `DefaultMessage`, `[ConversationAttachment]`, `PhotosPicker`, `PlatformImageBox`, and strongly-typed `.onSendMessage { (submission: ConversationSubmission<DefaultMessage>) in ... }`.
+*   **`AIChatDemo/FirebaseAILogicChatWithMetadataView.swift`**: Demonstrates Layer 4 custom model integration by defining `ChatMessage: Message` (implementing `static func makeUserMessage(id:content:attachments:tokens:selectedModelID:) -> ChatMessage`) to capture and render Gemini `UsageMetadata` (token counts), `FinishReason`, `CitationMetadata`, `GroundingMetadata`, and `PromptFeedback` alongside `MessageView(message: message)`.
+*   **`AIChatDemo/FoundationModelChatView.swift`**: Demonstrates on-device Apple Intelligence integration using `FoundationModels` (`LanguageModelSession`), `ConversationSubmission<DefaultMessage>`, and `DefaultMessage(content:participant:error:)` error surfacing.
+*   **`AIChatDemo.xcodeproj`**: Xcode project file for the application.
 
 ## Dependencies and Relationships
 
-This component depends on the `ConversationKit` library and the following external dependencies:
+This component depends on the local `ConversationKit` package (`../..`) and:
 
-*   **`FirebaseAI`**: Used for the Firebase AI integration examples.
-*   **`FoundationModels`**: Used for the on-device foundation models integration example.
+*   **`FirebaseAI`**: Google Gemini integration via Firebase AI Logic.
+*   **`FoundationModels`**: Apple's on-device language model framework (iOS 26.0+ / macCatalyst 26.0+ / macOS 26.0+).
 
 ## Technical Details
 
-*   **Building and Running**: To run this example, open the `AIChatDemo.xcodeproj` file in Xcode and run the app on the simulator or a physical device.
-*   **Firebase Setup**: This example requires a `GoogleService-Info.plist` file to be added to the project to connect to Firebase.
-*   **Multimodal Attachment Conversion**: In `FirebaseAILogicChatViewModel`, when sending messages containing attachments, the platform-native images (`UIImage`/`PlatformImage`) are converted to Firebase AI's `InlineDataPart` representables (using JPEG or PNG data format) and submitted inside a unified `sendMessage` part list to the Gemini generative model.
-
-## Usage and Integration
-
-This component is a standalone example application and is not meant to be integrated into other applications. It serves as a reference for developers who want to learn how to use `ConversationKit` with AI services.
-
-## Important Notes
-
-*   The `FoundationModelChatView` is only available on iOS 26.0+ because it uses the `FoundationModels` framework.
+*   **Building and Running**: Open `Examples/AIChatDemo/AIChatDemo.xcodeproj` in Xcode 26+, add your `GoogleService-Info.plist` for Firebase AI Logic, and run on an iOS 26+ simulator or device.
+*   **Strongly-Typed v2 Submission Flow**: All three views use `ConversationView`'s v2 `.onSendMessage { submission in ... }` modifier, appending `submission.message` directly (preserving `submission.message.id` for optimistic UI deduplication and zero downcasting).
+*   **Multimodal Attachment Conversion**: In `FirebaseAILogicChatViewModel` and `FirebaseAILogicChatWithMetadataViewModel`, `submission.attachments` (`[ConversationAttachment]`) are mapped across all three `ConversationAttachment.Payload` cases (`.image(PlatformImageBox)`, `.data(Data, contentType:filename:)`, and `.file(URL)`) into `FirebaseAI`'s `InlineDataPart` values and sent alongside `submission.text`.

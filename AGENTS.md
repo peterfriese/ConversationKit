@@ -2,141 +2,184 @@
 
 ## Component Overview
 
-This component is the core of the `ConversationKit` library. It provides a customizable chat interface for iOS and macOS applications, built with SwiftUI. It's a cross-platform native component designed to be easily integrated into any SwiftUI application. The primary technology stack is Swift and SwiftUI.
+`ConversationKit` is a native SwiftUI conversational AI and agentic chat SDK for **iOS 26.0+, macCatalyst 26.0+, and macOS 26.0+**, built with **Swift 6.2** strict concurrency (`Sendable`) and zero external dependencies. It follows the **Stratos 4-Layer Progressive Disclosure** architecture and combines iOS 26 / macOS 26 **Liquid Glass** floating chrome with deterministic **Top-Floating Turn Physics**, **120Hz Incremental Streaming Markdown**, multimodal attachments, structured prompting, and agentic timeline primitives.
 
 ## Key Files and Structure
 
-The component is organized into three main directories: `Model`, `Platform`, and `Views`.
+The library under `Sources/ConversationKit/` is organized into four main directories: `Model`, `Platform`, `Styles`, and `Views`.
 
-### Model
-*   **`Model/Message.swift`**: Defines the data model for the chat interface. It includes the `Message` protocol and a default implementation, `DefaultMessage`. This protocol-based approach allows developers to use their own custom message types.
-*   **`Model/Attachment.swift`**: Defines the `Attachment` protocol, which conforms to `Identifiable` and `Hashable`.
-*   **`Model/ImageAttachment.swift`**: A concrete implementation of `Attachment` and `View` that renders a platform-native image wrapper.
-*   **`Model/EmptyAttachment.swift`**: A concrete implementation of `Attachment` and `View` that renders an empty placeholder state.
+### Model (`Sources/ConversationKit/Model/`)
+*   **`Model/Message.swift`**: Defines the `Participant` enum, the `Message` protocol (with default extensions and `makeUserMessage(id:content:attachments:tokens:selectedModelID:)`), `DefaultMessage`, `ConversationSubmission<MessageType>`, and `ConversationTurn` (`ConversationTurn.group(_:)`).
+*   **`Model/Attachment.swift`**: Defines `ConversationAttachment`, `ConversationAttachment.Payload` (`.image(PlatformImageBox)`, `.file(URL)`, `.data(Data, contentType: UTType, filename: String)`), and `ConversationAttachment.UploadState` (`.ready`, `.uploading(progress: Double)`, `.failed(error: String)`).
+*   **`Model/AgenticModels.swift`**: Defines `Sendable`, `Hashable`, `Codable` value types for agentic timelines: `ThinkingTrace` (`defaultExpanded = false`), `ToolCall` (`ToolCall.Status`), `Citation` (with `sanitizedURL` and `URL.isAllowedConversationURL` `http`/`https` allowlist), `AgentPlan` / `AgentPlan.Step`, `ApprovalRequest` / `ApprovalRequest.Decision`, `MessageFeedback`, and `MessageError`.
+*   **`Model/ComposerModels.swift`**: Defines structured prompting models and parser utilities: `SlashCommand`, `ResourceMention` (`ResourceMention.Kind`), `ComposerToken`, `PromptSuggestion`, `PromptHandoffBehavior`, `ComposerModelOption`, `ComposerCapability`, and `ComposerTextBuffer` (detecting active `/` and `@` triggers).
 
-### Platform
-*   **`Platform/PlatformTypes.swift`**: Defines cross-platform type aliases following the Chameleon pattern. Centralizes platform differences (such as `UIImage` vs `NSImage` via `PlatformImage`, color utilities, and image construction) so SwiftUI views remain clean and cross-platform.
+### Platform (`Sources/ConversationKit/Platform/`)
+*   **`Platform/PlatformTypes.swift`**: Centralizes cross-platform abstractions following the Chameleon pattern: `PlatformImage` (`UIImage` / `NSImage`), `PlatformImageBox` (`@unchecked Sendable` value wrapper with PNG/dimension inspection), `PlatformThumbnailGenerator` (off-main-actor `CGImageSource` thumbnail downsampling), and `PlatformPasteboard` (cross-platform clipboard helper).
 
-### Views
-*   **`Views/ConversationView.swift`**: This is the main entry point to the library. It's a SwiftUI view that displays the conversation thread and the message composer. It's highly customizable and binds both a list of messages and a list of attachments.
-*   **`Views/MessageComposerView.swift`**: This view provides the text input field, the send button, and the attachment menu.
-*   **`Views/MessageView.swift`**: This is the default view for rendering a single message.
-*   **`Views/AttachmentPreviewScrollView.swift`**: A horizontal scroll view rendered inside the composer that previews pending attachments.
-*   **`Views/AttachmentPreviewCard.swift`**: A wrapper card for an attachment with a delete/close overlay, featuring concentric corner adjustments.
-*   **`Views/ConversationEnvironment.swift`**: Defines environment values and modifiers for advanced customization (`messageActions` and `conversationDisclaimer`).
-*   **`Views/ErrorWrapper.swift`**, **`Views/OnErrorModifier.swift`**, and **`Views/PresentErrorAction.swift`**: These files provide a robust error handling mechanism.
-*   **`Views/Utilities.swift`**: Contains utility extensions and views.
+### Styles (`Sources/ConversationKit/Styles/`)
+*   **`Styles/MessageComposerStyle.swift`**: Defines the `MessageComposerStyle` protocol, `MessageComposerStyleConfiguration`, `AnyMessageComposerStyle`, and the three built-in Liquid Glass composer styles: `.classicGlass` (`ClassicGlassMessageComposerStyle`), `.cardGlass` (`CardGlassMessageComposerStyle`), and `.compactGlass` (`CompactGlassMessageComposerStyle`).
+*   **`Styles/ThinkingStateStyle.swift`**: Defines the `ThinkingStateStyle` protocol, `ThinkingStateStyleConfiguration`, and built-in styles: `.collapsibleHeader`, `.pill`, and `.minimal`.
+*   **`Styles/UserMessageBubbleStyle.swift`**: Defines the `UserMessageBubbleStyle` protocol, `UserMessageBubbleStyleConfiguration`, and built-in styles: `.tailedBubble`, `.roundedCard`, and `.capsule`.
+
+### Views (`Sources/ConversationKit/Views/`)
+*   **`Views/ConversationEnvironment.swift`**: Defines `@Entry` environment values and public view modifiers for styles, structured prompting, attachment configuration, and timeline/agentic callbacks.
+*   **`Views/Timeline/ConversationView.swift`**: Primary entry point to the SDK. Hosts the turn-grouped timeline (`ConversationTurn.group(_:)`), Top-Floating Turn scroll physics, adaptive 60Hz streaming cadence smoother, suggestion chips bar, and bottom safe-area composer chrome.
+*   **`Views/Timeline/MessageView.swift`**: Renders user bubbles (with attachments and tokens) and full-width assistant responses (`ThinkingStateView`, `AgentPlanView`, `ToolCallsGroupView`, `StreamingMarkdownView`, `AgentApprovalView`, `SourceStackView`, inline `MessageError` banner, and `MessageActionBarView`).
+*   **`Views/Timeline/StreamingMarkdownView.swift`**: 120Hz incremental Markdown renderer with $O(1)$ committed block memoization (`MarkdownBlock`, `MarkdownBlock.parse(_:isStreaming:)`) and native syntax-highlighted fenced code blocks.
+*   **`Views/Timeline/MessageActionBarView.swift`**: Copy, regenerate, thumbs-up/down feedback, and custom action bar for assistant messages.
+*   **`Views/Timeline/ScrollToBottomButton.swift`**: Floating Liquid Glass pill button with scroll-offset hysteresis (`>80pt` show / `<24pt` hide).
+*   **`Views/Composer/MessageComposerView.swift`**: Liquid Glass message composer coordinating text entry, `/command` and `@mention` popups, attachment tray, model/capability accessories, and Send/Stop morphological transitions.
+*   **`Views/Composer/AttachmentTrayView.swift`**: Horizontal attachment strip with asynchronous off-main-actor thumbnails, upload progress rings, retry badges, and removal buttons.
+*   **`Views/Composer/ComposerPopupView.swift`**: Floating glass autocomplete list for `/commands` and `@mentions`.
+*   **`Views/Composer/ComposerAccessories.swift`**: Token pills bar, model selector menu pill, and capability toggle pills.
+*   **`Views/Composer/SuggestionChipsBar.swift`**: Horizontal scrollable suggestion chips bar (`PromptSuggestion`) mounted above the composer.
+*   **`Views/Agentic/ThinkingStateView.swift`**: Chain-of-thought reasoning disclosure view styled via `ThinkingStateStyle`.
+*   **`Views/Agentic/ToolCallsGroupView.swift`**: Collapsible parallel/sequential tool call execution cards with arguments, output, and retry controls.
+*   **`Views/Agentic/SourceStackView.swift`**: Grounded citation pills and expandable source list with `http`/`https` link validation.
+*   **`Views/Agentic/AgentPlanView.swift`**: Multi-step agent execution checklist card with progress indicator.
+*   **`Views/Agentic/AgentApprovalView.swift`**: Human-in-the-loop approval card with risk badge and Approve/Deny actions.
 
 ## Architecture Diagram
 
 ```mermaid
 classDiagram
-    class ConversationView~Content, MessageType, AttachmentType~ {
-        +Binding messages
-        +Binding attachments
+    class ConversationView~MessageType, Content~ {
+        +Binding~[MessageType]~ messages
+        +Binding~[ConversationAttachment]~ attachments
+        +String userPrompt
         +content: (MessageType) -> Content
-        +onSendMessage(action)
+        +onSendMessage((ConversationSubmission~MessageType~) async -> Void)
     }
-    class MessageComposerView~AttachmentType~ {
-        +Binding message
-        +Binding attachments
+    class ConversationTurn~MessageType~ {
+        +String id
+        +MessageType? userMessage
+        +[MessageType] assistantMessages
+        +group([MessageType]) [ConversationTurn~MessageType~]$
+    }
+    class ConversationSubmission~MessageType~ {
+        +String id
+        +MessageType message
+        +String text
+        +[ConversationAttachment] attachments
+        +SlashCommand? command
+        +[ResourceMention] mentions
+        +[ComposerToken] tokens
+        +ComposerModelOption? selectedModel
+        +Set~ComposerCapability~ activeCapabilities
     }
     class Message {
         <<interface>>
         +String id
-        +String content
+        +String? content
         +Participant participant
-        +Error error
+        +[ConversationAttachment] attachments
+        +[ComposerToken] tokens
+        +ThinkingTrace? thinkingTrace
+        +[ToolCall] toolCalls
+        +[Citation] citations
+        +AgentPlan? plan
+        +ApprovalRequest? approvalRequest
+        +MessageError? messageError
+        +makeUserMessage(id:content:attachments:tokens:selectedModelID:) Self$
     }
-    class Attachment {
-        <<interface>>
+    class DefaultMessage {
         +String id
+        +String? content
+        +Participant participant
     }
-    class ImageAttachment {
-        +UUID id
-        +PlatformImage image
+    class ConversationAttachment {
+        +String id
+        +String filename
+        +UTType contentType
+        +Payload payload
+        +UploadState uploadState
     }
-    class EmptyAttachment {
-        +UUID id
+    class MessageComposerView {
+        +Binding~String~ text
+        +Binding~[ConversationAttachment]~ attachments
+        +Binding~[ComposerToken]~ tokens
+        +Bool isGenerating
     }
-    class PlatformImage {
-        <<typealias>>
-        UIImage / NSImage
+    class MessageComposerStyle {
+        <<interface>>
+        +makeBody(configuration: MessageComposerStyleConfiguration) Body
     }
-    
-    ConversationView --> MessageComposerView : contains
-    ConversationView --> Message : renders list of
-    ConversationView --> Attachment : binds list of
-    MessageComposerView --> Attachment : binds list of
-    Attachment <|-- ImageAttachment
-    Attachment <|-- EmptyAttachment
-    ImageAttachment --> PlatformImage : wraps
+
+    ConversationView --> ConversationTurn : groups messages into
+    ConversationView --> ConversationSubmission : emits on send
+    ConversationView --> MessageComposerView : hosts in safeAreaBar
+    ConversationView --> Message : renders
+    Message <|.. DefaultMessage
+    Message --> ConversationAttachment : carries
+    MessageComposerView --> ConversationAttachment : binds
+    MessageComposerView --> MessageComposerStyle : styled by
 ```
 
-## SwiftUI Scroll Physics & Concurrency
+## Top-Floating Turn Scroll Physics & Concurrency
 
-`ConversationKit` implements a highly specialized, native scrolling UX matching modern conversational AI interfaces. When the user sends a message, it doesn't violently snap to the top. Instead, it rests comfortably above the text input field. As the AI begins generating its response directly below, the new text smoothly *pushes* the user's message upward until it hits the top navigation bar, at which point it securely *pins* in place, allowing the rest of the generated response to flow downwards off the screen.
+`ConversationKit` v2 implements deterministic **Top-Floating Turn Scroll Physics** designed for streaming AI and agentic interfaces:
 
-To achieve this "Push and Pin" behavior entirely within SwiftUI's native declarative layout engine (without fragile `GeometryReader` clutches), we explicitly tell `.scrollPosition` to target the user's message with `anchor: .top`.
+1. **Turn Grouping (`ConversationTurn.group(_:)`)**: Consecutive timeline messages are grouped into `ConversationTurn` pairs (`userMessage` + `assistantMessages`), where the turn's stable `id` is the user message's `id`.
+2. **Locked Active Turn Runway (`activeTurnMinHeight`)**: The latest active turn is assigned a minimum height equal to the unoccluded scroll viewport height (`max(0, viewportHeight - safeAreaTop - safeAreaBottom)`).
+3. **Single-Shot Top Anchor (`scrollTo(turnID, anchor: .top)`)**: On send, `ConversationView` scrolls the newly submitted turn's `id` to `.top` once. As the assistant streams tokens, expands thinking traces, or renders tool calls, the content grows downward into the pre-allocated runway with $\Delta Y = 0\text{pt}$ and **zero per-token `scrollTo` calls**.
+4. **Scroll-to-Bottom Hysteresis**: `ScrollToBottomButton` monitors distance from the bottom anchor with hysteresis (`>80pt` to reveal, `<24pt` to hide) to prevent oscillation during layout updates.
 
-### Concurrency Optimization (Optimistic UI)
-To make this work fluidly, the layout engine must process the new user message in the exact same render transaction as the keyboard dismissal. Because the SDK intentionally *does not own* the messages array, relying on developers to asynchronously append their messages inside the `async` `onSendMessage` closure caused a 1-frame layout micro-delay that completely broke the `.top` physics.
+### Concurrency Optimization (Optimistic UI Deduplication)
 
-The SDK resolves this conflict via an **Optimistic UI anchor strategy**:
+Because `ConversationView` intentionally does not own the parent's `messages` array, waiting for the parent's `async` `onSendMessage` closure to append the user message would introduce a 1-frame delay after keyboard dismissal. `ConversationView` solves this with an **Optimistic UI placeholder** deduplicated by `id`:
 
 ```mermaid
 sequenceDiagram
     participant User
     participant CV as ConversationView
     participant App as Parent View / Client App
-    
-    User->>CV: Type message and tap "Send"
-    Note over CV: Taps dismisses keyboard
+
+    User->>CV: Tap "Send" in MessageComposerView
+    Note over CV: Dismiss focus & snapshot attachments/tokens
     rect rgb(230, 245, 255)
-        Note over CV: Optimistic UI Flow
-        CV->>CV: Save message to local state (optimisticUserMessage)
-        CV->>CV: Recalculate displayedMessages (sync layout update)
-        CV->>CV: Scroll anchor target set to .top of user message
+        Note over CV: Synchronous Optimistic UI Turn Creation
+        CV->>CV: MessageType.makeUserMessage(id:content:attachments:tokens:selectedModelID:)
+        CV->>CV: Set optimisticUserMessage & activeTurnID = userMessage.id
+        CV->>CV: ConversationTurn.group(displayedMessages) allocates activeTurnMinHeight
+        CV->>CV: Single-shot proxy.scrollTo(turnID, anchor: .top)
     end
-    CV->>App: trigger async onSendMessageAction(message)
-    Note over CV: Composer button changes to "Stop" (isGenerating = true)
-    
-    App->>App: Process message (e.g., API call, DB insert)
-    App->>CV: Append actual message to developer's messages array
-    
+    CV->>App: await onSendMessage(ConversationSubmission<MessageType>)
+    Note over CV: Send button morphs into Stop button (isGenerating = true)
+
+    App->>CV: messages.append(submission.message)
     rect rgb(230, 255, 230)
-        Note over CV: Deduplication Flow
-        CV->>CV: displayedMessages filters/deduplicates by ID
-        CV->>CV: Clear optimisticUserMessage
+        Note over CV: ID-Based Deduplication
+        CV->>CV: displayedMessages deduplicates optimisticUserMessage by id
+        CV->>CV: Clear optimisticUserMessage seamlessly (zero frame jump)
     end
-    Note over CV: UI updates seamlessly without frame jumps
+    App->>CV: Stream assistant tokens into messages[lastIndex].content
+    Note over CV: StreamingMarkdownView updates at 60Hz/120Hz inside locked runway (ΔY = 0pt)
 ```
 
-> **Important API Contract Note:** The deduplication logic relies explicitly on the `id` of the user's message. When the developer's `.onSendMessage` closure executes, they *must* append the exact `message` instance provided by the closure, or map it into a new model using the identical `message.id`. If they map the text into a completely new object with a randomly generated UUID, the deduplication engine will fail to recognize them as the same message, causing the message to briefly appear twice on screen before the optimistic placeholder expires.
+> **Important API Contract Note:** Deduplication relies on the `id` of the user's message. Inside `.onSendMessage { submission in ... }`, always append `submission.message` directly (or preserve `submission.message.id` if mapping into another value). Generating a brand-new UUID will cause the optimistic placeholder and the appended message to briefly appear twice.
 
 ## Usage and Integration
-
-The main way to use this component is by embedding the `ConversationView` in a SwiftUI view hierarchy. The `ConversationView` takes a `Binding` to an array of `Message` objects, a `Binding` to an array of `Attachment` objects, and an `onSendMessage` closure to handle user input.
-
-Here's a basic usage example with attachments:
 
 ```swift
 import SwiftUI
 import ConversationKit
 
 struct ChatView: View {
-    @State private var messages: [DefaultMessage] = []
-    @State private var attachments: [ImageAttachment] = []
+    @State private var messages: [DefaultMessage] = [
+        DefaultMessage(content: "Hello! How can I help you today?", participant: .other)
+    ]
+    @State private var attachments: [ConversationAttachment] = []
     @State private var showingPhotoPicker = false
 
     var body: some View {
         NavigationStack {
             ConversationView(messages: $messages, attachments: $attachments)
-                .onSendMessage { userMessage in
-                    // Clear attachments on send
-                    attachments.removeAll()
-                    // Handle the sent message asynchronously
-                    await processMessage(userMessage)
+                .messageComposerStyle(.classicGlass)
+                .thinkingStateStyle(.collapsibleHeader)
+                .userMessageBubbleStyle(.tailedBubble)
+                .onSendMessage { submission in
+                    await processSubmission(submission)
                 }
                 .attachmentActions {
                     Button("Photos", systemImage: "photo.on.rectangle.angled") {
@@ -144,29 +187,33 @@ struct ChatView: View {
                     }
                 }
                 .navigationTitle("Chat")
+                #if os(iOS)
                 .navigationBarTitleDisplayMode(.inline)
+                #endif
         }
     }
 
-    func processMessage(_ message: any Message) async {
-        // Append the user's message to the messages array
-        if let defaultMessage = message as? DefaultMessage {
-          messages.append(defaultMessage)
-        }
-        // Simulate async response
-        try? await Task.sleep(for: .seconds(1))
-        await MainActor.run {
-            messages.append(DefaultMessage(
-                content: "You said: \(message.content ?? "")",
-                participant: .other
-            ))
-        }
+    @MainActor
+    func processSubmission(_ submission: ConversationSubmission<DefaultMessage>) async {
+        // 1. Append the strongly-typed user message (preserving id)
+        messages.append(submission.message)
+
+        // 2. Append an assistant placeholder (renders loading state while content is nil/empty)
+        var reply = DefaultMessage(content: nil, participant: .other)
+        messages.append(reply)
+        let replyIndex = messages.count - 1
+
+        try? await Task.sleep(for: .milliseconds(400))
+        guard !Task.isCancelled else { return }
+
+        reply.content = "You said: \(submission.text)"
+        messages[replyIndex] = reply
     }
 }
 ```
 
 ## Important Notes
 
-*   The `ConversationView` does not own the `messages` or `attachments` arrays. The parent view is responsible for creating, binding, and clearing them.
-*   **Loading Indicators:** To display a loading state, simply append an AI (`.other`) message with a `nil` or empty `content`. `ConversationView` natively renders a loading view for this state without API breakage.
-*   **Generation State (Send/Stop):** The composer's "Send" button will be disabled if the text field is empty. When `onSendMessage` executes, the "Send" button transforms into a "Stop" button. Tapping it calls `Task.cancel()` on the executing task. End-developers must rely on Swift's cooperative cancellation by checking `try Task.checkCancellation()` within any streaming loops to make the stop button functional.
+*   **Liquid Glass Boundaries:** Never apply `.glassEffect()` to individual scrolling cells inside `ConversationView` (`MessageView`, `ThinkingStateView`, `ToolCallsGroupView`, `SourceStackView`, `AgentPlanView`). Liquid Glass is reserved strictly for floating chrome layers (`MessageComposerView`, `SuggestionChipsBar`, `ComposerPopupView`, `ScrollToBottomButton`).
+*   **Loading Indicators:** Appending an `.other` message with `content == nil` (or empty) and no active agentic cards automatically renders the native pulsing loading indicator.
+*   **Generation State (Send/Stop):** While the async `onSendMessage` closure is executing, the composer's Send button morphs into a Stop button. Tapping Stop cancels the underlying `Task`; check `Task.isCancelled` or `try Task.checkCancellation()` inside streaming loops.

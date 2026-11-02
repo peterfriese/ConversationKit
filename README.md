@@ -1,481 +1,659 @@
 # ConversationKit
 
-ConversationKit is a SwiftUI library that provides an elegant and easy-to-use chat interface for iOS applications. It offers a complete solution for building conversational UIs with support for text messages, images, markdown rendering, and seamless integration with AI services.
+`ConversationKit` is a native SwiftUI conversational AI and agentic chat SDK for **iOS 26.0+, macCatalyst 26.0+, and macOS 26.0+**, built with **Swift 6.2** strict concurrency (`Sendable`) and **zero external dependencies**.
 
-## Features
+It pairs native iOS 26 / macOS 26 **Liquid Glass** floating chrome with deterministic **Top-Floating Turn Physics**, **120Hz Incremental Streaming Markdown**, multimodal attachments, structured prompting (`/commands`, `@mentions`, model & capability selectors), and first-class agentic timeline primitives (`ThinkingTrace`, `ToolCall`, `Citation`, `AgentPlan`, `ApprovalRequest`) organized around the **Stratos 4-Layer Progressive Disclosure** architecture.
 
-- 💬 **Ready-to-use chat interface** with built-in message bubbles
-- 👤 **Multi-participant support** (user vs other)
-- 🖼️ **Image message support** with async loading
-- 📝 **Markdown rendering** for rich text messages
-- ⚡️ **Async/await support** for message handling
-- 🎨 **Customizable message rendering** with custom content closures
-- 📱 **Modern iOS design** with glass effects (iOS 17+)
-- 🔄 **Real-time message streaming** support
-- 📎 **Attachment actions** with customizable menu
-- 🎯 **Gemini-style "Push and Pin" scrolling** (native SwiftUI clamping logic)
-- ⚙️ **Progressive disclosure APIs** for custom actions and disclaimers
-- 🛑 **Interruptible generation** (built-in stop button support)
+## ✨ Key Features
 
-## Requirements
+- 🪟 **Native iOS 26 / macOS 26 Liquid Glass Chrome**: Built on `GlassEffectContainer`, `.glassEffect(.regular.interactive())`, and `.safeAreaBar(edge: .bottom)`. Liquid Glass is strictly confined to floating chrome (composer, suggestion chips, popups, and scroll-to-bottom button) and never applied inside scrolling timeline cells.
+- 🎯 **Top-Floating Turn Physics & Non-Pushing AI Responses**: Groups consecutive messages into `ConversationTurn` pairs (`ConversationTurn.group(_:)`), allocates a locked `activeTurnMinHeight` unoccluded viewport runway for the active turn, and performs a single-shot `proxy.scrollTo(turnID, anchor: .top)` on send. Streaming tokens expand downward into the pre-allocated runway with $\Delta Y = 0\text{pt}$ and zero per-token `scrollTo` jitter.
+- ⚡️ **120Hz Incremental Streaming Markdown**: `StreamingMarkdownView` (`MarkdownBlock.parse(_:isStreaming:)`) memoizes completed paragraph, heading, blockquote, list, and fenced code blocks in $O(1)$ per token while re-parsing only the active tail block, paired with a 60Hz adaptive token cadence smoother (`.streamingCadenceEnabled(_:)`).
+- 🧩 **Stratos 4-Layer Progressive Disclosure**:
+  - **Layer 1 (Troposphere — Drop-in)**: `ConversationView(messages: $messages)` with strongly-typed `.onSendMessage { submission in ... }` or `.onSendMessage { message in ... }` (zero `as? DefaultMessage` downcasting).
+  - **Layer 2 (Stratosphere — Modifiers & Built-in Styles)**: Swap composer, thinking, and bubble styles or enable structured prompting via declarative modifiers.
+  - **Layer 3 (Mesosphere — Composable Views & Agentic Primitives)**: Embed standalone agentic views (`ThinkingStateView`, `ToolCallsGroupView`, `SourceStackView`, `AgentPlanView`, `AgentApprovalView`, `StreamingMarkdownView`) directly in custom layouts.
+  - **Layer 4 (Thermosphere — Custom Protocols & Styles)**: Conform your own domain models to `Message` and implement custom `MessageComposerStyle`, `ThinkingStateStyle`, and `UserMessageBubbleStyle` protocols.
+- 📎 **Universal Multimodal Attachments**: `ConversationAttachment` supports `ConversationAttachment.Payload` cases `.image(PlatformImageBox)`, `.file(URL)`, and `.data(Data, contentType: UTType, filename: String)` with off-main-actor thumbnail decoding (`PlatformThumbnailGenerator`) and explicit upload lifecycle states (`ConversationAttachment.UploadState`: `.ready`, `.uploading(progress: Double)`, `.failed(error: String)`).
+- ⌨️ **Structured Prompting & Tokenization**: Built-in `/command` and `@mention` autocomplete popups (`ComposerTextBuffer`), suggestion chips (`PromptSuggestion` + `.suggestionChips(_:handoff:)`), model selector (`ComposerModelOption` + `.composerModels(_:selection:)`), and capability toggles (`ComposerCapability` + `.composerCapabilities(_:active:)`).
+- 🧠 **First-Class Agentic Primitives**: Native timeline support for chain-of-thought reasoning (`ThinkingTrace`, collapsed by default), parallel tool execution (`ToolCall`), grounded citations (`Citation` with `http`/`https` URL sanitization via `citation.sanitizedURL` and `url.isAllowedConversationURL`), multi-step execution checklists (`AgentPlan`), and human-in-the-loop tool approvals (`ApprovalRequest`).
+- 🛑 **Cooperative Cancellation**: Automatic Send-to-Stop button morphing with cooperative `Task` cancellation when `onSendMessage` is in flight.
 
-- iOS 17.0+
-- Swift 5.10+
-- Xcode 15.0+
+## 📋 Requirements
 
-## Installation
+- **iOS 26.0+** / **macCatalyst 26.0+** / **macOS 26.0+**
+- **Swift 6.2+**
+- **Xcode 26.0+**
 
-Add ConversationKit to your project using Swift Package Manager:
+## 📦 Installation
+
+Add `ConversationKit` to your `Package.swift` dependencies using Swift Package Manager:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/peterfriese/ConversationKit", from: "0.1.1")
+    .package(url: "https://github.com/peterfriese/ConversationKit.git", from: "2.0.0")
 ]
 ```
 
-## Quick Start
+Or track the `v2` branch directly:
 
-### Basic Usage
+```swift
+dependencies: [
+    .package(url: "https://github.com/peterfriese/ConversationKit.git", branch: "v2")
+]
+```
+
+Then add `"ConversationKit"` to your target's dependencies:
+
+```swift
+.target(
+    name: "YourApp",
+    dependencies: ["ConversationKit"]
+)
+```
+
+---
+
+## 🚀 Stratos 4-Layer Progressive Disclosure
+
+### Layer 1: Troposphere (Drop-In Experience)
+
+Start with 5 lines of code using `DefaultMessage` and strongly-typed `.onSendMessage`—no `as? DefaultMessage` downcasting required:
 
 ```swift
 import SwiftUI
 import ConversationKit
 
 struct ChatView: View {
-    @State private var messages: [DefaultMessage] = []
-    
+    @State private var messages: [DefaultMessage] = [
+        DefaultMessage(content: "Hello! How can I help you today?", participant: .other)
+    ]
+
     var body: some View {
         NavigationStack {
             ConversationView(messages: $messages)
-                .onSendMessage { userMessage in
-                    // Handle the sent message asynchronously
-                    await processMessage(userMessage)
-                }
-                .navigationTitle("Chat")
-                .navigationBarTitleDisplayMode(.inline)
-        }
-    }
-    
-    func processMessage(_ message: any Message) async {
-        // Append the user's message to the messages array
-        if let defaultMessage = message as? DefaultMessage {
-          messages.append(defaultMessage)
-        }
-        // Simulate async response
-        try? await Task.sleep(for: .seconds(1))
-        await MainActor.run {
-            messages.append(DefaultMessage(
-                content: "You said: \(message.content ?? "")",
-                participant: .other
-            ))
-        }
-    }
-}
-```
+                .onSendMessage { submission in
+                    // 1. Append the strongly-typed user message (preserving submission.message.id)
+                    messages.append(submission.message)
 
-### With Initial Messages
+                    // 2. Append an assistant placeholder (renders the thinking/loading indicator)
+                    var response = DefaultMessage(content: nil, participant: .other)
+                    messages.append(response)
+                    let index = messages.count - 1
 
-```swift
-@State private var messages: [DefaultMessage] = [
-    .init(content: "Hello! How can I help you today?", participant: .other),
-    .init(content: "I'm doing great, thanks!", participant: .user),
-    .init(content: "That's wonderful to hear!", participant: .other)
-]
-```
-
-## Core Components
-
-### The `Message` protocol
-
-The basic unit of conversation is the `Message` protocol. You can use your own types to represent messages, as long as they conform to this protocol.
-
-```swift
-public protocol Message: Identifiable, Hashable {
-  var content: String? { get set }
-  var imageURL: String? { get }
-  var participant: Participant { get }
-  var error: (any Error)? { get }
-
-  init(content: String?, imageURL: String?, participant: Participant)
-}
-
-public enum Participant {
-    case other
-    case user
-}
-```
-
-ConversationKit provides a default implementation of this protocol, `DefaultMessage`.
-
-### ConversationView
-
-The main chat interface. It can be initialized in a few ways:
-
-1.  **With `DefaultMessage` and attachments**:
-    ```swift
-    ConversationView(
-        messages: $messages,
-        attachments: $attachments,
-        userPrompt: $userPrompt
-    )
-    ```
-2.  **With a custom message type and attachments**:
-    ```swift
-    ConversationView<MyCustomMessage>(
-        messages: $messages,
-        attachments: $attachments,
-        userPrompt: $userPrompt
-    )
-    ```
-3.  **With custom message rendering**:
-    ```swift
-    ConversationView(
-        messages: $messages,
-        attachments: $attachments,
-        userPrompt: $userPrompt
-    ) { message in
-        // Your custom message view
-        CustomMessageView(message: message)
-    }
-    ```
-
-### Interrupting Generation (Stop Button)
-
-When the user sends a message, `ConversationView` automatically tracks the execution of your `onSendMessage` block. During this time, the "Send" button is replaced by a "Stop" button.
-
-To make the stop button work properly, your async code must be aware of Swift's cooperative cancellation. You can do this by using APIs that automatically throw `CancellationError` (like `URLSession`), or by checking manually during streaming operations:
-
-```swift
-.onSendMessage { message in
-    messages.append(message)
-    
-    // Example: A custom async stream
-    let stream = await myAIService.streamResponse(message)
-    
-    for try await chunk in stream {
-        // This line is required for the "Stop" button to cancel the stream
-        try Task.checkCancellation() 
-        
-        messages.last?.content?.append(chunk)
-    }
-}
-```
-
-## Advanced Usage
-
-### Custom Message Rendering
-
-For complete control over message appearance:
-
-```swift
-ConversationView(messages: $messages) { message in
-    VStack {
-        // Handle images
-        if let imageURL = message.imageURL {
-            AsyncImage(url: URL(string: imageURL)) { phase in
-                if let image = phase.image {
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                        .frame(maxWidth: 200, maxHeight: 400)
-                } else if phase.error != nil {
-                    Image(systemName: "icloud.slash")
-                } else {
-                    ProgressView()
-                }
-            }
-            .cornerRadius(8.0)
-        }
-        
-        // Handle text content
-        if let content = message.content {
-            HStack {
-                if message.participant == .user {
-                    Spacer()
-                }
-                Markdown(content)
-                    .padding()
-                    .background {
-                        Color(uiColor: message.participant == .other
-                              ? .secondarySystemBackground
-                              : .systemGray4)
+                    // 3. Stream tokens with cooperative cancellation support
+                    for word in ["Here ", "is ", "a ", "streamed ", "response!"] {
+                        try? await Task.sleep(for: .milliseconds(80))
+                        guard !Task.isCancelled else { return }
+                        response.content = (response.content ?? "") + word
+                        messages[index] = response
                     }
-                    .roundedCorner(10, corners: .allCorners)
-                if message.participant == .other {
+                }
+                .navigationTitle("Assistant")
+        }
+    }
+}
+```
+
+You can also use the convenience overload that receives `MessageType` directly:
+
+```swift
+ConversationView(messages: $messages)
+    .onSendMessage { userMessage in
+        messages.append(userMessage)
+    }
+```
+
+---
+
+### Layer 2: Stratosphere (View Modifiers & Built-In Styles)
+
+Customize visual presentation, structured prompting, attachments, and timeline callbacks using idiomatic SwiftUI modifiers.
+
+#### Built-in Style Protocols
+
+- **`MessageComposerStyle`**:
+  - `.classicGlass` *(default)*: 3-zone bookend sibling layout (`[+]` button + central glass field + trailing send/stop button inside a unified `GlassEffectContainer`).
+  - `.cardGlass`: 2-row AI assistant card with the text editor on top and an integrated accessory/action toolbar on the bottom row.
+  - `.compactGlass`: Single-row ultra-compact capsule composer.
+- **`ThinkingStateStyle`**:
+  - `.collapsibleHeader` *(default)*: Expandable disclosure card showing status, duration badge, and monospace reasoning transcript.
+  - `.pill`: Compact capsule indicator.
+  - `.minimal`: Lightweight inline status row.
+- **`UserMessageBubbleStyle`**:
+  - `.tailedBubble` *(default)*: iMessage/Gemini-inspired bubble with an asymmetric bottom-trailing corner.
+  - `.roundedCard`: Uniform rounded card with subtle border.
+  - `.capsule`: Pill-shaped user prompt bubble.
+
+```swift
+ConversationView(messages: $messages, attachments: $attachments)
+    .messageComposerStyle(.cardGlass)
+    .thinkingStateStyle(.collapsibleHeader)
+    .userMessageBubbleStyle(.tailedBubble)
+    .streamingCadenceEnabled(true)
+```
+
+#### Structured Prompting (`/Commands`, `@Mentions`, Models, Capabilities & Chips)
+
+```swift
+@State private var selectedModel: ComposerModelOption? = ComposerModelOption(
+    id: "gemini-2.5-pro",
+    name: "Gemini 2.5 Pro",
+    subtitle: "Deep reasoning & coding",
+    badge: "Pro",
+    symbolName: "sparkles"
+)
+@State private var activeCapabilities: Set<ComposerCapability> = [.think, .search]
+@State private var tokens: [ComposerToken] = []
+
+ConversationView(messages: $messages, attachments: $attachments)
+    .suggestionChips(
+        [
+            PromptSuggestion(
+                title: "Summarize PR",
+                prompt: "Summarize the latest pull request",
+                symbolName: "doc.text.magnifyingglass",
+                behavior: .populateComposer
+            ),
+            PromptSuggestion(
+                title: "Audit Concurrency",
+                prompt: "Audit strict Swift 6.2 Sendable conformance",
+                symbolName: "checkmark.shield",
+                behavior: .immediateSend
+            )
+        ],
+        handoff: .populateComposer // PromptHandoffBehavior: .populateComposer or .immediateSend
+    )
+    .slashCommands([
+        SlashCommand(
+            trigger: "summarize",
+            title: "Summarize",
+            description: "Condense into key takeaways",
+            symbolName: "text.redaction"
+        ),
+        SlashCommand(
+            trigger: "plan",
+            title: "Create Plan",
+            description: "Draft a step-by-step execution plan",
+            symbolName: "checklist"
+        )
+    ])
+    .resourceMentions([
+        ResourceMention(
+            queryHandle: "ConversationView.swift",
+            title: "ConversationView.swift",
+            subtitle: "Sources/ConversationKit/Views/Timeline",
+            symbolName: "swift",
+            kind: .file
+        )
+    ])
+    .composerModels(
+        [
+            ComposerModelOption(
+                id: "gemini-2.5-pro",
+                name: "Gemini 2.5 Pro",
+                subtitle: "Deep reasoning & coding",
+                badge: "Pro",
+                symbolName: "sparkles"
+            ),
+            ComposerModelOption(
+                id: "gemini-2.5-flash",
+                name: "Gemini 2.5 Flash",
+                subtitle: "Fast multimodal responses",
+                badge: "Fast",
+                symbolName: "bolt.fill"
+            )
+        ],
+        selection: $selectedModel
+    )
+    .composerCapabilities(
+        [.think, .search, .image],
+        active: $activeCapabilities
+    )
+    .composerTokens($tokens)
+```
+
+#### Multimodal Attachments & Upload Lifecycle
+
+Bind `[ConversationAttachment]` and register custom attachment actions or upload handlers:
+
+```swift
+ConversationView(messages: $messages, attachments: $attachments)
+    .attachmentActions {
+        Button("Photos", systemImage: "photo.on.rectangle.angled") {
+            showingPhotoPicker = true
+        }
+        Button("Files", systemImage: "folder") {
+            showingFileImporter = true
+        }
+    }
+    .onAttachmentUpload { attachment, updateProgress in
+        // Report upload progress and return the updated ConversationAttachment
+        updateProgress(0.5)
+        try await Task.sleep(for: .milliseconds(250))
+        updateProgress(1.0)
+        var updated = attachment
+        updated.uploadState = .ready
+        return updated
+    }
+    .onAttachmentRetry { failedAttachment in
+        // Retry failed upload
+    }
+    // Or hide the attachment button completely:
+    // .disableAttachments()
+```
+
+#### Timeline Callbacks & Chrome Customization
+
+```swift
+ConversationView(messages: $messages)
+    .onRegenerateMessage { messageID in
+        await regenerate(messageID: messageID)
+    }
+    .onMessageFeedback { messageID, feedback in
+        // feedback is MessageFeedback? (.thumbsUp, .thumbsDown, or nil when cleared)
+        recordFeedback(for: messageID, feedback: feedback)
+    }
+    .onRetryMessage { messageID in
+        await retryMessage(messageID: messageID)
+    }
+    .onToolCallRetry { failedToolCall in
+        await retryToolCall(failedToolCall)
+    }
+    .onApprovalDecision { request, decision in
+        // decision is ApprovalRequest.Decision (.allowOnce, .alwaysAllow, .deny, etc.)
+        await handleApproval(request: request, decision: decision)
+    }
+    .messageActions { message in
+        Button("Share", systemImage: "square.and.arrow.up") {
+            share(message)
+        }
+    }
+    .emptyConversationView {
+        ContentUnavailableView("Ask Anything", systemImage: "sparkles")
+    }
+    .conversationDisclaimer {
+        Text("AI responses may be inaccurate. Verify important details.")
+            .font(.caption2)
+            .foregroundStyle(.secondary)
+    }
+```
+
+---
+
+### Layer 3: Mesosphere (Composable Views & Agentic Primitives)
+
+Every agentic timeline component in `ConversationKit` is a standalone public `View` backed by `Sendable`, `Hashable`, `Codable` value types:
+
+- **`ThinkingTrace` & `ThinkingStateView`**: Chain-of-thought reasoning indicator. Collapsed by default (`ThinkingTrace.defaultExpanded == false`) to preserve vertical reading space.
+- **`ToolCall` & `ToolCallsGroupView`**: Displays function/tool invocations (`ToolCall.Status`: `.pending`, `.running(startedAt:)`, `.succeeded(duration:)`, `.failed(error:duration:)`, `.cancelled(duration:)`), arguments JSON, result JSON, and retry buttons.
+- **`Citation` & `SourceStackView`**: Grounded source cards with automatic `http`/`https` URL allowlist validation (`citation.sanitizedURL` and `url.isAllowedConversationURL`—rejecting `javascript:`, `data:`, and `file:` schemes).
+- **`AgentPlan` & `AgentPlanView`**: Multi-step execution checklist (`AgentPlan.Step`) with live completion progress.
+- **`ApprovalRequest` & `AgentApprovalView`**: Human-in-the-loop confirmation card (`ApprovalRequest.Decision`: `.pending`, `.allowOnce`, `.alwaysAllow`, `.deny`, `.cancelled`) with risk badges (`.low`, `.medium`, `.high`).
+- **`MessageActionBarView`**, **`StreamingMarkdownView`**, and **`ScrollToBottomButton`**.
+
+```swift
+let assistantMessage = DefaultMessage(
+    content: "I audited the package and verified strict concurrency compliance.",
+    participant: .other,
+    thinkingTrace: ThinkingTrace(
+        status: .completed(duration: 1.8),
+        summary: "Analyzed 24 Swift files for Sendable and MainActor isolation.",
+        transcript: "1. Inspected Model types\n2. Verified MainActor view isolation"
+    ),
+    toolCalls: [
+        ToolCall(
+            name: "swift_build_check",
+            symbolName: "hammer.fill",
+            status: .succeeded(duration: 0.9),
+            argumentsSummary: "strictConcurrency: complete",
+            resultSummary: "Build complete! (0 warnings, 0 errors)",
+            argumentsJSON: #"{"strictConcurrency": "complete"}"#,
+            resultJSON: #"{"warnings": 0, "errors": 0}"#
+        )
+    ],
+    citations: [
+        Citation(
+            index: 1,
+            title: "Swift Concurrency Documentation",
+            domain: "docs.swift.org",
+            snippet: "Sendable types can be safely shared across arbitrary concurrent contexts.",
+            url: URL(string: "https://docs.swift.org/swift-book/documentation/the-swift-programming-language/concurrency/")
+        )
+    ],
+    plan: AgentPlan(
+        title: "Verification Plan",
+        steps: [
+            AgentPlan.Step(title: "Audit public types for Sendable", status: .completed),
+            AgentPlan.Step(title: "Run unit test suite", status: .completed)
+        ]
+    ),
+    approvalRequest: ApprovalRequest(
+        id: "deploy-preview-1",
+        title: "Publish Documentation Preview",
+        detail: "Uploads generated DocC archive to staging.",
+        riskLevel: .medium,
+        scopeIdentifier: "docs.example.com",
+        changePreview: "Upload ConversationKit.doccarchive (4.2 MB)",
+        decision: .pending
+    )
+)
+```
+
+---
+
+### Layer 4: Thermosphere (Custom Protocols & Styles)
+
+#### Custom `Message` Model
+
+To use your own domain model with `ConversationView`, conform to `Message` and implement `makeUserMessage(id:content:attachments:tokens:selectedModelID:)`. Preserving the `id` passed into `makeUserMessage` guarantees seamless optimistic UI deduplication:
+
+```swift
+import ConversationKit
+import Foundation
+
+struct CustomChatMessage: Message {
+    var id: String
+    var content: String?
+    var participant: Participant
+    var createdAt: Date = .now
+    var attachments: [ConversationAttachment] = []
+    var tokens: [ComposerToken] = []
+    var selectedModelID: String?
+    var messageError: MessageError?
+
+    // Custom domain metadata
+    var totalTokensUsed: Int?
+
+    static func makeUserMessage(
+        id: String,
+        content: String?,
+        attachments: [ConversationAttachment],
+        tokens: [ComposerToken],
+        selectedModelID: String?
+    ) -> CustomChatMessage {
+        CustomChatMessage(
+            id: id,
+            content: content,
+            participant: .user,
+            attachments: attachments,
+            tokens: tokens,
+            selectedModelID: selectedModelID
+        )
+    }
+}
+```
+
+#### Custom Style Conformances
+
+Implement `MessageComposerStyle`, `ThinkingStateStyle`, or `UserMessageBubbleStyle` to build bespoke visual treatments while reusing `ConversationKit`'s state and layout engine:
+
+```swift
+struct CustomBannerThinkingStyle: ThinkingStateStyle {
+    func makeBody(configuration: ThinkingStateStyleConfiguration) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Button(action: configuration.toggleExpanded) {
+                HStack {
+                    configuration.headerIcon
+                    Text(configuration.title)
+                        .font(.caption.weight(.medium))
                     Spacer()
+                    if !configuration.formattedElapsed.isEmpty {
+                        Text(configuration.formattedElapsed)
+                            .font(.caption2.monospacedDigit())
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
+            .buttonStyle(.plain)
+
+            if configuration.isExpanded {
+                configuration.transcriptContent
+            }
         }
+        .padding(10)
+        .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: 12))
     }
 }
 ```
 
-### Message Streaming & The "Push and Pin" UX
+---
 
-ConversationKit features a custom, physics-driven scrolling paradigm designed specifically for AI chatbots. When a user sends a short message, it rests naturally at the bottom above the composer. As the AI begins generating its response directly below, the expanding text smoothly *pushes* the user's message upward natively. The exact moment the user's message touches the top navigation bar, the ScrollView natively *pins* it in place, allowing the rest of the massive generated response to flow organically downwards out of view!
+## 📐 Top-Floating Turn Physics & Optimistic UI
 
-This relies entirely on SwiftUI's brilliant internal layout clamping, removing the need for fragile `GeometryReader` clutches, and ensures the user is never violently auto-scrolled away from the text they are reading.
+`ConversationKit` v2 replaces fragile per-token scroll observers with a deterministic **Top-Floating Turn Engine**:
 
-**Important Note:** To deliver this butter-smooth scroll physics, ConversationKit utilizes an **Optimistic UI state**. It instantly adds the user's message to the layout internally the exact millisecond the Send button is tapped to perfectly sync with the keyboard dismissal animation. You still *must* append the user's message to your own `messages` array inside your `onSendMessage` closure (as documented below). The SDK automatically deduplicates your actual message against its optimistic placeholder.
-> **Critical UUID Constraint:** When mapping the user's message into your array, you *must* preserve the exact `message.id` provided to you in the `.onSendMessage` closure. If you create a new Message with a brand new UUID instead, the deduplication engine will fail and the message will momentarily jump or appear twice.
+1. **Turn Grouping (`ConversationTurn.group(_:)`)**: Consecutive timeline messages are paired into cohesive turns (`userMessage` + `assistantMessages`, or standalone system/greeting turns).
+2. **Locked Active Runway (`activeTurnMinHeight`)**: The active latest turn is given a minimum height equal to the unoccluded scroll viewport height (`max(0, viewportHeight - safeAreaTop - safeAreaBottom)`).
+3. **Single-Shot Top Anchor**: When the user submits a prompt, `ConversationView` records an optimistic user message synchronously in the same render transaction as keyboard dismissal and scrolls the new `ConversationTurn.id` to `anchor: .top`.
+4. **Zero-Jitter Streaming ($\Delta Y = 0\text{pt}$)**: As the AI streams tokens, expands reasoning traces, or updates tool calls, content grows downward into the pre-allocated `activeTurnMinHeight` runway without calling `scrollTo` on every token.
 
-Support for real-time streaming responses is fully native:
+> **Important ID Contract:** When appending the user's message inside `.onSendMessage`, always append `submission.message` directly (or preserve `submission.message.id` when mapping). `ConversationView` deduplicates its optimistic user message placeholder against your `messages` array by `id`.
 
-```swift
-func streamResponse() async {
-    let responseText = "This is a streaming response that appears character by character."
-    var message = DefaultMessage(content: "", participant: .other)
-    messages.append(message)
-    
-    for character in responseText {
-        message.content?.append(character)
-        messages[messages.count - 1] = message
-        try? await Task.sleep(for: .milliseconds(100))
-    }
-}
-```
+---
 
-### Attachment Actions
+## 🤖 AI Integration Examples
 
-Add custom attachment functionality:
+The following examples match the complete reference implementations in [`Examples/AIChatDemo/`](Examples/AIChatDemo).
 
-```swift
-ConversationView(messages: $messages)
-    .attachmentActions {
-        Button(action: { /* handle photo selection */ }) {
-            Label("Photos", systemImage: "photo.on.rectangle.angled")
-        }
-        Button(action: { /* handle camera */ }) {
-            Label("Camera", systemImage: "camera")
-        }
-        Button(action: { /* handle documents */ }) {
-            Label("Documents", systemImage: "doc")
-        }
-    }
-```
-
-### Disable Attachments
-
-You can disable the attachments button by applying the `.disableAttachments()` modifier to the `ConversationView`. This will hide the button in the `MessageComposerView`.
-
-```swift
-ConversationView(messages: $messages)
-    .disableAttachments()
-```
-
-## AI Integration Examples
-
-### Firebase AI Integration
+### Firebase AI Logic (`FirebaseAI`)
 
 ```swift
 import ConversationKit
 import FirebaseAI
+import PhotosUI
+import SwiftUI
+import UniformTypeIdentifiers
 
+@MainActor
 @Observable
-class FirebaseAIChatViewModel {
+final class FirebaseAILogicChatViewModel {
     var messages: [DefaultMessage] = []
+    var attachments: [ConversationAttachment] = []
+    var selectedItems: [PhotosPickerItem] = []
+
     private let model: GenerativeModel
     private let chat: Chat
-    
+
     init() {
         let firstMessage = DefaultMessage(
             content: "Hello! How can I help you today?",
             participant: .other
         )
         self.messages = [firstMessage]
-        
+
         model = FirebaseAI
             .firebaseAI(backend: .googleAI())
             .generativeModel(modelName: "gemini-2.5-flash")
-        
+
         let history = [
             ModelContent(role: "model", parts: firstMessage.content ?? "")
         ]
         chat = model.startChat(history: history)
     }
-    
-    func sendMessage(_ message: any Message) async {
-        if let defaultMessage = message as? DefaultMessage {
-          messages.append(defaultMessage)
-        }
-        if let content = message.content {
-            var responseText: String
-            do {
-                let response = try await chat.sendMessage(content)
-                responseText = response.text ?? ""
-            } catch {
-                responseText = "I'm sorry, I don't understand that. Please try again. \(error.localizedDescription)"
+
+    func sendMessage(_ submission: ConversationSubmission<DefaultMessage>) async {
+        messages.append(submission.message)
+
+        let responseText: String
+        do {
+            let imageParts: [InlineDataPart] = submission.attachments.compactMap { attachment in
+                switch attachment.payload {
+                case .image(let imageBox):
+                    #if canImport(UIKit)
+                    if let jpegData = imageBox.image.jpegData(compressionQuality: 0.85) {
+                        return InlineDataPart(data: jpegData, mimeType: "image/jpeg")
+                    }
+                    #endif
+                    if let pngData = imageBox.pngData() {
+                        return InlineDataPart(data: pngData, mimeType: "image/png")
+                    }
+                    return nil
+
+                case .data(let data, let contentType, _):
+                    let mimeType = contentType.preferredMIMEType ?? "application/octet-stream"
+                    return InlineDataPart(data: data, mimeType: mimeType)
+
+                case .file(let url):
+                    guard let data = try? Data(contentsOf: url) else { return nil }
+                    let mimeType = attachment.contentType.preferredMIMEType ?? "application/octet-stream"
+                    return InlineDataPart(data: data, mimeType: mimeType)
+                }
             }
-            let response = DefaultMessage(content: responseText, participant: .other)
-            messages.append(response)
+
+            let parts: [PartsRepresentable] = imageParts + [submission.text]
+            let response = try await chat.sendMessage(parts)
+            responseText = response.text ?? ""
+        } catch {
+            responseText = "I'm sorry, I don't understand that. Please try again. \(error.localizedDescription)"
         }
+
+        let response = DefaultMessage(content: responseText, participant: .other)
+        messages.append(response)
     }
 }
 
-struct FirebaseAIChatView: View {
-    @State private var viewModel = FirebaseAIChatViewModel()
-    
+struct FirebaseAILogicChatView: View {
+    @State private var viewModel = FirebaseAILogicChatViewModel()
+    @State private var showingPhotoPicker = false
+
     var body: some View {
         NavigationStack {
-            ConversationView(messages: $viewModel.messages)
-                .navigationTitle("AI Chat")
+            ConversationView(messages: $viewModel.messages, attachments: $viewModel.attachments)
+                .onSendMessage { submission in
+                    await viewModel.sendMessage(submission)
+                }
+                .attachmentActions {
+                    Button("Photos", systemImage: "photo.on.rectangle.angled") {
+                        showingPhotoPicker = true
+                    }
+                }
+                .navigationTitle("Firebase AI Chat")
+                #if os(iOS)
                 .navigationBarTitleDisplayMode(.inline)
-                .onSendMessage { message in
-                    await viewModel.sendMessage(message)
+                #endif
+                .photosPicker(
+                    isPresented: $showingPhotoPicker,
+                    selection: $viewModel.selectedItems,
+                    maxSelectionCount: 5,
+                    matching: .images
+                )
+                .onChange(of: viewModel.selectedItems) {
+                    Task { @MainActor in
+                        for (index, item) in viewModel.selectedItems.enumerated() {
+                            if let data = try? await item.loadTransferable(type: Data.self),
+                               let imageBox = PlatformImageBox(data: data)
+                            {
+                                viewModel.attachments.append(
+                                    ConversationAttachment(
+                                        imageBox: imageBox,
+                                        filename: "Photo-\(index + 1).jpg"
+                                    )
+                                )
+                            }
+                        }
+                        viewModel.selectedItems.removeAll()
+                    }
                 }
         }
     }
 }
 ```
 
-### Foundation Models Integration
+### Apple Foundation Models (`FoundationModels`)
 
 ```swift
 import ConversationKit
 import FoundationModels
+import SwiftUI
 
+@available(iOS 26.0, macCatalyst 26.0, macOS 26.0, *)
 struct FoundationModelChatView: View {
     @State private var messages: [DefaultMessage] = [
-        .init(content: "Hello! How can I help you today?", participant: .other)
+        DefaultMessage(content: "Hello! How can I help you today?", participant: .other)
     ]
-    let session = LanguageModelSession()
-    
+
+    private let session = LanguageModelSession()
+
     var body: some View {
         NavigationStack {
             ConversationView(messages: $messages)
-                .navigationTitle("AI Chat")
+                .onSendMessage { submission in
+                    messages.append(submission.message)
+
+                    let responseMessage: DefaultMessage
+                    do {
+                        let response = try await session.respond(to: submission.text)
+                        responseMessage = DefaultMessage(
+                            content: response.content,
+                            participant: .other
+                        )
+                    } catch {
+                        responseMessage = DefaultMessage(
+                            content: "An error has occurred. Try again later.",
+                            participant: .other,
+                            error: error
+                        )
+                    }
+                    messages.append(responseMessage)
+                }
+                .navigationTitle("On-Device Chat")
+                #if os(iOS)
                 .navigationBarTitleDisplayMode(.inline)
-                .onSendMessage { message in
-                    if let defaultMessage = message as? DefaultMessage {
-                      messages.append(defaultMessage)
-                    }
-                    if let content = message.content {
-                        var responseText: String
-                        do {
-                            let response = try await session.respond(to: content)
-                            responseText = response.content
-                        } catch {
-                            responseText = "I'm sorry, I don't understand that. Please try again. \(error.localizedDescription)"
-                        }
-                        let response = DefaultMessage(content: responseText, participant: .other)
-                        messages.append(response)
-                    }
-                }
+                #endif
         }
     }
 }
 ```
 
-## Error Handling
+---
 
-`ConversationKit` provides a robust mechanism for handling and displaying errors that may occur during asynchronous operations, such as fetching a response from an AI service.
+## ⚠️ Error Handling
 
-### Attaching Errors to Messages
-
-The `Message` protocol includes an optional `error` property. You can create a message with an associated error and display it in the conversation history. `MessageView` will automatically render a default error UI if a message contains an error.
+`ConversationKit` v2 models message-level errors with the `Sendable`, `Hashable`, `Codable` `MessageError` value type:
 
 ```swift
-.onSendMessage { userMessage in
-    do {
-        let response = try await chatService.sendMessage(userMessage.content ?? "")
-        await MainActor.run {
-            messages.append(DefaultMessage(content: response, participant: .other))
-        }
-    } catch {
-        await MainActor.run {
-            messages.append(DefaultMessage(
-                content: "Sorry, an error occurred.",
-                participant: .other,
-                error: error
-            ))
-        }
-    }
+public struct MessageError: Identifiable, Hashable, Sendable, Codable {
+    public let id: String
+    public var message: String
+    public var detail: String?
+    public var isRetryable: Bool
 }
 ```
 
-### Presenting Errors
-
-To handle errors presented by `ConversationKit` views (for example, when a user taps the info button on a message with an error), use the `.onError(perform:)` view modifier. This modifier allows you to catch the error and present it using any standard SwiftUI presentation mechanism.
-
-For convenience when using presentation modifiers like `.sheet(item:)`, `ConversationKit` provides an `ErrorWrapper` struct that makes any `Error` identifiable.
+You can attach a structured `MessageError` or any Swift `Error` directly to `DefaultMessage`:
 
 ```swift
-struct MyChatView: View {
-    @State private var messages: [DefaultMessage] = []
-    @State private var errorWrapper: ErrorWrapper?
+// Using a structured MessageError:
+let errorMessage = DefaultMessage(
+    content: "Generation interrupted while contacting the model endpoint.",
+    participant: .other,
+    messageError: MessageError(
+        message: "Rate limit exceeded (HTTP 429)",
+        detail: "Quota exhausted for gemini-2.5-pro. Retry in 15 seconds.",
+        isRetryable: true
+    )
+)
 
-    var body: some View {
-        ConversationView(messages: $messages)
-            .onSendMessage { message in
-                // ... async logic that might throw an error
-            }
-            .onError { error in
-                errorWrapper = ErrorWrapper(error: error)
-            }
-            .sheet(item: $errorWrapper) { wrapper in
-                NavigationStack {
-                    VStack {
-                        Text("An Error Occurred")
-                            .font(.headline)
-                            .padding()
-                        Text(wrapper.error.localizedDescription)
-                        Spacer()
-                    }
-                    .toolbar {
-                        ToolbarItem(placement: .cancellationAction) {
-                            Button("Dismiss") {
-                                errorWrapper = nil
-                            }
-                            .labelStyle(.titleOnly)
-                        }
-                    }
-                }
-            }
-    }
-}
-```
-
-## Message Types
-
-### Text Messages
-
-```swift
-DefaultMessage(content: "Hello, how are you?", participant: .user)
-```
-
-### Image Messages
-
-```swift
-DefaultMessage(
-    content: "Check out this image!",
-    imageURL: "https://example.com/image.jpg",
-    participant: .other
+// Or convenience initializer wrapping any Swift Error:
+let fallbackMessage = DefaultMessage(
+    content: "An error has occurred. Try again later.",
+    participant: .other,
+    error: error
 )
 ```
 
-### Image-Only Messages
+When a message has a non-nil `messageError`, `MessageView` renders an inline error banner with the error summary, optional diagnostic details, and an interactive **Retry** button (when `isRetryable == true`). Handle retry taps with `.onRetryMessage`:
 
 ```swift
-DefaultMessage(
-    imageURL: "https://example.com/image.jpg",
-    participant: .user
-)
+ConversationView(messages: $messages)
+    .onRetryMessage { failedMessageID in
+        await retryGeneration(for: failedMessageID)
+    }
 ```
 
-## Environment Values
+---
 
-ConversationKit provides several environment values for customization:
+## 📄 License
 
-- `onSendMessageAction`: Async closure for handling sent messages
-- `onSubmitAction`: Closure for handling message submission
-- `disableAttachments`: Boolean to disable attachment functionality
-- `attachmentActions`: Custom attachment menu actions
-- `presentErrorAction`: A closure to present an error to the user.
-
-## License
-
-ConversationKit is licensed under the Apache License, Version 2.0. See the [LICENSE](LICENSE) file for more details.
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
+ConversationKit is licensed under the Apache License, Version 2.0. See the [LICENSE](LICENSE) file for details.
