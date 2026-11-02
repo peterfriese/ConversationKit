@@ -258,6 +258,9 @@ public struct ComposerModelSelectorMenu: View {
   /// Optional callback invoked when a capability is toggled.
   public let onToggleCapability: (@MainActor (ComposerCapability, Bool) -> Void)?
 
+  @Environment(\.isComposerMenuVisualOnly) private var isMenuVisualOnly
+  @Environment(\.isComposerMenuHitTargetOverlay) private var isMenuHitTargetOverlay
+
   /// Creates a `ComposerModelSelectorMenu`.
   public init(
     models: [ComposerModelOption],
@@ -378,27 +381,42 @@ public struct ComposerModelSelectorMenu: View {
 
   public var body: some View {
     if !models.isEmpty || !capabilities.isEmpty {
-      Menu {
-        if !capabilities.isEmpty {
-          capabilitiesMenuSection
+      if isMenuVisualOnly {
+        Group {
+          if isCompact {
+            menuIconOnlyLabel
+          } else {
+            menuPillLabel
+          }
         }
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+      } else {
+        Menu {
+          if !capabilities.isEmpty {
+            capabilitiesMenuSection
+          }
 
-        if !models.isEmpty {
-          modelsMenuSection
+          if !models.isEmpty {
+            modelsMenuSection
+          }
+        } label: {
+          Group {
+            if isCompact {
+              menuIconOnlyLabel
+            } else {
+              menuPillLabel
+            }
+          }
+          .opacity(isMenuHitTargetOverlay ? 0.0 : 1.0)
         }
-      } label: {
-        if isCompact {
-          menuIconOnlyLabel
-        } else {
-          menuPillLabel
-        }
+        .menuStyle(.button)
+        .buttonStyle(.plain)
+        .accessibilityIdentifier(ConversationAccessibilityID.composerModelSelector)
+        .accessibilityLabel("AI Model")
+        .accessibilityValue(accessibilityDescription)
+        .accessibilityHint("Double-tap to switch the active AI model or toggle capabilities")
       }
-      .menuStyle(.button)
-      .buttonStyle(.plain)
-      .accessibilityIdentifier(ConversationAccessibilityID.composerModelSelector)
-      .accessibilityLabel("AI Model")
-      .accessibilityValue(accessibilityDescription)
-      .accessibilityHint("Double-tap to switch the active AI model or toggle capabilities")
     }
   }
 
@@ -488,10 +506,8 @@ public struct ComposerModelSelectorMenu: View {
     let current = activeModel
     HStack(spacing: 6) {
       Image(systemName: current?.symbolName ?? "sparkles")
-        .font(.system(size: 11, weight: .semibold))
+        .font(.system(size: 12, weight: .semibold))
         .foregroundStyle(.secondary)
-        .frame(width: 24, height: 24)
-        .background(Color.primary.opacity(0.08), in: Circle())
 
       Text(current?.name ?? "Model")
         .font(.subheadline.weight(.regular))
@@ -513,14 +529,9 @@ public struct ComposerModelSelectorMenu: View {
         .font(.system(size: 9, weight: .semibold))
         .foregroundStyle(.secondary)
     }
-    .padding(.leading, 5)
-    .padding(.trailing, 10)
+    .padding(.horizontal, 10)
     .frame(height: 32)
-    .background(Color.primary.opacity(0.06), in: Capsule())
-    .overlay {
-      Capsule()
-        .strokeBorder(Color.platformSeparator.opacity(0.45), lineWidth: 0.5)
-    }
+    .background(Color.primary.opacity(0.07), in: Capsule())
     .contentShape(Capsule())
     .fixedSize(horizontal: true, vertical: false)
     .layoutPriority(1)

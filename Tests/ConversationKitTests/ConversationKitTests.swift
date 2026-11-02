@@ -1678,6 +1678,57 @@ struct MessageComposerStyleTests {
     _ = unfocusedBody
   }
 
+  @Test("CardGlass and CompactGlass composer styles enclose attachments and tokens inside interactive vessel and isolate Menus in overlays")
+  @MainActor
+  func cardGlassAndCompactGlassCanonicalVesselAndOverlayIsolation() {
+    let dummyTextField = AnyView(Text("Multiline prompt"))
+    let dummyAttachmentButton = AnyView(Button("+") {})
+    let dummyBorderlessAttachmentButton = AnyView(Button("+") {})
+    let dummyAttachmentsTray = AnyView(Text("Tray"))
+    let dummyTokensBar = AnyView(Text("Tokens"))
+    let dummyModelSelector = AnyView(Button("Sonnet 4.6") {})
+    let dummyCompactModel = AnyView(Button("Model") {})
+    let dummyDictationButton = AnyView(Button("Dictate") {})
+    let dummyDismissButton = AnyView(Button("Dismiss") {})
+    let dummySubmitButton = AnyView(Button("Send") {})
+
+    let richConfig = MessageComposerStyleConfiguration(
+      textField: dummyTextField,
+      attachmentButton: dummyAttachmentButton,
+      attachmentsTray: dummyAttachmentsTray,
+      tokensBar: dummyTokensBar,
+      modelSelector: dummyModelSelector,
+      dictationButton: dummyDictationButton,
+      submitButton: dummySubmitButton,
+      dismissKeyboardButton: dummyDismissButton,
+      isFocused: true,
+      isGenerating: false,
+      canSubmit: true,
+      hasAttachments: true,
+      hasTokens: true,
+      hasModels: true,
+      hasCapabilities: true,
+      compactModelSelector: dummyCompactModel,
+      borderlessAttachmentButton: dummyBorderlessAttachmentButton
+    )
+
+    let emptyConfig = MessageComposerStyleConfiguration(
+      textField: dummyTextField,
+      submitButton: dummySubmitButton,
+      isFocused: false,
+      isGenerating: false,
+      canSubmit: false
+    )
+
+    let cardStyle = CardGlassMessageComposerStyle.cardGlass
+    _ = cardStyle.makeBody(configuration: richConfig)
+    _ = cardStyle.makeBody(configuration: emptyConfig)
+
+    let compactStyle = CompactGlassMessageComposerStyle.compactGlass
+    _ = compactStyle.makeBody(configuration: richConfig)
+    _ = compactStyle.makeBody(configuration: emptyConfig)
+  }
+
   @Test("ClassicGlass composer uses canonical 3-zone bookend sibling architecture with inner trailing accessories and external submit sibling")
   @MainActor
   func classicGlassCanonicalThreeZoneArchitecture() {

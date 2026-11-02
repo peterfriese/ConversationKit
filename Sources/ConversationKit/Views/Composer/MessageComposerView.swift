@@ -391,49 +391,23 @@ public struct MessageComposerView: View {
   @ViewBuilder
   private func attachmentMenu(isBorderless: Bool, diameter: CGFloat? = nil) -> some View {
     let effectiveDiameter = diameter ?? (isBorderless ? 32 : 44)
-    Menu {
-      Button("Photos", systemImage: "photo.on.rectangle.angled") {
+    ComposerAttachmentMenuView(
+      isBorderless: isBorderless,
+      effectiveDiameter: effectiveDiameter,
+      customAttachmentActions: customAttachmentActions,
+      onSelectPhotos: {
         PlatformHapticEvent.triggerHaptic(.selection)
         isShowingPhotosPicker = true
-      }
-
-      Button("Files", systemImage: "doc.badge.plus") {
+      },
+      onSelectFiles: {
         PlatformHapticEvent.triggerHaptic(.selection)
         isShowingFileImporter = true
+      },
+      onPasteFromClipboard: {
+        PlatformHapticEvent.triggerHaptic(.selection)
+        pasteAttachmentsFromClipboard()
       }
-
-      if !PlatformPasteboard.readAttachments().isEmpty {
-        Button("Paste from Clipboard", systemImage: "doc.on.clipboard") {
-          PlatformHapticEvent.triggerHaptic(.selection)
-          pasteAttachmentsFromClipboard()
-        }
-      }
-
-      if let customAttachmentActions {
-        Divider()
-        customAttachmentActions()
-      }
-    } label: {
-      if isBorderless {
-        Image(systemName: "plus")
-          .font(.system(size: 16, weight: .medium))
-          .foregroundStyle(.primary)
-          .frame(maxWidth: .infinity, maxHeight: .infinity)
-          .contentShape(Circle())
-      } else {
-        Image(systemName: "plus")
-          .font(.system(size: effectiveDiameter > 34 ? 18 : 15, weight: .medium))
-          .foregroundStyle(.primary)
-          .frame(maxWidth: .infinity, maxHeight: .infinity)
-          .contentShape(Circle())
-      }
-    }
-    .frame(width: effectiveDiameter, height: effectiveDiameter)
-    .menuStyle(.button)
-    .buttonStyle(.plain)
-    .accessibilityIdentifier(ConversationAccessibilityID.composerAttachmentButton)
-    .accessibilityLabel("Add attachment")
-    .accessibilityHint("Opens menu to attach photos, files, or clipboard items")
+    )
   }
 
   @ViewBuilder
@@ -966,6 +940,76 @@ public struct MessageComposerView: View {
         PlatformHapticEvent.triggerHaptic(.error)
         uploadTasks[attachmentID] = nil
       }
+    }
+  }
+}
+
+// MARK: - ComposerAttachmentMenuView
+
+private struct ComposerAttachmentMenuView: View {
+  let isBorderless: Bool
+  let effectiveDiameter: CGFloat
+  let customAttachmentActions: AttachmentActionsBuilder?
+  let onSelectPhotos: @MainActor () -> Void
+  let onSelectFiles: @MainActor () -> Void
+  let onPasteFromClipboard: @MainActor () -> Void
+
+  @Environment(\.isComposerMenuVisualOnly) private var isMenuVisualOnly
+  @Environment(\.isComposerMenuHitTargetOverlay) private var isMenuHitTargetOverlay
+
+  @ViewBuilder
+  private var iconLabel: some View {
+    if isBorderless {
+      Image(systemName: "plus")
+        .font(.system(size: 16, weight: .medium))
+        .foregroundStyle(.primary)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .contentShape(Circle())
+    } else {
+      Image(systemName: "plus")
+        .font(.system(size: effectiveDiameter > 34 ? 18 : 15, weight: .medium))
+        .foregroundStyle(.primary)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .contentShape(Circle())
+    }
+  }
+
+  var body: some View {
+    if isMenuVisualOnly {
+      iconLabel
+        .frame(width: effectiveDiameter, height: effectiveDiameter)
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    } else {
+      Menu {
+        Button("Photos", systemImage: "photo.on.rectangle.angled") {
+          onSelectPhotos()
+        }
+
+        Button("Files", systemImage: "doc.badge.plus") {
+          onSelectFiles()
+        }
+
+        if !PlatformPasteboard.readAttachments().isEmpty {
+          Button("Paste from Clipboard", systemImage: "doc.on.clipboard") {
+            onPasteFromClipboard()
+          }
+        }
+
+        if let customAttachmentActions {
+          Divider()
+          customAttachmentActions()
+        }
+      } label: {
+        iconLabel
+          .opacity(isMenuHitTargetOverlay ? 0.0 : 1.0)
+      }
+      .frame(width: effectiveDiameter, height: effectiveDiameter)
+      .menuStyle(.button)
+      .buttonStyle(.plain)
+      .accessibilityIdentifier(ConversationAccessibilityID.composerAttachmentButton)
+      .accessibilityLabel("Add attachment")
+      .accessibilityHint("Opens menu to attach photos, files, or clipboard items")
     }
   }
 }

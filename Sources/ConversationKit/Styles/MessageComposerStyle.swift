@@ -272,13 +272,6 @@ private struct ClassicGlassComposerBody: View {
 
     if reduceTransparency {
       panelContent
-        .overlay(alignment: .bottomTrailing) {
-          if hasInnerTrailingAccessories {
-            innerTrailingAccessories
-              .padding(.trailing, 6)
-              .padding(.bottom, 6)
-          }
-        }
         .background(
           Color.platformSecondaryBackground,
           in: RoundedRectangle(cornerRadius: pillCornerRadius, style: .continuous)
@@ -293,7 +286,7 @@ private struct ClassicGlassComposerBody: View {
         .glassEffectID("classic.textPill", in: glassNamespace)
         .overlay(alignment: .bottomTrailing) {
           if hasInnerTrailingAccessories {
-            innerTrailingAccessories
+            innerTrailingAccessories(isHitTargetOverlay: true)
               .padding(.trailing, 6)
               .padding(.bottom, 6)
           }
@@ -301,29 +294,11 @@ private struct ClassicGlassComposerBody: View {
     }
   }
 
-  private var innerTrailingAccessoryCount: Int {
-    var count = 0
-    if (configuration.hasModels || configuration.hasCapabilities),
-       (configuration.compactModelSelector ?? configuration.modelSelector) != nil {
-      count += 1
-    }
-    if configuration.dictationButton != nil {
-      count += 1
-    }
-    if configuration.isFocused && configuration.dismissKeyboardButton != nil {
-      count += 1
-    }
-    return count
-  }
-
   private var hasInnerTrailingAccessories: Bool {
-    innerTrailingAccessoryCount > 0
-  }
-
-  private var innerTrailingReservedWidth: CGFloat {
-    let count = innerTrailingAccessoryCount
-    guard count > 0 else { return 14 }
-    return CGFloat(count) * buttonDiameter + CGFloat(max(0, count - 1)) * 4 + 10
+    ((configuration.hasModels || configuration.hasCapabilities)
+      && (configuration.compactModelSelector ?? configuration.modelSelector) != nil)
+      || configuration.dictationButton != nil
+      || (configuration.isFocused && configuration.dismissKeyboardButton != nil)
   }
 
   @ViewBuilder
@@ -332,31 +307,62 @@ private struct ClassicGlassComposerBody: View {
       configuration.textField
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.leading, 14)
-        .padding(.trailing, innerTrailingReservedWidth)
+        .padding(.trailing, hasInnerTrailingAccessories ? 4 : 14)
         .padding(.vertical, 10)
+
+      if hasInnerTrailingAccessories {
+        innerTrailingAccessories(isHitTargetOverlay: reduceTransparency)
+          .padding(.trailing, 6)
+          .padding(.bottom, 6)
+      }
     }
   }
 
   @ViewBuilder
-  private var innerTrailingAccessories: some View {
+  private func innerTrailingAccessories(isHitTargetOverlay: Bool) -> some View {
     HStack(alignment: .bottom, spacing: 4) {
       if (configuration.hasModels || configuration.hasCapabilities),
          let modelSelector = configuration.compactModelSelector ?? configuration.modelSelector {
-        modelSelector
-          .frame(width: buttonDiameter, height: buttonDiameter)
-          .fixedSize(horizontal: true, vertical: false)
-          .layoutPriority(1)
+        if isHitTargetOverlay {
+          modelSelector
+            .environment(\.isComposerMenuHitTargetOverlay, !reduceTransparency)
+            .frame(width: buttonDiameter, height: buttonDiameter)
+            .fixedSize(horizontal: true, vertical: false)
+            .layoutPriority(1)
+        } else {
+          modelSelector
+            .environment(\.isComposerMenuVisualOnly, true)
+            .frame(width: buttonDiameter, height: buttonDiameter)
+            .fixedSize(horizontal: true, vertical: false)
+            .layoutPriority(1)
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+        }
       }
 
       if let dictationButton = configuration.dictationButton {
-        dictationButton
-          .frame(width: buttonDiameter, height: buttonDiameter)
+        if isHitTargetOverlay && !reduceTransparency {
+          Color.clear
+            .frame(width: buttonDiameter, height: buttonDiameter)
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+        } else {
+          dictationButton
+            .frame(width: buttonDiameter, height: buttonDiameter)
+        }
       }
 
       if configuration.isFocused, let dismissKeyboardButton = configuration.dismissKeyboardButton {
-        dismissKeyboardButton
-          .frame(width: buttonDiameter, height: buttonDiameter)
-          .transition(.scale(scale: 0.8).combined(with: .opacity))
+        if isHitTargetOverlay && !reduceTransparency {
+          Color.clear
+            .frame(width: buttonDiameter, height: buttonDiameter)
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+        } else {
+          dismissKeyboardButton
+            .frame(width: buttonDiameter, height: buttonDiameter)
+            .transition(.scale(scale: 0.8).combined(with: .opacity))
+        }
       }
     }
     .animation(reduceMotion ? nil : .snappy(duration: 0.22), value: configuration.isFocused)
@@ -380,11 +386,9 @@ private struct CardGlassComposerBody: View {
   }
 
   var body: some View {
-    GlassEffectContainer(spacing: 10) {
-      cardPanel
-    }
-    .padding(.horizontal, 12)
-    .padding(.vertical, 6)
+    cardPanel
+      .padding(.horizontal, 12)
+      .padding(.vertical, 6)
   }
 
   @ViewBuilder
@@ -408,26 +412,74 @@ private struct CardGlassComposerBody: View {
         .padding(.top, 14)
         .padding(.bottom, 8)
 
-      HStack(alignment: .center, spacing: 8) {
-        if let attachmentButton = configuration.borderlessAttachmentButton ?? configuration.attachmentButton {
-          attachmentButton
-            .frame(width: controlDiameter, height: controlDiameter)
-            .background(Color.primary.opacity(0.06), in: Circle())
-            .overlay {
-              Circle()
-                .strokeBorder(Color.platformSeparator.opacity(0.45), lineWidth: 0.5)
-            }
-        }
+      bottomToolbarRow(isHitTargetOverlay: reduceTransparency)
+    }
 
-        if (configuration.hasModels || configuration.hasCapabilities), let modelSelector = configuration.modelSelector {
+    if reduceTransparency {
+      panelContent
+        .background(
+          Color.platformSecondaryBackground,
+          in: RoundedRectangle(cornerRadius: cardCornerRadius, style: .continuous)
+        )
+        .overlay {
+          RoundedRectangle(cornerRadius: cardCornerRadius, style: .continuous)
+            .strokeBorder(Color.platformSeparator.opacity(0.45), lineWidth: 0.5)
+        }
+    } else {
+      GlassEffectContainer(spacing: 10) {
+        panelContent
+          .glassEffect(.regular.interactive(), in: .rect(cornerRadius: cardCornerRadius))
+          .glassEffectID("composer.cardPanel", in: glassNamespace)
+      }
+      .overlay(alignment: .bottom) {
+        bottomToolbarRow(isHitTargetOverlay: true)
+      }
+    }
+  }
+
+  @ViewBuilder
+  private func bottomToolbarRow(isHitTargetOverlay: Bool) -> some View {
+    HStack(alignment: .center, spacing: 8) {
+      if let attachmentButton = configuration.borderlessAttachmentButton ?? configuration.attachmentButton {
+        if isHitTargetOverlay {
+          attachmentButton
+            .environment(\.isComposerMenuHitTargetOverlay, !reduceTransparency)
+            .frame(width: controlDiameter, height: controlDiameter)
+            .background(
+              Color.primary.opacity(reduceTransparency ? 0.07 : 0.0),
+              in: Circle()
+            )
+        } else {
+          attachmentButton
+            .environment(\.isComposerMenuVisualOnly, true)
+            .frame(width: controlDiameter, height: controlDiameter)
+            .background(Color.primary.opacity(0.07), in: Circle())
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+        }
+      }
+
+      if (configuration.hasModels || configuration.hasCapabilities), let modelSelector = configuration.modelSelector {
+        if isHitTargetOverlay {
           modelSelector
+            .environment(\.isComposerMenuHitTargetOverlay, !reduceTransparency)
             .frame(height: controlDiameter)
             .fixedSize(horizontal: true, vertical: false)
             .layoutPriority(1)
+        } else {
+          modelSelector
+            .environment(\.isComposerMenuVisualOnly, true)
+            .frame(height: controlDiameter)
+            .fixedSize(horizontal: true, vertical: false)
+            .layoutPriority(1)
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
         }
+      }
 
-        Spacer(minLength: 8)
+      Spacer(minLength: 8)
 
+      if !isHitTargetOverlay || reduceTransparency {
         HStack(alignment: .center, spacing: 8) {
           if let dictationButton = configuration.dictationButton {
             dictationButton
@@ -450,25 +502,9 @@ private struct CardGlassComposerBody: View {
         .animation(reduceMotion ? nil : .snappy(duration: 0.22), value: configuration.isFocused)
         .animation(reduceMotion ? nil : .snappy(duration: 0.22), value: showsSubmitButton)
       }
-      .padding(.horizontal, 12)
-      .padding(.bottom, 10)
     }
-
-    if reduceTransparency {
-      panelContent
-        .background(
-          Color.platformSecondaryBackground,
-          in: RoundedRectangle(cornerRadius: cardCornerRadius, style: .continuous)
-        )
-        .overlay {
-          RoundedRectangle(cornerRadius: cardCornerRadius, style: .continuous)
-            .strokeBorder(Color.platformSeparator.opacity(0.45), lineWidth: 0.5)
-        }
-    } else {
-      panelContent
-        .glassEffect(.regular, in: .rect(cornerRadius: cardCornerRadius))
-        .glassEffectID("composer.cardPanel", in: glassNamespace)
-    }
+    .padding(.horizontal, 12)
+    .padding(.bottom, 10)
   }
 }
 
@@ -476,9 +512,9 @@ private struct CardGlassComposerBody: View {
 
 /// Single-row compact capsule Liquid Glass composer style (`cornerRadius: 22`) for secondary sheets, popovers, and inspectors (`AC-16`).
 ///
-/// Houses a borderless `+` button (`borderlessAttachmentButton`), growing prompt `textField`, compact round model
-/// icon button (`compactModelSelector`: `32×32pt`), `dismissKeyboardButton` (when focused), and `submitButton` inside
-/// a unified single-line Liquid Glass capsule with bottom baseline alignment.
+/// Houses `attachmentsTray`, `tokensBar`, a borderless `+` button (`borderlessAttachmentButton`), growing prompt `textField`,
+/// compact round model icon button (`compactModelSelector`: `32×32pt`), `dismissKeyboardButton` (when focused), and `submitButton`
+/// inside a unified interactive Liquid Glass capsule (`44pt` minHeight, `cornerRadius: 22`) with bottom baseline alignment.
 public struct CompactGlassMessageComposerStyle: MessageComposerStyle, Sendable {
   /// Creates a compact single-row capsule Liquid Glass composer style.
   public nonisolated init() {}
@@ -496,6 +532,7 @@ private struct CompactGlassComposerBody: View {
   @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
+  private let capsuleMinHeight: CGFloat = 44
   private let controlDiameter: CGFloat = 32
   private let pillCornerRadius: CGFloat = 22
 
@@ -503,75 +540,45 @@ private struct CompactGlassComposerBody: View {
     configuration.canSubmit || configuration.isGenerating
   }
 
+  private var hasLeadingAttachment: Bool {
+    (configuration.borderlessAttachmentButton ?? configuration.attachmentButton) != nil
+  }
+
+  private var hasTrailingControls: Bool {
+    ((configuration.hasModels || configuration.hasCapabilities)
+      && (configuration.compactModelSelector ?? configuration.modelSelector) != nil)
+      || configuration.dictationButton != nil
+      || (configuration.isFocused && configuration.dismissKeyboardButton != nil)
+      || showsSubmitButton
+  }
+
   var body: some View {
-    VStack(alignment: .leading, spacing: 6) {
-      if configuration.hasAttachments, let attachmentsTray = configuration.attachmentsTray {
-        attachmentsTray
-          .padding(.horizontal, 4)
-      }
-
-      if configuration.hasTokens, let tokensBar = configuration.tokensBar {
-        tokensBar
-          .padding(.horizontal, 4)
-      }
-
-      GlassEffectContainer(spacing: 8) {
-        capsulePill
-      }
-    }
-    .padding(.horizontal, 12)
-    .padding(.vertical, 6)
+    capsulePill
+      .padding(.horizontal, 12)
+      .padding(.vertical, 6)
   }
 
   @ViewBuilder
   private var capsulePill: some View {
-    let rowContent = HStack(alignment: .bottom, spacing: 8) {
-      if let attachmentButton = configuration.borderlessAttachmentButton ?? configuration.attachmentButton {
-        attachmentButton
-          .frame(width: controlDiameter, height: controlDiameter)
+    let panelContent = VStack(alignment: .leading, spacing: 6) {
+      if configuration.hasAttachments, let attachmentsTray = configuration.attachmentsTray {
+        attachmentsTray
+          .padding(.horizontal, 10)
+          .padding(.top, 8)
       }
 
-      configuration.textField
-        .frame(maxWidth: .infinity, minHeight: controlDiameter, alignment: .leading)
-        .padding(.leading, 10)
-        .padding(.trailing, 0)
-        .padding(.vertical, 0)
-
-      if (configuration.hasModels || configuration.hasCapabilities),
-         let modelSelector = configuration.compactModelSelector ?? configuration.modelSelector {
-        modelSelector
-          .frame(width: controlDiameter, height: controlDiameter)
-          .fixedSize(horizontal: true, vertical: false)
-          .layoutPriority(1)
+      if configuration.hasTokens, let tokensBar = configuration.tokensBar {
+        tokensBar
+          .padding(.horizontal, 10)
+          .padding(.top, configuration.hasAttachments ? 2 : 8)
       }
 
-      HStack(alignment: .bottom, spacing: 6) {
-        if let dictationButton = configuration.dictationButton {
-          dictationButton
-            .frame(width: controlDiameter, height: controlDiameter)
-        }
-
-        if configuration.isFocused, let dismissKeyboardButton = configuration.dismissKeyboardButton {
-          dismissKeyboardButton
-            .frame(width: controlDiameter, height: controlDiameter)
-            .transition(.scale(scale: 0.8).combined(with: .opacity))
-        }
-
-        if showsSubmitButton {
-          configuration.submitButton
-            .frame(width: controlDiameter, height: controlDiameter)
-            .background(Color.accentColor, in: Circle())
-            .transition(.scale(scale: 0.8).combined(with: .opacity))
-        }
-      }
-      .animation(reduceMotion ? nil : .snappy(duration: 0.22), value: configuration.isFocused)
-      .animation(reduceMotion ? nil : .snappy(duration: 0.22), value: showsSubmitButton)
+      mainInputRow
     }
-    .padding(.horizontal, 12)
-    .padding(.vertical, 6)
+    .frame(minHeight: capsuleMinHeight)
 
     if reduceTransparency {
-      rowContent
+      panelContent
         .background(
           Color.platformSecondaryBackground,
           in: RoundedRectangle(cornerRadius: pillCornerRadius, style: .continuous)
@@ -581,10 +588,127 @@ private struct CompactGlassComposerBody: View {
             .strokeBorder(Color.platformSeparator.opacity(0.45), lineWidth: 0.5)
         }
     } else {
-      rowContent
-        .glassEffect(.regular, in: .rect(cornerRadius: pillCornerRadius))
-        .glassEffectID("composer.compactCapsule", in: glassNamespace)
+      GlassEffectContainer(spacing: 8) {
+        panelContent
+          .glassEffect(.regular.interactive(), in: .rect(cornerRadius: pillCornerRadius))
+          .glassEffectID("composer.compactCapsule", in: glassNamespace)
+      }
+      .overlay(alignment: .bottomLeading) {
+        if let attachmentButton = configuration.borderlessAttachmentButton ?? configuration.attachmentButton {
+          attachmentButton
+            .environment(\.isComposerMenuHitTargetOverlay, true)
+            .frame(width: controlDiameter, height: controlDiameter)
+            .padding(.leading, 6)
+            .padding(.bottom, 6)
+        }
+      }
+      .overlay(alignment: .bottomTrailing) {
+        if hasTrailingControls {
+          trailingControls(isHitTargetOverlay: true)
+            .padding(.trailing, 6)
+            .padding(.bottom, 6)
+        }
+      }
     }
+  }
+
+  @ViewBuilder
+  private var mainInputRow: some View {
+    HStack(alignment: .bottom, spacing: 0) {
+      if let attachmentButton = configuration.borderlessAttachmentButton ?? configuration.attachmentButton {
+        if reduceTransparency {
+          attachmentButton
+            .frame(width: controlDiameter, height: controlDiameter)
+            .padding(.leading, 6)
+            .padding(.bottom, 6)
+        } else {
+          attachmentButton
+            .environment(\.isComposerMenuVisualOnly, true)
+            .frame(width: controlDiameter, height: controlDiameter)
+            .padding(.leading, 6)
+            .padding(.bottom, 6)
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+        }
+      }
+
+      configuration.textField
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.leading, hasLeadingAttachment ? 6 : 14)
+        .padding(.trailing, hasTrailingControls ? 4 : 14)
+        .padding(.vertical, 10)
+
+      if hasTrailingControls {
+        trailingControls(isHitTargetOverlay: reduceTransparency)
+          .padding(.trailing, 6)
+          .padding(.bottom, 6)
+      }
+    }
+  }
+
+  @ViewBuilder
+  private func trailingControls(isHitTargetOverlay: Bool) -> some View {
+    HStack(alignment: .bottom, spacing: 4) {
+      if (configuration.hasModels || configuration.hasCapabilities),
+         let modelSelector = configuration.compactModelSelector ?? configuration.modelSelector {
+        if isHitTargetOverlay {
+          modelSelector
+            .environment(\.isComposerMenuHitTargetOverlay, !reduceTransparency)
+            .frame(width: controlDiameter, height: controlDiameter)
+            .fixedSize(horizontal: true, vertical: false)
+            .layoutPriority(1)
+        } else {
+          modelSelector
+            .environment(\.isComposerMenuVisualOnly, true)
+            .frame(width: controlDiameter, height: controlDiameter)
+            .fixedSize(horizontal: true, vertical: false)
+            .layoutPriority(1)
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+        }
+      }
+
+      if let dictationButton = configuration.dictationButton {
+        if isHitTargetOverlay && !reduceTransparency {
+          Color.clear
+            .frame(width: controlDiameter, height: controlDiameter)
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+        } else {
+          dictationButton
+            .frame(width: controlDiameter, height: controlDiameter)
+        }
+      }
+
+      if configuration.isFocused, let dismissKeyboardButton = configuration.dismissKeyboardButton {
+        if isHitTargetOverlay && !reduceTransparency {
+          Color.clear
+            .frame(width: controlDiameter, height: controlDiameter)
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+        } else {
+          dismissKeyboardButton
+            .frame(width: controlDiameter, height: controlDiameter)
+            .transition(.scale(scale: 0.8).combined(with: .opacity))
+        }
+      }
+
+      if showsSubmitButton {
+        if isHitTargetOverlay && !reduceTransparency {
+          Color.clear
+            .frame(width: controlDiameter, height: controlDiameter)
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+        } else {
+          configuration.submitButton
+            .frame(width: controlDiameter, height: controlDiameter)
+            .background(Color.accentColor, in: Circle())
+            .transition(.scale(scale: 0.8).combined(with: .opacity))
+        }
+      }
+    }
+    .animation(reduceMotion ? nil : .snappy(duration: 0.22), value: configuration.isFocused)
+    .animation(reduceMotion ? nil : .snappy(duration: 0.22), value: showsSubmitButton)
   }
 }
 
@@ -649,6 +773,12 @@ private struct MessageComposerStyleHost<S: MessageComposerStyle>: View {
 extension EnvironmentValues {
   /// The active `MessageComposerStyle` in the environment (defaults to `.classicGlass`).
   @Entry public var messageComposerStyle: AnyMessageComposerStyle = AnyMessageComposerStyle(.classicGlass)
+
+  /// Internal flag indicating that a composer `Menu` slot is rendered inside `.glassEffect` for visual breathing only.
+  @Entry internal var isComposerMenuVisualOnly: Bool = false
+
+  /// Internal flag indicating that a composer `Menu` slot is rendered in an post-glass overlay as an invisible hit target.
+  @Entry internal var isComposerMenuHitTargetOverlay: Bool = false
 }
 
 extension View {
