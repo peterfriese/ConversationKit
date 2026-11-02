@@ -111,7 +111,8 @@ public struct ThinkingStateStyleConfiguration {
     self.transcriptContent = transcriptContent
     self.headerIcon = headerIcon ?? AnyView(
       Image(systemName: "brain")
-        .font(.caption.weight(.medium))
+        .imageScale(.small)
+        .fontWeight(.medium)
         .foregroundStyle(.secondary)
     )
   }
@@ -136,18 +137,11 @@ public struct ThinkingStateStyleConfiguration {
     self.headerIcon = headerIcon
     self.transcriptContent = traceContent
     self.headerLabel = AnyView(
-      HStack(spacing: 6) {
-        headerIcon
-        Text(title)
-          .font(.subheadline.weight(.medium))
-        if !formattedElapsed.isEmpty {
-          Text("·")
-            .foregroundStyle(.tertiary)
-          Text(formattedElapsed)
-            .font(.subheadline.monospacedDigit())
-            .foregroundStyle(.secondary)
-        }
-      }
+      ThinkingCustomHeaderLabelView(
+        headerIcon: headerIcon,
+        title: title,
+        formattedElapsed: formattedElapsed
+      )
     )
   }
 
@@ -169,10 +163,36 @@ public struct ThinkingStateStyleConfiguration {
   }
 }
 
+private struct ThinkingCustomHeaderLabelView: View {
+  let headerIcon: AnyView
+  let title: String
+  let formattedElapsed: String
+
+  @Environment(\.thinkingHeaderShowsInlineIcon) private var showsInlineIcon
+
+  var body: some View {
+    HStack(spacing: 6) {
+      if showsInlineIcon {
+        headerIcon
+      }
+      Text(title)
+        .fontWeight(.medium)
+      if !formattedElapsed.isEmpty {
+        Text("·")
+          .foregroundStyle(.tertiary)
+        Text(formattedElapsed)
+          .monospacedDigit()
+          .foregroundStyle(.secondary)
+      }
+    }
+  }
+}
+
 // MARK: - CollapsibleHeaderThinkingStateStyle (.collapsibleHeader / .default / .automatic)
 
-/// Default thinking state style featuring an interactive header row with a rotating chevron
-/// and a left-bordered expandable reasoning trace container (`F-7`, `AC-11`, `AC-16`).
+/// Default thinking state style featuring a structured rounded card container, a leading badged status icon,
+/// an inline collapsed summary preview, a rotating trailing chevron, and a hairline-separated expandable
+/// reasoning trace container (`F-7`, `AC-10`, `AC-11`, `AC-16`).
 public struct CollapsibleHeaderThinkingStateStyle: ThinkingStateStyle, Sendable {
   /// Creates the default collapsible header thinking state style.
   public nonisolated init() {}
@@ -188,11 +208,55 @@ private struct CollapsibleHeaderThinkingBody: View {
 
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
+  private var isThinking: Bool {
+    if case .thinking = configuration.status {
+      return true
+    }
+    return false
+  }
+
+  private var trimmedSummary: String? {
+    guard let raw = configuration.summary?.trimmingCharacters(in: .whitespacesAndNewlines),
+      !raw.isEmpty
+    else {
+      return nil
+    }
+    return raw
+  }
+
   var body: some View {
-    VStack(alignment: .leading, spacing: 8) {
+    let cardShape = RoundedRectangle(cornerRadius: 12, style: .continuous)
+
+    VStack(alignment: .leading, spacing: 0) {
       Button(action: configuration.toggleExpanded) {
-        HStack(alignment: .center, spacing: 6) {
+        HStack(alignment: .center, spacing: 8) {
+          ZStack {
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
+              .fill(
+                isThinking
+                  ? Color.accentColor.opacity(0.12)
+                  : Color.platformSeparator.opacity(0.25)
+              )
+              .frame(width: 22, height: 22)
+
+            configuration.headerIcon
+              .font(.subheadline)
+          }
+
           configuration.headerLabel
+            .environment(\.thinkingHeaderShowsInlineIcon, false)
+            .font(.subheadline)
+            .layoutPriority(1)
+
+          if !configuration.isExpanded, let summary = trimmedSummary {
+            Text("· \(summary)")
+              .font(.footnote)
+              .foregroundStyle(.tertiary)
+              .lineLimit(1)
+              .truncationMode(.tail)
+          }
+
+          Spacer(minLength: 8)
 
           Image(systemName: "chevron.right")
             .font(.caption2.weight(.semibold))
@@ -203,6 +267,8 @@ private struct CollapsibleHeaderThinkingBody: View {
               value: configuration.isExpanded
             )
         }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 9)
         .contentShape(Rectangle())
       }
       .buttonStyle(.plain)
@@ -215,25 +281,35 @@ private struct CollapsibleHeaderThinkingBody: View {
       )
 
       if configuration.isExpanded {
-        HStack(alignment: .top, spacing: 10) {
-          Capsule()
-            .fill(Color.platformSeparator)
-            .frame(width: 2)
+        VStack(alignment: .leading, spacing: 0) {
+          Divider()
+            .opacity(0.5)
 
-          configuration.transcriptContent
-            .font(.subheadline)
-            .foregroundStyle(.secondary)
-            .frame(maxWidth: .infinity, alignment: .leading)
+          HStack(alignment: .top, spacing: 10) {
+            Capsule()
+              .fill(Color.accentColor.opacity(0.45))
+              .frame(width: 2)
+
+            configuration.transcriptContent
+              .font(.subheadline)
+              .foregroundStyle(.secondary)
+              .frame(maxWidth: .infinity, alignment: .leading)
+          }
+          .padding(.horizontal, 12)
+          .padding(.vertical, 10)
         }
-        .padding(.leading, 6)
-        .padding(.vertical, 2)
-        .padding(.bottom, 8)
         .transition(
           reduceMotion
             ? .opacity
-            : .opacity.combined(with: .move(edge: .top))
+            : .opacity.combined(with: .scale(scale: 0.98, anchor: .top))
         )
       }
+    }
+    .background(Color.platformSecondaryBackground.opacity(0.65), in: cardShape)
+    .clipShape(cardShape)
+    .overlay {
+      cardShape
+        .strokeBorder(Color.platformSeparator.opacity(0.45), lineWidth: 0.5)
     }
   }
 }
@@ -242,7 +318,8 @@ private struct CollapsibleHeaderThinkingBody: View {
 
 /// Compact tinted pill header style for `ThinkingStateView` that expands the reasoning trace beneath it on tap (`AC-16`).
 ///
-/// Uses semantic `Color.platformSecondaryBackground` fill (never Liquid Glass in scrolling cells, `AC-10`).
+/// Uses a semantic accent-tinted capsule fill over `Color.platformSecondaryBackground`
+/// (never Liquid Glass in scrolling cells, `AC-10`).
 public struct PillThinkingStateStyle: ThinkingStateStyle, Sendable {
   /// Creates a pill thinking state style.
   public nonisolated init() {}
@@ -259,10 +336,13 @@ private struct PillThinkingBody: View {
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
   var body: some View {
+    let calloutShape = RoundedRectangle(cornerRadius: 14, style: .continuous)
+
     VStack(alignment: .leading, spacing: 8) {
       Button(action: configuration.toggleExpanded) {
         HStack(alignment: .center, spacing: 6) {
           configuration.headerLabel
+            .font(.footnote.weight(.medium))
 
           Image(systemName: "chevron.right")
             .font(.caption2.weight(.semibold))
@@ -275,16 +355,28 @@ private struct PillThinkingBody: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 6)
-        .background(Color.platformSecondaryBackground, in: Capsule())
+        .background {
+          Capsule()
+            .fill(Color.platformSecondaryBackground.opacity(0.85))
+            .overlay {
+              Capsule()
+                .fill(Color.accentColor.opacity(0.10))
+            }
+        }
         .overlay {
           Capsule()
-            .strokeBorder(Color.platformSeparator.opacity(0.45), lineWidth: 0.5)
+            .strokeBorder(Color.accentColor.opacity(0.25), lineWidth: 0.75)
         }
         .contentShape(Capsule())
       }
       .buttonStyle(.plain)
       .accessibilityIdentifier(ConversationAccessibilityID.thinkingHeader)
       .accessibilityAddTraits(.isButton)
+      .accessibilityHint(
+        configuration.isExpanded
+          ? Text("Double-tap to collapse reasoning trace")
+          : Text("Double-tap to expand reasoning trace")
+      )
 
       if configuration.isExpanded {
         configuration.transcriptContent
@@ -294,10 +386,11 @@ private struct PillThinkingBody: View {
           .frame(maxWidth: .infinity, alignment: .leading)
           .background(
             Color.platformSecondaryBackground.opacity(0.65),
-            in: RoundedRectangle(cornerRadius: 14, style: .continuous)
+            in: calloutShape
           )
+          .clipShape(calloutShape)
           .overlay {
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
+            calloutShape
               .strokeBorder(Color.platformSeparator.opacity(0.35), lineWidth: 0.5)
           }
           .transition(
@@ -331,27 +424,46 @@ private struct MinimalThinkingBody: View {
   var body: some View {
     VStack(alignment: .leading, spacing: 6) {
       Button(action: configuration.toggleExpanded) {
-        HStack(alignment: .firstTextBaseline, spacing: 4) {
+        HStack(alignment: .center, spacing: 4) {
           configuration.headerLabel
             .font(.caption)
             .foregroundStyle(.secondary)
 
-          Image(systemName: configuration.isExpanded ? "chevron.down" : "chevron.right")
-            .font(.caption2)
+          Image(systemName: "chevron.right")
+            .font(.caption2.weight(.semibold))
             .foregroundStyle(.tertiary)
+            .rotationEffect(.degrees(configuration.isExpanded ? 90 : 0))
+            .animation(
+              reduceMotion ? nil : .snappy(duration: 0.18),
+              value: configuration.isExpanded
+            )
         }
         .contentShape(Rectangle())
       }
       .buttonStyle(.plain)
       .accessibilityIdentifier(ConversationAccessibilityID.thinkingHeader)
       .accessibilityAddTraits(.isButton)
+      .accessibilityHint(
+        configuration.isExpanded
+          ? Text("Double-tap to collapse reasoning trace")
+          : Text("Double-tap to expand reasoning trace")
+      )
 
       if configuration.isExpanded {
-        configuration.transcriptContent
-          .font(.caption)
-          .foregroundStyle(.secondary)
-          .frame(maxWidth: .infinity, alignment: .leading)
-          .transition(.opacity)
+        HStack(alignment: .top, spacing: 8) {
+          Capsule()
+            .fill(Color.platformSeparator.opacity(0.5))
+            .frame(width: 1.5)
+
+          configuration.transcriptContent
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(.leading, 4)
+        .padding(.vertical, 2)
+        .clipped()
+        .transition(.opacity)
       }
     }
     .animation(reduceMotion ? nil : .easeInOut(duration: 0.18), value: configuration.isExpanded)

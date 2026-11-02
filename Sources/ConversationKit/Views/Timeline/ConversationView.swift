@@ -224,15 +224,17 @@ public struct ConversationView<MessageType: Message, Content: View>: View {
     max(lockedUnoccludedHeight, 320)
   }
 
-  /// Suggestion chips are visible whenever configured, while the draft is pristine, and when no turn is actively streaming (`F-8`, `AC-12`, `IVE-03`).
-  private var shouldShowSuggestionChips: Bool {
-    let isDraftPristine = ComposerTextBuffer.cleanText(draftText)
-      .trimmingCharacters(in: .whitespacesAndNewlines)
-      .isEmpty
+  /// Indicates whether the composer draft is completely empty (no visible text, tokens, or attachments).
+  private var isDraftEmpty: Bool {
+    ComposerTextBuffer.cleanText(draftText).isEmpty
       && tokensBinding.wrappedValue.isEmpty
       && attachmentsBinding.wrappedValue.isEmpty
-    return !suggestionChips.isEmpty
-      && isDraftPristine
+  }
+
+  /// Suggestion chips are visible whenever configured, while the draft is pristine, and when no turn is actively streaming (`F-8`, `AC-12`, `IVE-03`).
+  private var shouldShowSuggestionChips: Bool {
+    !suggestionChips.isEmpty
+      && isDraftEmpty
       && !isGenerating
   }
 
@@ -433,13 +435,16 @@ public struct ConversationView<MessageType: Message, Content: View>: View {
   @ViewBuilder
   private var emptyStateContainer: some View {
     if let emptyConversationView {
+      let shouldShowEmptyState = isDraftEmpty
       emptyConversationView()
         .frame(maxWidth: .infinity, minHeight: max(currentVisibleHeight - 32, 160), alignment: .center)
         .padding(.horizontal, 24)
-        .opacity(isComposerFocused ? 0 : 1)
+        .opacity(shouldShowEmptyState ? 1 : 0)
+        .allowsHitTesting(shouldShowEmptyState)
+        .accessibilityHidden(!shouldShowEmptyState)
         .animation(
           reduceMotion ? nil : .snappy(duration: 0.22),
-          value: isComposerFocused
+          value: shouldShowEmptyState
         )
         .accessibilityIdentifier(ConversationAccessibilityID.emptyConversationView)
     } else {

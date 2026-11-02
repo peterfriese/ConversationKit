@@ -816,6 +816,108 @@ struct ThinkingAndAgenticModelsTests {
       #expect(approval.isResolved == true)
     }
   }
+
+  @Test("ThinkingStateView and built-in ThinkingStateStyle presets (.collapsibleHeader, .pill, .minimal) construct bodies cleanly across statuses and expansion states and preserve configuration fields")
+  @MainActor
+  func thinkingStateViewAndStylePresetsConstruction() {
+    let startedAt = Date(timeIntervalSince1970: 1_700_000_000)
+    let statuses: [ThinkingTrace.Status] = [
+      .thinking(startedAt: startedAt),
+      .completed(duration: 4.2),
+      .cancelled(duration: 1.7),
+    ]
+    let styles: [AnyThinkingStateStyle] = [
+      AnyThinkingStateStyle(.collapsibleHeader),
+      AnyThinkingStateStyle(.pill),
+      AnyThinkingStateStyle(.minimal),
+    ]
+
+    for status in statuses {
+      for isExpandedState in [false, true] {
+        var expanded = isExpandedState
+        let binding = Binding<Bool>(
+          get: { expanded },
+          set: { expanded = $0 }
+        )
+
+        let trace = ThinkingTrace(
+          id: "trace-\(isExpandedState)",
+          status: status,
+          summary: "Evaluating scroll geometry",
+          transcript: "Step 1: Verify anchor stability.\nStep 2: Check hairline divider."
+        )
+
+        let view = ThinkingStateView(trace: trace, isExpanded: binding)
+        #expect(view.trace == trace)
+        _ = view.body
+
+        var didToggle = false
+        let config = ThinkingStateStyleConfiguration(
+          status: status,
+          summary: trace.summary,
+          transcript: trace.transcript,
+          formattedElapsed: ThinkingStateView.staticFormattedElapsed(for: status),
+          isExpanded: isExpandedState,
+          toggleExpanded: { didToggle = true },
+          headerLabel: AnyView(Text("Header")),
+          transcriptContent: AnyView(Text(trace.transcript)),
+          headerIcon: AnyView(Image(systemName: "sparkles"))
+        )
+
+        #expect(config.status == status)
+        #expect(config.summary == "Evaluating scroll geometry")
+        #expect(config.title == "Evaluating scroll geometry")
+        #expect(config.transcript == "Step 1: Verify anchor stability.\nStep 2: Check hairline divider.")
+        #expect(config.formattedElapsed == ThinkingStateView.staticFormattedElapsed(for: status))
+        #expect(config.isExpanded == isExpandedState)
+
+        for style in styles {
+          _ = style.makeBody(configuration: config)
+        }
+
+        _ = CollapsibleHeaderThinkingStateStyle.collapsibleHeader.makeBody(configuration: config)
+        _ = CollapsibleHeaderThinkingStateStyle.default.makeBody(configuration: config)
+        _ = CollapsibleHeaderThinkingStateStyle.automatic.makeBody(configuration: config)
+        _ = PillThinkingStateStyle.pill.makeBody(configuration: config)
+        _ = MinimalThinkingStateStyle.minimal.makeBody(configuration: config)
+
+        config.toggleExpanded()
+        #expect(didToggle == true)
+      }
+    }
+
+    // Verify configuration fallback title when summary is nil and convenience initializer preservation
+    let fallbackThinkingConfig = ThinkingStateStyleConfiguration(
+      status: .thinking(startedAt: startedAt),
+      summary: nil,
+      transcript: "Fallback transcript",
+      formattedElapsed: nil,
+      isExpanded: false,
+      toggleExpanded: {},
+      headerLabel: AnyView(EmptyView()),
+      transcriptContent: AnyView(EmptyView())
+    )
+    #expect(fallbackThinkingConfig.summary == nil)
+    #expect(fallbackThinkingConfig.title == "Thinking")
+    #expect(fallbackThinkingConfig.transcript == "Fallback transcript")
+    #expect(fallbackThinkingConfig.formattedElapsed == "")
+
+    let convenienceConfig = ThinkingStateStyleConfiguration(
+      status: .completed(duration: 3.2),
+      title: "Custom Title",
+      formattedElapsed: "3.2s",
+      isExpanded: true,
+      toggleExpanded: {},
+      headerIcon: AnyView(Image(systemName: "brain")),
+      traceContent: AnyView(Text("Trace body")),
+      transcript: "Detailed trace"
+    )
+    #expect(convenienceConfig.title == "Custom Title")
+    #expect(convenienceConfig.summary == "Custom Title")
+    #expect(convenienceConfig.transcript == "Detailed trace")
+    #expect(convenienceConfig.formattedElapsed == "3.2s")
+    #expect(convenienceConfig.isExpanded == true)
+  }
 }
 
 // MARK: - 5. IncrementalMarkdownAndScrollHysteresisTests (AC-14, AC-17)

@@ -96,6 +96,7 @@ public struct ThinkingStateView: View {
 
     thinkingStateStyle
       .makeBody(configuration: configuration)
+      .font(.subheadline)
       .accessibilityElement(children: .contain)
       .accessibilityIdentifier(ConversationAccessibilityID.thinkingState(trace.id))
   }
@@ -156,14 +157,25 @@ public struct ThinkingStateView: View {
 
 // MARK: - ThinkingHeaderLabelView
 
+extension EnvironmentValues {
+  /// Controls whether `ThinkingHeaderLabelView` renders its inline status icon (`true` by default).
+  /// Styles that render `configuration.headerIcon` inside a dedicated leading badge set this to `false`
+  /// to avoid duplicating the status icon.
+  @Entry internal var thinkingHeaderShowsInlineIcon: Bool = true
+}
+
 /// Combines the phase-locked status icon and the leaf-scoped elapsed label.
 private struct ThinkingHeaderLabelView: View {
   let status: ThinkingTrace.Status
   let summary: String?
 
+  @Environment(\.thinkingHeaderShowsInlineIcon) private var showsInlineIcon
+
   var body: some View {
     HStack(alignment: .center, spacing: 6) {
-      ThinkingStatusIconView(status: status)
+      if showsInlineIcon {
+        ThinkingStatusIconView(status: status)
+      }
       ThinkingElapsedLabelView(status: status, summary: summary)
     }
   }
@@ -200,7 +212,8 @@ private struct ThinkingStatusIconView: View {
 
   var body: some View {
     Image(systemName: symbolName)
-      .font(.caption.weight(.semibold))
+      .imageScale(.small)
+      .fontWeight(.semibold)
       .foregroundStyle(iconForegroundStyle)
       .contentTransition(.symbolEffect(.replace))
       .symbolEffect(
@@ -244,7 +257,7 @@ private struct ThinkingElapsedLabelView: View {
 
         HStack(alignment: .firstTextBaseline, spacing: 4) {
           Text("Thinking")
-            .font(.subheadline.weight(.medium))
+            .fontWeight(.medium)
             .foregroundStyle(
               reduceMotion
                 ? AnyShapeStyle(.primary)
@@ -252,11 +265,10 @@ private struct ThinkingElapsedLabelView: View {
             )
 
           Text("·")
-            .font(.subheadline)
             .foregroundStyle(.tertiary)
 
           Text("\(elapsedText)s")
-            .font(.subheadline.monospacedDigit())
+            .monospacedDigit()
             .foregroundStyle(.secondary)
             .contentTransition(.numericText(countsDown: false))
         }
@@ -267,7 +279,7 @@ private struct ThinkingElapsedLabelView: View {
     case .completed(let duration):
       let seconds = Int(max(0, duration).rounded())
       Text("Thought for \(seconds)s")
-        .font(.subheadline.weight(.medium))
+        .fontWeight(.medium)
         .foregroundStyle(.secondary)
         .monospacedDigit()
         .contentTransition(.numericText())
@@ -276,7 +288,7 @@ private struct ThinkingElapsedLabelView: View {
     case .cancelled(let duration):
       let formatted = max(0, duration).formatted(.number.precision(.fractionLength(1)))
       Text("Thinking stopped · \(formatted)s")
-        .font(.subheadline.weight(.medium))
+        .fontWeight(.medium)
         .foregroundStyle(.secondary)
         .monospacedDigit()
         .contentTransition(.numericText())
@@ -322,19 +334,17 @@ private struct ThinkingTranscriptContentView: View {
     VStack(alignment: .leading, spacing: 6) {
       if let summary, !summary.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
         Text(summary)
-          .font(.subheadline.weight(.medium))
+          .fontWeight(.medium)
           .foregroundStyle(.primary.opacity(0.85))
       }
 
       if !transcript.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
         Text(transcript)
-          .font(.subheadline)
           .foregroundStyle(.secondary)
           .textSelection(.enabled)
           .fixedSize(horizontal: false, vertical: true)
       } else if summary == nil || summary?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == true {
         Text("Reasoning in progress…")
-          .font(.subheadline)
           .foregroundStyle(.tertiary)
       }
     }
