@@ -990,7 +990,7 @@ private struct ComposerAttachmentMenuView: View {
           onSelectFiles()
         }
 
-        if !PlatformPasteboard.readAttachments().isEmpty {
+        if PlatformPasteboard.hasAttachments {
           Button("Paste from Clipboard", systemImage: "doc.on.clipboard") {
             onPasteFromClipboard()
           }

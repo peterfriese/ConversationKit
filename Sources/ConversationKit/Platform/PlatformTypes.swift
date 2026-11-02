@@ -819,6 +819,33 @@ public enum PlatformPasteboard: Sendable {
     #endif
   }
 
+  /// Lightweight pasteboard metadata check indicating whether pasted images or file attachments
+  /// are available without synchronously decoding image or file `Data` blobs on the main thread (`F-09`).
+  @MainActor
+  public static var hasAttachments: Bool {
+    #if canImport(UIKit)
+    let pasteboard = UIPasteboard.general
+    return pasteboard.hasImages
+      || pasteboard.hasURLs
+      || pasteboard.contains(pasteboardTypes: [
+        UTType.png.identifier,
+        UTType.jpeg.identifier,
+        UTType.pdf.identifier,
+        UTType.image.identifier,
+      ])
+    #elseif canImport(AppKit)
+    let pasteboard = NSPasteboard.general
+    if pasteboard.canReadObject(
+      forClasses: [NSURL.self],
+      options: [.urlReadingFileURLsOnly: true]
+    ) {
+      return true
+    }
+    let supportedTypes: [NSPasteboard.PasteboardType] = [.png, .pdf, .tiff, .fileURL]
+    return pasteboard.availableType(from: supportedTypes) != nil
+    #endif
+  }
+
   /// Reads pasted images or file payloads from the system pasteboard for composer insertion.
   @MainActor
   public static func readAttachments() -> [(data: Data, contentType: UTType, filename: String)] {

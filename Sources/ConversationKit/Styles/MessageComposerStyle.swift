@@ -178,6 +178,52 @@ public struct CardGlassMessageComposerStyle: MessageComposerStyle, Sendable {
   }
 }
 
+// MARK: - AnchorPreference Menu Isolation (`Sofia` Pattern / `F-01`)
+
+private enum ComposerMenuSlotID: Hashable, Sendable {
+  case attachmentMenu
+  case modelSelectorMenu
+}
+
+private struct ComposerMenuSlotAnchorKey: PreferenceKey {
+  static let defaultValue: [ComposerMenuSlotID: Anchor<CGRect>] = [:]
+
+  static func reduce(
+    value: inout [ComposerMenuSlotID: Anchor<CGRect>],
+    nextValue: () -> [ComposerMenuSlotID: Anchor<CGRect>]
+  ) {
+    value.merge(nextValue(), uniquingKeysWith: { _, new in new })
+  }
+}
+
+@MainActor
+@ViewBuilder
+private func composerMenuHitTargetsOverlay(
+  anchors: [ComposerMenuSlotID: Anchor<CGRect>],
+  attachmentMenu: AnyView? = nil,
+  modelSelectorMenu: AnyView? = nil
+) -> some View {
+  if !anchors.isEmpty {
+    GeometryReader { proxy in
+      if let anchor = anchors[.attachmentMenu], let attachmentMenu {
+        let rect = proxy[anchor]
+        attachmentMenu
+          .environment(\.isComposerMenuHitTargetOverlay, true)
+          .frame(width: rect.width, height: rect.height)
+          .position(x: rect.midX, y: rect.midY)
+      }
+
+      if let anchor = anchors[.modelSelectorMenu], let modelSelectorMenu {
+        let rect = proxy[anchor]
+        modelSelectorMenu
+          .environment(\.isComposerMenuHitTargetOverlay, true)
+          .frame(width: rect.width, height: rect.height)
+          .position(x: rect.midX, y: rect.midY)
+      }
+    }
+  }
+}
+
 // MARK: - ClassicGlassComposerBody
 
 private struct ClassicGlassComposerBody: View {
@@ -284,12 +330,13 @@ private struct ClassicGlassComposerBody: View {
       panelContent
         .glassEffect(.regular.interactive(), in: .rect(cornerRadius: pillCornerRadius))
         .glassEffectID("classic.textPill", in: glassNamespace)
-        .overlay(alignment: .bottomTrailing) {
-          if hasInnerTrailingAccessories {
-            innerTrailingAccessories(isHitTargetOverlay: true)
-              .padding(.trailing, 6)
-              .padding(.bottom, 6)
-          }
+        .overlayPreferenceValue(ComposerMenuSlotAnchorKey.self) { anchors in
+          composerMenuHitTargetsOverlay(
+            anchors: anchors,
+            modelSelectorMenu: (configuration.hasModels || configuration.hasCapabilities)
+              ? (configuration.compactModelSelector ?? configuration.modelSelector)
+              : nil
+          )
         }
     }
   }
@@ -311,7 +358,7 @@ private struct ClassicGlassComposerBody: View {
         .padding(.vertical, 10)
 
       if hasInnerTrailingAccessories {
-        innerTrailingAccessories(isHitTargetOverlay: reduceTransparency)
+        innerTrailingAccessories
           .padding(.trailing, 6)
           .padding(.bottom, 6)
       }
@@ -319,13 +366,12 @@ private struct ClassicGlassComposerBody: View {
   }
 
   @ViewBuilder
-  private func innerTrailingAccessories(isHitTargetOverlay: Bool) -> some View {
+  private var innerTrailingAccessories: some View {
     HStack(alignment: .bottom, spacing: 4) {
       if (configuration.hasModels || configuration.hasCapabilities),
          let modelSelector = configuration.compactModelSelector ?? configuration.modelSelector {
-        if isHitTargetOverlay {
+        if reduceTransparency {
           modelSelector
-            .environment(\.isComposerMenuHitTargetOverlay, !reduceTransparency)
             .frame(width: buttonDiameter, height: buttonDiameter)
             .fixedSize(horizontal: true, vertical: false)
             .layoutPriority(1)
@@ -337,32 +383,21 @@ private struct ClassicGlassComposerBody: View {
             .layoutPriority(1)
             .allowsHitTesting(false)
             .accessibilityHidden(true)
+            .anchorPreference(key: ComposerMenuSlotAnchorKey.self, value: .bounds) {
+              [.modelSelectorMenu: $0]
+            }
         }
       }
 
       if let dictationButton = configuration.dictationButton {
-        if isHitTargetOverlay && !reduceTransparency {
-          Color.clear
-            .frame(width: buttonDiameter, height: buttonDiameter)
-            .allowsHitTesting(false)
-            .accessibilityHidden(true)
-        } else {
-          dictationButton
-            .frame(width: buttonDiameter, height: buttonDiameter)
-        }
+        dictationButton
+          .frame(width: buttonDiameter, height: buttonDiameter)
       }
 
       if configuration.isFocused, let dismissKeyboardButton = configuration.dismissKeyboardButton {
-        if isHitTargetOverlay && !reduceTransparency {
-          Color.clear
-            .frame(width: buttonDiameter, height: buttonDiameter)
-            .allowsHitTesting(false)
-            .accessibilityHidden(true)
-        } else {
-          dismissKeyboardButton
-            .frame(width: buttonDiameter, height: buttonDiameter)
-            .transition(.scale(scale: 0.8).combined(with: .opacity))
-        }
+        dismissKeyboardButton
+          .frame(width: buttonDiameter, height: buttonDiameter)
+          .transition(.scale(scale: 0.8).combined(with: .opacity))
       }
     }
     .animation(reduceMotion ? nil : .snappy(duration: 0.22), value: configuration.isFocused)
@@ -412,7 +447,7 @@ private struct CardGlassComposerBody: View {
         .padding(.top, 14)
         .padding(.bottom, 8)
 
-      bottomToolbarRow(isHitTargetOverlay: reduceTransparency)
+      bottomToolbarRow
     }
 
     if reduceTransparency {
@@ -431,24 +466,26 @@ private struct CardGlassComposerBody: View {
           .glassEffect(.regular.interactive(), in: .rect(cornerRadius: cardCornerRadius))
           .glassEffectID("composer.cardPanel", in: glassNamespace)
       }
-      .overlay(alignment: .bottom) {
-        bottomToolbarRow(isHitTargetOverlay: true)
+      .overlayPreferenceValue(ComposerMenuSlotAnchorKey.self) { anchors in
+        composerMenuHitTargetsOverlay(
+          anchors: anchors,
+          attachmentMenu: configuration.borderlessAttachmentButton ?? configuration.attachmentButton,
+          modelSelectorMenu: (configuration.hasModels || configuration.hasCapabilities)
+            ? configuration.modelSelector
+            : nil
+        )
       }
     }
   }
 
   @ViewBuilder
-  private func bottomToolbarRow(isHitTargetOverlay: Bool) -> some View {
+  private var bottomToolbarRow: some View {
     HStack(alignment: .center, spacing: 8) {
       if let attachmentButton = configuration.borderlessAttachmentButton ?? configuration.attachmentButton {
-        if isHitTargetOverlay {
+        if reduceTransparency {
           attachmentButton
-            .environment(\.isComposerMenuHitTargetOverlay, !reduceTransparency)
             .frame(width: controlDiameter, height: controlDiameter)
-            .background(
-              Color.primary.opacity(reduceTransparency ? 0.07 : 0.0),
-              in: Circle()
-            )
+            .background(Color.primary.opacity(0.07), in: Circle())
         } else {
           attachmentButton
             .environment(\.isComposerMenuVisualOnly, true)
@@ -456,13 +493,15 @@ private struct CardGlassComposerBody: View {
             .background(Color.primary.opacity(0.07), in: Circle())
             .allowsHitTesting(false)
             .accessibilityHidden(true)
+            .anchorPreference(key: ComposerMenuSlotAnchorKey.self, value: .bounds) {
+              [.attachmentMenu: $0]
+            }
         }
       }
 
       if (configuration.hasModels || configuration.hasCapabilities), let modelSelector = configuration.modelSelector {
-        if isHitTargetOverlay {
+        if reduceTransparency {
           modelSelector
-            .environment(\.isComposerMenuHitTargetOverlay, !reduceTransparency)
             .frame(height: controlDiameter)
             .fixedSize(horizontal: true, vertical: false)
             .layoutPriority(1)
@@ -474,34 +513,35 @@ private struct CardGlassComposerBody: View {
             .layoutPriority(1)
             .allowsHitTesting(false)
             .accessibilityHidden(true)
+            .anchorPreference(key: ComposerMenuSlotAnchorKey.self, value: .bounds) {
+              [.modelSelectorMenu: $0]
+            }
         }
       }
 
       Spacer(minLength: 8)
 
-      if !isHitTargetOverlay || reduceTransparency {
-        HStack(alignment: .center, spacing: 8) {
-          if let dictationButton = configuration.dictationButton {
-            dictationButton
-              .frame(width: controlDiameter, height: controlDiameter)
-          }
-
-          if configuration.isFocused, let dismissKeyboardButton = configuration.dismissKeyboardButton {
-            dismissKeyboardButton
-              .frame(width: controlDiameter, height: controlDiameter)
-              .transition(.scale(scale: 0.8).combined(with: .opacity))
-          }
-
-          if showsSubmitButton {
-            configuration.submitButton
-              .frame(width: controlDiameter, height: controlDiameter)
-              .background(Color.accentColor, in: Circle())
-              .transition(.scale(scale: 0.8).combined(with: .opacity))
-          }
+      HStack(alignment: .center, spacing: 8) {
+        if let dictationButton = configuration.dictationButton {
+          dictationButton
+            .frame(width: controlDiameter, height: controlDiameter)
         }
-        .animation(reduceMotion ? nil : .snappy(duration: 0.22), value: configuration.isFocused)
-        .animation(reduceMotion ? nil : .snappy(duration: 0.22), value: showsSubmitButton)
+
+        if configuration.isFocused, let dismissKeyboardButton = configuration.dismissKeyboardButton {
+          dismissKeyboardButton
+            .frame(width: controlDiameter, height: controlDiameter)
+            .transition(.scale(scale: 0.8).combined(with: .opacity))
+        }
+
+        if showsSubmitButton {
+          configuration.submitButton
+            .frame(width: controlDiameter, height: controlDiameter)
+            .background(Color.accentColor, in: Circle())
+            .transition(.scale(scale: 0.8).combined(with: .opacity))
+        }
       }
+      .animation(reduceMotion ? nil : .snappy(duration: 0.22), value: configuration.isFocused)
+      .animation(reduceMotion ? nil : .snappy(duration: 0.22), value: showsSubmitButton)
     }
     .padding(.horizontal, 12)
     .padding(.bottom, 10)
@@ -593,21 +633,14 @@ private struct CompactGlassComposerBody: View {
           .glassEffect(.regular.interactive(), in: .rect(cornerRadius: pillCornerRadius))
           .glassEffectID("composer.compactCapsule", in: glassNamespace)
       }
-      .overlay(alignment: .bottomLeading) {
-        if let attachmentButton = configuration.borderlessAttachmentButton ?? configuration.attachmentButton {
-          attachmentButton
-            .environment(\.isComposerMenuHitTargetOverlay, true)
-            .frame(width: controlDiameter, height: controlDiameter)
-            .padding(.leading, 6)
-            .padding(.bottom, 6)
-        }
-      }
-      .overlay(alignment: .bottomTrailing) {
-        if hasTrailingControls {
-          trailingControls(isHitTargetOverlay: true)
-            .padding(.trailing, 6)
-            .padding(.bottom, 6)
-        }
+      .overlayPreferenceValue(ComposerMenuSlotAnchorKey.self) { anchors in
+        composerMenuHitTargetsOverlay(
+          anchors: anchors,
+          attachmentMenu: configuration.borderlessAttachmentButton ?? configuration.attachmentButton,
+          modelSelectorMenu: (configuration.hasModels || configuration.hasCapabilities)
+            ? (configuration.compactModelSelector ?? configuration.modelSelector)
+            : nil
+        )
       }
     }
   }
@@ -625,10 +658,13 @@ private struct CompactGlassComposerBody: View {
           attachmentButton
             .environment(\.isComposerMenuVisualOnly, true)
             .frame(width: controlDiameter, height: controlDiameter)
-            .padding(.leading, 6)
-            .padding(.bottom, 6)
             .allowsHitTesting(false)
             .accessibilityHidden(true)
+            .anchorPreference(key: ComposerMenuSlotAnchorKey.self, value: .bounds) {
+              [.attachmentMenu: $0]
+            }
+            .padding(.leading, 6)
+            .padding(.bottom, 6)
         }
       }
 
@@ -639,7 +675,7 @@ private struct CompactGlassComposerBody: View {
         .padding(.vertical, 10)
 
       if hasTrailingControls {
-        trailingControls(isHitTargetOverlay: reduceTransparency)
+        trailingControls
           .padding(.trailing, 6)
           .padding(.bottom, 6)
       }
@@ -647,13 +683,12 @@ private struct CompactGlassComposerBody: View {
   }
 
   @ViewBuilder
-  private func trailingControls(isHitTargetOverlay: Bool) -> some View {
+  private var trailingControls: some View {
     HStack(alignment: .bottom, spacing: 4) {
       if (configuration.hasModels || configuration.hasCapabilities),
          let modelSelector = configuration.compactModelSelector ?? configuration.modelSelector {
-        if isHitTargetOverlay {
+        if reduceTransparency {
           modelSelector
-            .environment(\.isComposerMenuHitTargetOverlay, !reduceTransparency)
             .frame(width: controlDiameter, height: controlDiameter)
             .fixedSize(horizontal: true, vertical: false)
             .layoutPriority(1)
@@ -665,46 +700,28 @@ private struct CompactGlassComposerBody: View {
             .layoutPriority(1)
             .allowsHitTesting(false)
             .accessibilityHidden(true)
+            .anchorPreference(key: ComposerMenuSlotAnchorKey.self, value: .bounds) {
+              [.modelSelectorMenu: $0]
+            }
         }
       }
 
       if let dictationButton = configuration.dictationButton {
-        if isHitTargetOverlay && !reduceTransparency {
-          Color.clear
-            .frame(width: controlDiameter, height: controlDiameter)
-            .allowsHitTesting(false)
-            .accessibilityHidden(true)
-        } else {
-          dictationButton
-            .frame(width: controlDiameter, height: controlDiameter)
-        }
+        dictationButton
+          .frame(width: controlDiameter, height: controlDiameter)
       }
 
       if configuration.isFocused, let dismissKeyboardButton = configuration.dismissKeyboardButton {
-        if isHitTargetOverlay && !reduceTransparency {
-          Color.clear
-            .frame(width: controlDiameter, height: controlDiameter)
-            .allowsHitTesting(false)
-            .accessibilityHidden(true)
-        } else {
-          dismissKeyboardButton
-            .frame(width: controlDiameter, height: controlDiameter)
-            .transition(.scale(scale: 0.8).combined(with: .opacity))
-        }
+        dismissKeyboardButton
+          .frame(width: controlDiameter, height: controlDiameter)
+          .transition(.scale(scale: 0.8).combined(with: .opacity))
       }
 
       if showsSubmitButton {
-        if isHitTargetOverlay && !reduceTransparency {
-          Color.clear
-            .frame(width: controlDiameter, height: controlDiameter)
-            .allowsHitTesting(false)
-            .accessibilityHidden(true)
-        } else {
-          configuration.submitButton
-            .frame(width: controlDiameter, height: controlDiameter)
-            .background(Color.accentColor, in: Circle())
-            .transition(.scale(scale: 0.8).combined(with: .opacity))
-        }
+        configuration.submitButton
+          .frame(width: controlDiameter, height: controlDiameter)
+          .background(Color.accentColor, in: Circle())
+          .transition(.scale(scale: 0.8).combined(with: .opacity))
       }
     }
     .animation(reduceMotion ? nil : .snappy(duration: 0.22), value: configuration.isFocused)

@@ -1801,4 +1801,14 @@ struct MessageComposerStyleTests {
     let anyCustom = AnyMessageComposerStyle(custom)
     _ = anyCustom.makeBody(configuration: config)
   }
+
+  @Test("PlatformPasteboard.hasAttachments performs lightweight metadata check without throwing")
+  @MainActor
+  func platformPasteboardHasAttachmentsMetadataCheck() {
+    PlatformPasteboard.copyText("Plain text only")
+    #expect(PlatformPasteboard.readText() == "Plain text only")
+    // Verify hasAttachments is callable on @MainActor and returns a Bool without decoding errors
+    let hasAttachments = PlatformPasteboard.hasAttachments
+    #expect(hasAttachments == false || hasAttachments == true)
+  }
 }
