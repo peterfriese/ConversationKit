@@ -2,13 +2,13 @@
 
 **Author**: Learnings Agent & ConversationKit v2 Engineering Team  
 **Date**: 2026-11-02  
-**Tags**: `SwiftUI`, `LiquidGlass`, `MicroInteractions`, `ShaderMetaballs`, `SofiaPattern`, `Menus`, `iOS26`, `macOS26`  
+**Tags**: `SwiftUI`, `LiquidGlass`, `MicroInteractions`, `ShaderMetaballs`, `SofiaPattern`, `Menus`, `Performance`, `iOS26`, `macOS26`  
 
 ---
 
 ## Summary
 
-During the Jony Ive & Craig Federighi architectural review and `Sofia` reference analysis of `ConversationKit` v2 for iOS 26+ and macOS 26+, we replaced fragile layout-driven spacing mutations and `.popover` workarounds with the canonical Apple Liquid Glass composer architecture. We discovered that mutating `HStack(spacing: isFocused ? 3 : 8)` created a permanent "dog-bone" metaball weld for the entire duration of typing, whereas combining static `GlassEffectContainer(spacing: 12)` and `HStack(alignment: .bottom, spacing: 8)` with `.glassEffect(.regular.interactive(), in: .rect(cornerRadius: 22))` delegates transient touch-down inflation directly to SwiftUI's native C++/Metal shader—producing an effortless fluid "kiss" against the `44×44pt` bookend siblings on finger press and separating cleanly on release. Furthermore, we identified why SwiftUI `Menu` previously vanished the composer pill—`UIContextMenuInteraction` captured the entire outer `.interactive()` glass vessel as its targeted preview—and resolved it cleanly using our refined `Sofia`-style **`ComposerMenuSlotAnchorKey: PreferenceKey` + `.overlayPreferenceValue`** pattern (declaring each accessory row only once inside `panelContent` so the visual label breathes with the glass shader, while positioning a zero-opacity interactive `Menu` hit-target via `proxy[anchor]` outside `.glassEffect` with zero duplicate `HStack`s and zero `Color.clear` dummy spacers), alongside `PlatformPasteboard.hasAttachments` for zero-allocation pasteboard metadata checks inside `Menu` bodies, the 3-zone bookend sibling grammar (`Sofia` pattern), true 1:1 circular glass (`Sofia` Part 9), and pure `.safeAreaBar(edge: .bottom)` refraction without opaque `LinearGradient` backdrops.
+During the Jony Ive & Craig Federighi architectural review and `Sofia` reference analysis of `ConversationKit` v2 for iOS 26+ and macOS 26+, we replaced fragile layout-driven spacing mutations and `.popover` workarounds with the canonical Apple Liquid Glass composer architecture. We discovered that mutating `HStack(spacing: isFocused ? 3 : 8)` created a permanent "dog-bone" metaball weld for the entire duration of typing, whereas combining static `GlassEffectContainer(spacing: 12)` and `HStack(alignment: .bottom, spacing: 8)` with `.glassEffect(.regular.interactive(), in: .rect(cornerRadius: 22))` delegates transient touch-down inflation directly to SwiftUI's native C++/Metal shader—producing an effortless fluid "kiss" against the `44×44pt` bookend siblings on finger press and separating cleanly on release. Furthermore, we identified why SwiftUI `Menu` previously vanished the composer pill—`UIContextMenuInteraction` captured the entire outer `.interactive()` glass vessel as its targeted preview—and resolved it cleanly using our refined `Sofia`-style **`ComposerMenuSlotAnchorKey: PreferenceKey` + `.overlayPreferenceValue`** pattern (declaring each accessory row only once inside `panelContent` so the visual label breathes with the glass shader, while positioning a zero-opacity interactive `Menu` hit-target via `proxy[anchor]` outside `.glassEffect` with zero duplicate `HStack`s and zero `Color.clear` dummy spacers), alongside `PlatformPasteboard.hasAttachments` for zero-allocation pasteboard metadata checks inside `Menu` bodies, the 3-zone bookend sibling grammar (`Sofia` pattern), true 1:1 circular glass (`Sofia` Part 9), pure `.safeAreaBar(edge: .bottom)` refraction without opaque `LinearGradient` backdrops, and our **Canonical SwiftUI Performance & Ergonomics Refinements (`F-02`, `F-03`, `F-04`, `F-08`)** (`EnvironmentBindingBox: Equatable`, lazy `MessageComposerStyleConfiguration` subview slots, native `TextField` prompt when `tokens.isEmpty`, and unary `MessageView` root + zero-allocation `ForEach` enumeration).
 
 ---
 
@@ -79,6 +79,13 @@ Following the `Sofia` reference architecture, `ClassicGlassMessageComposerStyle`
 | **`Card Glass`** (`.cardGlass`) | 2-Row Assistant Card (`cornerRadius: 24`) | Bottom row `32×32pt` bordered circle (`anchorPreference` -> `.attachmentMenu`) | Bottom row full `modelSelector` pill (`anchorPreference` -> `.modelSelectorMenu`) + `dictation` & `dismissKeyboard` | Bottom row `32×32pt` accent circle |
 | **`Compact Glass`** (`.compactGlass`) | Single-Row Capsule (`cornerRadius: 22`) | Inside leading `32×32pt` borderless `+` (`anchorPreference` -> `.attachmentMenu`) | Single `trailingControls` inside `panelContent` (`anchorPreference` -> `.modelSelectorMenu`), `dictation`, `dismissKeyboard` | Inside trailing `32×32pt` accent circle |
 
+### 4. Canonical SwiftUI Performance & Ergonomics Refinements (`F-02`, `F-03`, `F-04`, `F-08`)
+To ensure 60Hz–120Hz token streaming and keystroke responsiveness remain free of redundant SwiftUI attribute-graph invalidations and heap allocations, we completed four companion refinements:
+1. **`EnvironmentBindingBox: Equatable` (`F-02`):** Because `EnvironmentBindingBox<Value>` wraps `@MainActor @Sendable` getter and setter closures to carry two-way bindings inside `@Entry EnvironmentValues` (`selectedComposerModelBox`, `activeComposerCapabilitiesBox`, `composerTokensBox`), Swift cannot auto-synthesize `Equatable`. Without `Equatable`, every 60Hz token tick in `ConversationView` recreated fresh `EnvironmentBindingBox` instances that compared as unequal by closure identity, invalidating downstream composer views even when the selected model, capabilities, and tokens were unchanged. Capturing `public let snapshot: Value = binding.wrappedValue` at initialization and conforming `EnvironmentBindingBox: Equatable where Value: Equatable` (checking `lhs.snapshot == rhs.snapshot` and `MainActor.assumeIsolated { lhs.wrappedValue == rhs.wrappedValue }`) makes `@Entry` diffing $O(1)$ and suppresses false subtree invalidations during streaming.
+2. **Lazy Subview Slot Evaluation in `MessageComposerStyleConfiguration` (`F-03`):** Each concrete `MessageComposerStyle` (`ClassicGlassMessageComposerStyle`, `CardGlassMessageComposerStyle`, `CompactGlassMessageComposerStyle`) renders only one attachment button variant (`attachmentButton` or `borderlessAttachmentButton`) and one model selector variant (`compactModelSelector` or `modelSelector`). Backing `MessageComposerStyleConfiguration`'s subview properties (`textField`, `attachmentButton`, `borderlessAttachmentButton`, `attachmentsTray`, `tokensBar`, `modelSelector`, `compactModelSelector`, `capabilitiesBar`, `dictationButton`, `submitButton`, `dismissKeyboardButton`) with lazy `@MainActor` closure builders (`() -> AnyView`) via `internal init(lazyTextField:...)` ensures unused style variants are never constructed or wrapped in `AnyView` on keystrokes, while preserving 100% public API source compatibility.
+3. **Native `TextField` Prompt When `tokens.isEmpty` (`F-04`):** `ComposerTextBuffer` injects the `\u{200B}` (`zeroWidthSpace`) backspace sentinel only when `!tokens.isEmpty` so a single backspace on a visually empty input selects/deletes the trailing `/command` or `@mention` token. When `tokens.isEmpty`, the bound text is genuinely `""`. Passing `prompt: hasTokens ? Text("") : Text(placeholder).foregroundStyle(.secondary)` directly to `TextField("", text: textFieldRawBinding, prompt: ..., axis: .vertical)` and scoping the fallback `.overlay(alignment: .leading)` strictly to `if hasTokens && isVisuallyEmpty` restores native SwiftUI placeholder baseline metrics, Dynamic Type scaling, and VoiceOver placeholder traits whenever no tokens are attached.
+4. **Unary `MessageView` Root & Zero-Allocation `ForEach` Enumeration (`F-08`):** Wrapping `MessageView.body`'s `switch message.participant` inside a single unary `VStack` root eliminates top-level `_ConditionalContent` structural identity churn inside `ForEach`, while replacing `ForEach(Array(...enumerated()))` with direct `ForEach(toolCalls)` or SE-0459 lazy `EnumeratedSequence` (`collection.enumerated()`) eliminates per-render temporary `Array` heap allocations across timeline and agentic subviews.
+
 ---
 
 ## The Idiomatic Solution (`## Solution & Architecture Pattern`)
@@ -88,6 +95,7 @@ Following the `Sofia` reference architecture, `ClassicGlassMessageComposerStyle`
 3. **Use `PlatformPasteboard.hasAttachments` Inside `Menu` Builders:** Query pasteboard metadata in $O(1)$ without decoding image/file `Data` blobs on the main thread when rendering `Menu` items.
 4. **Enforce 1:1 Circular Glass via Explicit Square Frames + `in: .circle`:** Use `.buttonStyle(.plain)` + `.frame(width: diameter, height: diameter)` + `.glassEffect(..., in: .circle)` rather than `.buttonStyle(.glass)`.
 5. **Keep `.safeAreaBar(edge: .bottom)` Transparent:** Never place an opaque or gradient background behind `.safeAreaBar`; combine `.scrollEdgeEffectStyle(.soft, for: .bottom)` on the `ScrollView` with native Liquid Glass vessels in the bar.
+6. **Eliminate Streaming & Keystroke Churn (`F-02`, `F-03`, `F-04`, `F-08`):** Conform `EnvironmentBindingBox` to `Equatable where Value: Equatable` via a captured `snapshot: Value`, back `MessageComposerStyleConfiguration` subview slots with lazy `@MainActor` builders, use `TextField`'s native `prompt:` whenever `tokens.isEmpty`, and prefer unary `VStack` roots + direct/lazy `ForEach` collections.
 
 ---
 
@@ -282,6 +290,75 @@ if isMenuVisualOnly {
 }
 ```
 
+### 4. Canonical SwiftUI Performance & Ergonomics Refinements (`F-02`, `F-03`, `F-04`)
+
+```swift
+// ✅ F-02: Snapshot-backed Equatable conformance on EnvironmentBindingBox (ConversationEnvironment.swift)
+@MainActor
+public struct EnvironmentBindingBox<Value: Sendable>: Sendable {
+  public let snapshot: Value
+  private let getter: @MainActor @Sendable () -> Value
+  private let setter: @MainActor @Sendable (Value) -> Void
+
+  public init(_ binding: Binding<Value>) {
+    self.snapshot = binding.wrappedValue
+    self.getter = { @MainActor in binding.wrappedValue }
+    self.setter = { @MainActor newValue in binding.wrappedValue = newValue }
+  }
+}
+
+extension EnvironmentBindingBox: Equatable where Value: Equatable {
+  public nonisolated static func == (
+    lhs: EnvironmentBindingBox<Value>,
+    rhs: EnvironmentBindingBox<Value>
+  ) -> Bool {
+    guard lhs.snapshot == rhs.snapshot else { return false }
+    return MainActor.assumeIsolated {
+      lhs.wrappedValue == rhs.wrappedValue
+    }
+  }
+}
+
+// ✅ F-03: Lazy @MainActor subview builders in MessageComposerStyleConfiguration (MessageComposerStyle.swift)
+@MainActor
+public struct MessageComposerStyleConfiguration {
+  private let attachmentButtonBuilder: (() -> AnyView)?
+  private let borderlessAttachmentButtonBuilder: (() -> AnyView)?
+  private let modelSelectorBuilder: (() -> AnyView)?
+  private let compactModelSelectorBuilder: (() -> AnyView)?
+
+  public var attachmentButton: AnyView? { attachmentButtonBuilder?() }
+  public var borderlessAttachmentButton: AnyView? { borderlessAttachmentButtonBuilder?() }
+  public var modelSelector: AnyView? { modelSelectorBuilder?() }
+  public var compactModelSelector: AnyView? { compactModelSelectorBuilder?() }
+}
+
+// ✅ F-04: Native TextField prompt when tokens.isEmpty + conditional \u{200B} overlay fallback (MessageComposerView.swift)
+@ViewBuilder
+private var promptTextField: some View {
+  let hasTokens = !tokensBinding.wrappedValue.isEmpty
+  let isVisuallyEmpty = ComposerTextBuffer.cleanText(text).isEmpty
+
+  TextField(
+    "",
+    text: textFieldRawBinding,
+    prompt: hasTokens ? Text("") : Text(placeholder).foregroundStyle(.secondary),
+    axis: .vertical
+  )
+  .lineLimit(1...8)
+  .textFieldStyle(.plain)
+  .overlay(alignment: .leading) {
+    if hasTokens && isVisuallyEmpty {
+      Text(placeholder)
+        .foregroundStyle(.secondary)
+        .lineLimit(1)
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+  }
+}
+```
+
 ---
 
 ## Key Takeaways (`## Takeaways for the Team`)
@@ -292,3 +369,4 @@ if isMenuVisualOnly {
 - **Use the 3-Zone Bookend Sibling Grammar (`Sofia` Pattern):** Structure `.classicGlass` as `[ 44×44 + Sibling ] | 8pt | [ 44pt Interactive Vessel + Anchor-Isolated Menu Hit Target ] | 8pt | [ 44×44 Tinted Send/Stop Sibling ]`. This keeps secondary utilities (`32×32pt` borderless icons) inside the text vessel while giving the attachment trigger and primary submit/stop action balanced `44×44pt` bookend weight.
 - **Construct Circular Glass with Explicit Square Frames (`Sofia` Part 9):** Avoid `.buttonStyle(.glass)` + `.buttonBorderShape(.circle)`, which stretches buttons into horizontal ovals. Always pair `.buttonStyle(.plain)` + `.frame(width: d, height: d)` + `.glassEffect(..., in: .circle)` for true 1:1 circular geometry.
 - **Keep `.safeAreaBar(edge: .bottom)` Free of Opaque Gradients:** Never add a `LinearGradient` background to `.safeAreaBar(edge: .bottom)`. Pair `.scrollEdgeEffectStyle(.soft, for: .bottom)` on the timeline `ScrollView` with transparent safe-area chrome so content refracts directly through the floating Liquid Glass siblings.
+- **Conform `@Entry` Binding Boxes to `Equatable`, Use Lazy Style Configuration Builders, and Prefer Native `TextField(..., prompt:)` (`F-02`, `F-03`, `F-04`, `F-08`):** Capture `snapshot: Value` on `EnvironmentBindingBox` so `@Entry` environment diffing skips composer invalidation during 60Hz token streaming (`F-02`); back `MessageComposerStyleConfiguration` subview slots with lazy `@MainActor` closures so unused style variants (`borderlessAttachmentButton` vs. `attachmentButton`, `compactModelSelector` vs. `modelSelector`) are never built on keystrokes (`F-03`); pass `prompt: hasTokens ? Text("") : Text(placeholder).foregroundStyle(.secondary)` to `TextField` so native baseline metrics and VoiceOver traits apply whenever `tokens.isEmpty` (`F-04`); and maintain unary `VStack` roots and direct/lazy `ForEach` collections (`F-08`).

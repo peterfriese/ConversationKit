@@ -333,26 +333,34 @@ public struct MessageComposerView: View {
     let hasCapabilities = !composerCapabilities.isEmpty
 
     return MessageComposerStyleConfiguration(
-      textField: AnyView(promptTextField),
-      attachmentButton: attachmentsDisabled ? nil : AnyView(attachmentMenu(isBorderless: false)),
-      attachmentsTray: currentAttachments.isEmpty ? nil : AnyView(attachmentsTraySubview),
-      tokensBar: currentTokens.isEmpty ? nil : AnyView(tokensBarSubview),
-      modelSelector: (hasModels || hasCapabilities) ? AnyView(modelSelectorSubview(isCompact: false)) : nil,
+      lazyTextField: { AnyView(promptTextField) },
+      attachmentButton: attachmentsDisabled
+        ? nil
+        : { AnyView(attachmentMenu(isBorderless: false)) },
+      borderlessAttachmentButton: attachmentsDisabled
+        ? nil
+        : { AnyView(attachmentMenu(isBorderless: true, diameter: 32)) },
+      attachmentsTray: currentAttachments.isEmpty ? nil : { AnyView(attachmentsTraySubview) },
+      tokensBar: currentTokens.isEmpty ? nil : { AnyView(tokensBarSubview) },
+      modelSelector: (hasModels || hasCapabilities)
+        ? { AnyView(modelSelectorSubview(isCompact: false)) }
+        : nil,
+      compactModelSelector: (hasModels || hasCapabilities)
+        ? { AnyView(modelSelectorSubview(isCompact: true)) }
+        : nil,
       capabilitiesBar: nil,
       dictationButton: onDictationAction.map { action in
-        AnyView(dictationButtonSubview(action: action))
+        { AnyView(dictationButtonSubview(action: action)) }
       },
-      submitButton: AnyView(submitButtonSubview()),
-      dismissKeyboardButton: effectiveIsFocused ? AnyView(dismissKeyboardButtonSubview()) : nil,
+      submitButton: { AnyView(submitButtonSubview()) },
+      dismissKeyboardButton: effectiveIsFocused ? { AnyView(dismissKeyboardButtonSubview()) } : nil,
       isFocused: effectiveIsFocused,
       isGenerating: isGenerating,
       canSubmit: canSubmit,
       hasAttachments: !currentAttachments.isEmpty,
       hasTokens: !currentTokens.isEmpty,
       hasModels: hasModels,
-      hasCapabilities: hasCapabilities,
-      compactModelSelector: (hasModels || hasCapabilities) ? AnyView(modelSelectorSubview(isCompact: true)) : nil,
-      borderlessAttachmentButton: attachmentsDisabled ? nil : AnyView(attachmentMenu(isBorderless: true, diameter: 32))
+      hasCapabilities: hasCapabilities
     )
   }
 
@@ -360,9 +368,15 @@ public struct MessageComposerView: View {
 
   @ViewBuilder
   private var promptTextField: some View {
+    let hasTokens = !tokensBinding.wrappedValue.isEmpty
     let isVisuallyEmpty = ComposerTextBuffer.cleanText(text).isEmpty
 
-    TextField("", text: textFieldRawBinding, axis: .vertical)
+    TextField(
+      "",
+      text: textFieldRawBinding,
+      prompt: hasTokens ? Text("") : Text(placeholder).foregroundStyle(.secondary),
+      axis: .vertical
+    )
       .lineLimit(1...8)
       .textFieldStyle(.plain)
       .modifier(
@@ -375,7 +389,7 @@ public struct MessageComposerView: View {
         handleReturnKeySubmit()
       }
       .overlay(alignment: .leading) {
-        if isVisuallyEmpty {
+        if hasTokens && isVisuallyEmpty {
           Text(placeholder)
             .foregroundStyle(.secondary)
             .lineLimit(1)

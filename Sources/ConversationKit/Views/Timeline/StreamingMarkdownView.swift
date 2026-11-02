@@ -915,7 +915,7 @@ private struct MarkdownBlockContentView: View {
   @ViewBuilder
   private func listView(items: [MarkdownBlock.ListItem], isOrdered: Bool) -> some View {
     VStack(alignment: .leading, spacing: 6) {
-      ForEach(Array(items.enumerated()), id: \.element.id) { idx, item in
+      ForEach(items.enumerated(), id: \.element.id) { idx, item in
         HStack(alignment: .firstTextBaseline, spacing: 8) {
           if let isChecked = item.isChecked {
             Image(systemName: isChecked ? "checkmark.square.fill" : "square")
@@ -962,7 +962,7 @@ private struct MarkdownBlockContentView: View {
     ScrollView(.horizontal, showsIndicators: false) {
       Grid(alignment: .leading, horizontalSpacing: 14, verticalSpacing: 8) {
         GridRow {
-          ForEach(Array(headers.enumerated()), id: \.offset) { _, header in
+          ForEach(headers.enumerated(), id: \.offset) { _, header in
             styledInlineText(header)
               .font(.subheadline.weight(.semibold))
               .foregroundStyle(.primary)
@@ -972,7 +972,7 @@ private struct MarkdownBlockContentView: View {
         Divider()
           .overlay(Color.platformSeparator.opacity(0.6))
 
-        ForEach(Array(rows.enumerated()), id: \.offset) { _, row in
+        ForEach(rows.enumerated(), id: \.offset) { _, row in
           GridRow {
             ForEach(0..<headers.count, id: \.self) { colIndex in
               let cellText = colIndex < row.count ? row[colIndex] : ""

@@ -73,7 +73,7 @@ public struct ToolCallsGroupView: View {
             .overlay(Color.platformSeparator.opacity(0.45))
 
           VStack(alignment: .leading, spacing: 0) {
-            ForEach(Array(toolCalls.enumerated()), id: \.element.id) { index, toolCall in
+            ForEach(toolCalls) { toolCall in
               ToolCallRowView(
                 toolCall: toolCall,
                 isInspectorExpanded: expandedToolRowIDs.contains(toolCall.id),
@@ -84,7 +84,7 @@ public struct ToolCallsGroupView: View {
               )
               .accessibilityIdentifier(ConversationAccessibilityID.toolCallRow(toolCall.id))
 
-              if index < toolCalls.count - 1 {
+              if toolCall.id != toolCalls.last?.id {
                 Divider()
                   .overlay(Color.platformSeparator.opacity(0.3))
                   .padding(.leading, 36)

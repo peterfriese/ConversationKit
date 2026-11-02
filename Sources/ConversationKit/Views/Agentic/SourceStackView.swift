@@ -83,7 +83,7 @@ public struct SourceStackView: View {
 
         if isExpanded {
           VStack(alignment: .leading, spacing: 6) {
-            ForEach(Array(citations.enumerated()), id: \.element.id) { offset, citation in
+            ForEach(citations.enumerated(), id: \.element.id) { offset, citation in
               let displayIndex = citation.index ?? (offset + 1)
               CitationCardView(
                 citation: citation,
@@ -158,9 +158,9 @@ public struct SourceStackView: View {
   // MARK: Overlapping Domain Initial Badges (Up to 3)
 
   private var overlappingDomainBadges: some View {
-    let previewCitations = Array(citations.prefix(3))
+    let previewCitations = citations.prefix(3)
     return HStack(spacing: -6) {
-      ForEach(Array(previewCitations.enumerated()), id: \.element.id) { index, citation in
+      ForEach(previewCitations.enumerated(), id: \.element.id) { index, citation in
         DomainInitialBadge(
           domain: citation.domain,
           colorIndex: index

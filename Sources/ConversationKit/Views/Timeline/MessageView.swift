@@ -59,17 +59,21 @@ public struct MessageView<MessageType: Message>: View {
   }
 
   public var body: some View {
-    switch message.participant {
-    case .user:
-      userMessageBranch
-        .accessibilityElement(children: .contain)
-        .accessibilityIdentifier(ConversationAccessibilityID.userMessage(message.id))
+    VStack(alignment: message.participant == .user ? .trailing : .leading, spacing: 0) {
+      switch message.participant {
+      case .user:
+        userMessageBranch
 
-    case .other:
-      assistantMessageBranch
-        .accessibilityElement(children: .contain)
-        .accessibilityIdentifier(ConversationAccessibilityID.assistantMessage(message.id))
+      case .other:
+        assistantMessageBranch
+      }
     }
+    .accessibilityElement(children: .contain)
+    .accessibilityIdentifier(
+      message.participant == .user
+        ? ConversationAccessibilityID.userMessage(message.id)
+        : ConversationAccessibilityID.assistantMessage(message.id)
+    )
   }
 
   // MARK: - `.user` Branch (Right-Aligned Stylable Bubble)

@@ -42,7 +42,7 @@ public struct AgentPlanView: View {
           .overlay(Color.platformSeparator.opacity(0.45))
 
         VStack(alignment: .leading, spacing: 8) {
-          ForEach(Array(plan.steps.enumerated()), id: \.element.id) { index, step in
+          ForEach(plan.steps.enumerated(), id: \.element.id) { index, step in
             AgentPlanStepRowView(
               stepNumber: index + 1,
               step: step

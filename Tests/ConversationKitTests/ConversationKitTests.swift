@@ -1811,4 +1811,125 @@ struct MessageComposerStyleTests {
     let hasAttachments = PlatformPasteboard.hasAttachments
     #expect(hasAttachments == false || hasAttachments == true)
   }
+
+  @Test("EnvironmentBindingBox conforms to Equatable when Value is Equatable and prevents false environment invalidations")
+  @MainActor
+  func environmentBindingBoxEquatableConformance() {
+    let sonnet = ComposerModelOption(id: "sonnet-4-6", name: "Claude Sonnet 4.6")
+    let opus = ComposerModelOption(id: "opus-4-6", name: "Claude Opus 4.6")
+
+    var selectedModelA: ComposerModelOption? = sonnet
+    var selectedModelB: ComposerModelOption? = sonnet
+
+    let bindingA = Binding<ComposerModelOption?>(
+      get: { selectedModelA },
+      set: { selectedModelA = $0 }
+    )
+    let bindingB = Binding<ComposerModelOption?>(
+      get: { selectedModelB },
+      set: { selectedModelB = $0 }
+    )
+
+    let box1 = EnvironmentBindingBox(bindingA)
+    let box2 = EnvironmentBindingBox(bindingB)
+
+    // Equal wrapped values produce equal EnvironmentBindingBox instances
+    #expect(box1 == box2)
+    #expect(box1.snapshot == sonnet)
+
+    // Mutating the underlying value and creating a new box (or checking live wrappedValue) produces inequality
+    selectedModelB = opus
+    #expect(box1 != box2)
+
+    let box3 = EnvironmentBindingBox(bindingB)
+    #expect(box1 != box3)
+    #expect(box3.snapshot == opus)
+
+    // Also verify Set<ComposerCapability> and [ComposerToken] Equatable boxes
+    var caps1: Set<ComposerCapability> = [.think, .search]
+    var caps2: Set<ComposerCapability> = [.think, .search]
+    let capsBox1 = EnvironmentBindingBox(Binding(get: { caps1 }, set: { caps1 = $0 }))
+    let capsBox2 = EnvironmentBindingBox(Binding(get: { caps2 }, set: { caps2 = $0 }))
+    #expect(capsBox1 == capsBox2)
+
+    caps2.insert(.image)
+    let capsBox3 = EnvironmentBindingBox(Binding(get: { caps2 }, set: { caps2 = $0 }))
+    #expect(capsBox1 != capsBox3)
+  }
+
+  @Test("MessageComposerStyleConfiguration lazily evaluates subview slots so unused style variants are never constructed (F-03)")
+  @MainActor
+  func messageComposerStyleConfigurationLazySlotEvaluation() {
+    var textFieldEvaluations = 0
+    var attachmentButtonEvaluations = 0
+    var borderlessAttachmentButtonEvaluations = 0
+    var modelSelectorEvaluations = 0
+    var compactModelSelectorEvaluations = 0
+    var submitButtonEvaluations = 0
+
+    let lazyConfig = MessageComposerStyleConfiguration(
+      lazyTextField: {
+        textFieldEvaluations += 1
+        return AnyView(Text("Input"))
+      },
+      attachmentButton: {
+        attachmentButtonEvaluations += 1
+        return AnyView(Button("+") {})
+      },
+      borderlessAttachmentButton: {
+        borderlessAttachmentButtonEvaluations += 1
+        return AnyView(Button("+") {})
+      },
+      modelSelector: {
+        modelSelectorEvaluations += 1
+        return AnyView(Text("Claude Sonnet 4.6"))
+      },
+      compactModelSelector: {
+        compactModelSelectorEvaluations += 1
+        return AnyView(Image(systemName: "sparkles"))
+      },
+      submitButton: {
+        submitButtonEvaluations += 1
+        return AnyView(Button("Send") {})
+      },
+      isFocused: false,
+      isGenerating: false,
+      canSubmit: false,
+      hasAttachments: false,
+      hasTokens: false,
+      hasModels: true,
+      hasCapabilities: false
+    )
+
+    // 1. Zero subviews are constructed at MessageComposerStyleConfiguration initialization
+    #expect(textFieldEvaluations == 0)
+    #expect(attachmentButtonEvaluations == 0)
+    #expect(borderlessAttachmentButtonEvaluations == 0)
+    #expect(modelSelectorEvaluations == 0)
+    #expect(compactModelSelectorEvaluations == 0)
+    #expect(submitButtonEvaluations == 0)
+
+    // 2. Accessing only ClassicGlass slots (`attachmentButton` and `compactModelSelector`)
+    // never constructs `borderlessAttachmentButton` or `modelSelector`
+    _ = lazyConfig.textField
+    _ = lazyConfig.attachmentButton
+    _ = lazyConfig.compactModelSelector ?? lazyConfig.modelSelector
+
+    #expect(textFieldEvaluations == 1)
+    #expect(attachmentButtonEvaluations == 1)
+    #expect(borderlessAttachmentButtonEvaluations == 0)
+    #expect(compactModelSelectorEvaluations == 1)
+    #expect(modelSelectorEvaluations == 0)
+    #expect(submitButtonEvaluations == 0)
+
+    // 3. Accessing CardGlass slots (`borderlessAttachmentButton` and `modelSelector`)
+    // evaluates only those slots on demand
+    _ = lazyConfig.borderlessAttachmentButton ?? lazyConfig.attachmentButton
+    _ = lazyConfig.modelSelector
+
+    #expect(borderlessAttachmentButtonEvaluations == 1)
+    #expect(attachmentButtonEvaluations == 1)
+    #expect(modelSelectorEvaluations == 1)
+    #expect(compactModelSelectorEvaluations == 1)
+  }
 }

@@ -49,38 +49,72 @@ public protocol MessageComposerStyle: DynamicProperty, Sendable {
 /// The subview slots and state properties passed to a `MessageComposerStyle` implementation (`§3.3.1`).
 @MainActor
 public struct MessageComposerStyleConfiguration {
+  private let textFieldBuilder: () -> AnyView
+  private let attachmentButtonBuilder: (() -> AnyView)?
+  private let borderlessAttachmentButtonBuilder: (() -> AnyView)?
+  private let attachmentsTrayBuilder: (() -> AnyView)?
+  private let tokensBarBuilder: (() -> AnyView)?
+  private let modelSelectorBuilder: (() -> AnyView)?
+  private let compactModelSelectorBuilder: (() -> AnyView)?
+  private let capabilitiesBarBuilder: (() -> AnyView)?
+  private let dictationButtonBuilder: (() -> AnyView)?
+  private let submitButtonBuilder: () -> AnyView
+  private let dismissKeyboardButtonBuilder: (() -> AnyView)?
+
   /// Vertical-growing prompt text field.
-  public let textField: AnyView
+  public var textField: AnyView {
+    textFieldBuilder()
+  }
 
   /// Leading `+` menu trigger button for adding photos, files, or custom attachment actions (bordered or detached).
-  public let attachmentButton: AnyView?
+  public var attachmentButton: AnyView? {
+    attachmentButtonBuilder?()
+  }
 
   /// Leading borderless `+` menu trigger icon without circular background or border overlay.
-  public let borderlessAttachmentButton: AnyView?
+  public var borderlessAttachmentButton: AnyView? {
+    borderlessAttachmentButtonBuilder?()
+  }
 
   /// Horizontal scroll strip displaying pending `ConversationAttachment` cards with upload progress rings.
-  public let attachmentsTray: AnyView?
+  public var attachmentsTray: AnyView? {
+    attachmentsTrayBuilder?()
+  }
 
   /// Horizontal scroll bar displaying active `/command` and `@mention` `ComposerToken` pills.
-  public let tokensBar: AnyView?
+  public var tokensBar: AnyView? {
+    tokensBarBuilder?()
+  }
 
   /// Integrated model selector menu pill (`ComposerModelOption`) displaying model name and badge.
-  public let modelSelector: AnyView?
+  public var modelSelector: AnyView? {
+    modelSelectorBuilder?()
+  }
 
   /// Compact circular icon-only model selector button (`ComposerModelOption`) without text label.
-  public let compactModelSelector: AnyView?
+  public var compactModelSelector: AnyView? {
+    compactModelSelectorBuilder?()
+  }
 
   /// Toggleable capability chips bar (`Think`, `Search`, `Image`, etc.).
-  public let capabilitiesBar: AnyView?
+  public var capabilitiesBar: AnyView? {
+    capabilitiesBarBuilder?()
+  }
 
   /// Optional voice/dictation button.
-  public let dictationButton: AnyView?
+  public var dictationButton: AnyView? {
+    dictationButtonBuilder?()
+  }
 
   /// Trailing primary action button (morphs between Send and cooperative Stop).
-  public let submitButton: AnyView
+  public var submitButton: AnyView {
+    submitButtonBuilder()
+  }
 
   /// Focus-driven keyboard dismiss button (`keyboard.chevron.compact.down`) shown on iOS when `isFocused` is `true` (`F-11`, `AC-15`).
-  public let dismissKeyboardButton: AnyView?
+  public var dismissKeyboardButton: AnyView? {
+    dismissKeyboardButtonBuilder?()
+  }
 
   /// Indicates whether the composer's text input field currently has keyboard focus (`@FocusState`).
   public let isFocused: Bool
@@ -124,15 +158,17 @@ public struct MessageComposerStyleConfiguration {
     compactModelSelector: AnyView? = nil,
     borderlessAttachmentButton: AnyView? = nil
   ) {
-    self.textField = textField
-    self.attachmentButton = attachmentButton
-    self.attachmentsTray = attachmentsTray
-    self.tokensBar = tokensBar
-    self.modelSelector = modelSelector
-    self.capabilitiesBar = capabilitiesBar
-    self.dictationButton = dictationButton
-    self.submitButton = submitButton
-    self.dismissKeyboardButton = dismissKeyboardButton
+    self.textFieldBuilder = { textField }
+    self.attachmentButtonBuilder = attachmentButton.map { view in { view } }
+    self.borderlessAttachmentButtonBuilder = borderlessAttachmentButton.map { view in { view } }
+    self.attachmentsTrayBuilder = attachmentsTray.map { view in { view } }
+    self.tokensBarBuilder = tokensBar.map { view in { view } }
+    self.modelSelectorBuilder = modelSelector.map { view in { view } }
+    self.compactModelSelectorBuilder = compactModelSelector.map { view in { view } }
+    self.capabilitiesBarBuilder = capabilitiesBar.map { view in { view } }
+    self.dictationButtonBuilder = dictationButton.map { view in { view } }
+    self.submitButtonBuilder = { submitButton }
+    self.dismissKeyboardButtonBuilder = dismissKeyboardButton.map { view in { view } }
     self.isFocused = isFocused
     self.isGenerating = isGenerating
     self.canSubmit = canSubmit
@@ -140,8 +176,47 @@ public struct MessageComposerStyleConfiguration {
     self.hasTokens = hasTokens ?? (tokensBar != nil)
     self.hasModels = hasModels ?? (modelSelector != nil || compactModelSelector != nil)
     self.hasCapabilities = hasCapabilities ?? (capabilitiesBar != nil)
-    self.compactModelSelector = compactModelSelector
-    self.borderlessAttachmentButton = borderlessAttachmentButton
+  }
+
+  /// Creates a `MessageComposerStyleConfiguration` with lazy subview builders so unused style slots are never constructed (`F-03`).
+  internal init(
+    lazyTextField: @escaping () -> AnyView,
+    attachmentButton: (() -> AnyView)? = nil,
+    borderlessAttachmentButton: (() -> AnyView)? = nil,
+    attachmentsTray: (() -> AnyView)? = nil,
+    tokensBar: (() -> AnyView)? = nil,
+    modelSelector: (() -> AnyView)? = nil,
+    compactModelSelector: (() -> AnyView)? = nil,
+    capabilitiesBar: (() -> AnyView)? = nil,
+    dictationButton: (() -> AnyView)? = nil,
+    submitButton: @escaping () -> AnyView,
+    dismissKeyboardButton: (() -> AnyView)? = nil,
+    isFocused: Bool = false,
+    isGenerating: Bool = false,
+    canSubmit: Bool = false,
+    hasAttachments: Bool? = nil,
+    hasTokens: Bool? = nil,
+    hasModels: Bool? = nil,
+    hasCapabilities: Bool? = nil
+  ) {
+    self.textFieldBuilder = lazyTextField
+    self.attachmentButtonBuilder = attachmentButton
+    self.borderlessAttachmentButtonBuilder = borderlessAttachmentButton
+    self.attachmentsTrayBuilder = attachmentsTray
+    self.tokensBarBuilder = tokensBar
+    self.modelSelectorBuilder = modelSelector
+    self.compactModelSelectorBuilder = compactModelSelector
+    self.capabilitiesBarBuilder = capabilitiesBar
+    self.dictationButtonBuilder = dictationButton
+    self.submitButtonBuilder = submitButton
+    self.dismissKeyboardButtonBuilder = dismissKeyboardButton
+    self.isFocused = isFocused
+    self.isGenerating = isGenerating
+    self.canSubmit = canSubmit
+    self.hasAttachments = hasAttachments ?? (attachmentsTray != nil)
+    self.hasTokens = hasTokens ?? (tokensBar != nil)
+    self.hasModels = hasModels ?? (modelSelector != nil || compactModelSelector != nil)
+    self.hasCapabilities = hasCapabilities ?? (capabilitiesBar != nil)
   }
 }
 

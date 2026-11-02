@@ -399,11 +399,14 @@ public struct ConversationDisclaimerBuilder: Sendable {
 /// Nominal `@MainActor` wrapper holding a two-way binding in `EnvironmentValues`.
 @MainActor
 public struct EnvironmentBindingBox<Value: Sendable>: Sendable {
+  /// Snapshot of `binding.wrappedValue` captured at initialization time for $O(1)$ `Equatable` diffing.
+  public let snapshot: Value
   private let getter: @MainActor @Sendable () -> Value
   private let setter: @MainActor @Sendable (Value) -> Void
 
   /// Wraps a SwiftUI `Binding<Value>` for safe storage inside `EnvironmentValues`.
   public init(_ binding: Binding<Value>) {
+    self.snapshot = binding.wrappedValue
     self.getter = { @MainActor in binding.wrappedValue }
     self.setter = { @MainActor newValue in binding.wrappedValue = newValue }
   }
@@ -422,6 +425,18 @@ public struct EnvironmentBindingBox<Value: Sendable>: Sendable {
   public var wrappedValue: Value {
     get { getter() }
     nonmutating set { setter(newValue) }
+  }
+}
+
+extension EnvironmentBindingBox: Equatable where Value: Equatable {
+  public nonisolated static func == (
+    lhs: EnvironmentBindingBox<Value>,
+    rhs: EnvironmentBindingBox<Value>
+  ) -> Bool {
+    guard lhs.snapshot == rhs.snapshot else { return false }
+    return MainActor.assumeIsolated {
+      lhs.wrappedValue == rhs.wrappedValue
+    }
   }
 }
 
