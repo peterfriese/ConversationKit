@@ -93,10 +93,13 @@ public struct ScrollToBottomButton: View {
           .font(.system(size: 14, weight: .semibold))
           .foregroundStyle(.primary)
       }
-      .frame(maxWidth: .infinity, maxHeight: .infinity)
+      .padding(.horizontal, hasUnreadBelowFold ? 14 : 0)
+      .frame(width: hasUnreadBelowFold ? nil : 40, height: 40)
+      .fixedSize(horizontal: true, vertical: false)
       .contentShape(hasUnreadBelowFold ? AnyShape(Capsule()) : AnyShape(Circle()))
     }
     .buttonStyle(.plain)
+    .fixedSize()
     .accessibilityIdentifier(ConversationAccessibilityID.timelineScrollToBottomButton)
     .accessibilityLabel(hasUnreadBelowFold ? "Scroll to latest message" : "Scroll to bottom")
     .accessibilityHint("Scrolls to the bottom of the conversation")
@@ -104,32 +107,30 @@ public struct ScrollToBottomButton: View {
     if reduceTransparency {
       if hasUnreadBelowFold {
         baseButton
-          .padding(.horizontal, 14)
-          .frame(height: 40)
           .background(Color.platformSecondaryBackground, in: Capsule())
           .overlay {
             Capsule()
               .strokeBorder(Color.platformSeparator.opacity(0.45), lineWidth: 0.5)
           }
+          .fixedSize()
       } else {
         baseButton
-          .frame(width: 40, height: 40)
           .background(Color.platformSecondaryBackground, in: Circle())
           .overlay {
             Circle()
               .strokeBorder(Color.platformSeparator.opacity(0.45), lineWidth: 0.5)
           }
+          .fixedSize()
       }
     } else {
       if hasUnreadBelowFold {
         baseButton
-          .padding(.horizontal, 14)
-          .frame(height: 40)
           .glassEffect(.regular.interactive(), in: .capsule)
+          .fixedSize()
       } else {
         baseButton
-          .frame(width: 40, height: 40)
           .glassEffect(.regular.interactive(), in: .circle)
+          .fixedSize()
       }
     }
   }

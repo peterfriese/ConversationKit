@@ -923,6 +923,28 @@ struct IncrementalMarkdownAndScrollHysteresisTests {
     #expect(ScrollToBottomButton.shouldShow(currentState: true, distanceFromBottom: 0) == false)
   }
 
+  @Test("ScrollToBottomButton constructs compact circle and capsule bodies for hasUnreadBelowFold false and true")
+  @MainActor
+  func scrollToBottomButtonCompactIntrinsicConstruction() {
+    var tappedCircle = false
+    let circleButton = ScrollToBottomButton(hasUnreadBelowFold: false) {
+      tappedCircle = true
+    }
+    #expect(circleButton.hasUnreadBelowFold == false)
+    _ = circleButton.body
+    circleButton.action()
+    #expect(tappedCircle == true)
+
+    var tappedCapsule = false
+    let capsuleButton = ScrollToBottomButton(hasUnreadBelowFold: true) {
+      tappedCapsule = true
+    }
+    #expect(capsuleButton.hasUnreadBelowFold == true)
+    _ = capsuleButton.body
+    capsuleButton.action()
+    #expect(tappedCapsule == true)
+  }
+
   @Test("StreamingMarkdownView progressive chunk updates (18 -> 36 -> 54 -> 72 chars) while isStreaming == true monotonically advance displayedCharacterCount and never freeze on the first chunk")
   func progressiveStreamingChunksAdvanceDisplayedCharacterCount() {
     let chunkCounts = [18, 36, 54, 72]
