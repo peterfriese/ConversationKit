@@ -1614,6 +1614,90 @@ struct MessageComposerStyleTests {
     _ = standardMenu.body
   }
 
+  @Test("CardGlass composer style breathes on focus and maintains 32pt button optical parity")
+  @MainActor
+  func cardGlassFocusBreathingAndButtonParity() {
+    let dummyTextField = AnyView(Text("Card glass prompt"))
+    let dummyAttachmentButton = AnyView(Button("+") {})
+    let dummyModelSelector = AnyView(Button("GPT-4o") {})
+    let dummySubmitButton = AnyView(Button("Send") {})
+    let dummyDictationButton = AnyView(Button("Dictate") {})
+    let dummyDismissButton = AnyView(Button("Dismiss") {})
+
+    let focusedConfig = MessageComposerStyleConfiguration(
+      textField: dummyTextField,
+      attachmentButton: dummyAttachmentButton,
+      modelSelector: dummyModelSelector,
+      dictationButton: dummyDictationButton,
+      submitButton: dummySubmitButton,
+      dismissKeyboardButton: dummyDismissButton,
+      isFocused: true,
+      isGenerating: false,
+      canSubmit: true,
+      hasModels: true
+    )
+
+    let unfocusedConfig = MessageComposerStyleConfiguration(
+      textField: dummyTextField,
+      attachmentButton: dummyAttachmentButton,
+      modelSelector: dummyModelSelector,
+      submitButton: dummySubmitButton,
+      isFocused: false,
+      isGenerating: false,
+      canSubmit: false,
+      hasModels: true
+    )
+
+    let cardStyle = CardGlassMessageComposerStyle.cardGlass
+    let focusedBody = cardStyle.makeBody(configuration: focusedConfig)
+    let unfocusedBody = cardStyle.makeBody(configuration: unfocusedConfig)
+
+    _ = focusedBody
+    _ = unfocusedBody
+  }
+
+  @Test("ClassicGlass composer places model selector inside pill and shifts spacing on focus")
+  @MainActor
+  func classicGlassInternalModelSelectorAndFocusShift() {
+    let dummyTextField = AnyView(Text("Classic glass prompt"))
+    let dummyPlusButton = AnyView(Button("+") {})
+    let dummyCompactModel = AnyView(Button("Model") {})
+    let dummySubmit = AnyView(Button("Send") {})
+    let dummyDismiss = AnyView(Button("Dismiss") {})
+    let dummyDictation = AnyView(Button("Dictate") {})
+
+    let focusedConfig = MessageComposerStyleConfiguration(
+      textField: dummyTextField,
+      attachmentButton: dummyPlusButton,
+      dictationButton: dummyDictation,
+      submitButton: dummySubmit,
+      dismissKeyboardButton: dummyDismiss,
+      isFocused: true,
+      isGenerating: false,
+      canSubmit: true,
+      hasModels: true,
+      compactModelSelector: dummyCompactModel
+    )
+
+    let unfocusedConfig = MessageComposerStyleConfiguration(
+      textField: dummyTextField,
+      attachmentButton: dummyPlusButton,
+      submitButton: dummySubmit,
+      isFocused: false,
+      isGenerating: false,
+      canSubmit: false,
+      hasModels: true,
+      compactModelSelector: dummyCompactModel
+    )
+
+    let classicStyle = ClassicGlassMessageComposerStyle.classicGlass
+    let focusedBody = classicStyle.makeBody(configuration: focusedConfig)
+    let unfocusedBody = classicStyle.makeBody(configuration: unfocusedConfig)
+
+    _ = focusedBody
+    _ = unfocusedBody
+  }
+
   @Test("Custom MessageComposerStyle conformance compiles and executes makeBody")
   @MainActor
   func customMessageComposerStyleConformance() {

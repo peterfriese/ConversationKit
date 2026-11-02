@@ -148,10 +148,11 @@ public struct MessageComposerStyleConfiguration {
 // MARK: - ClassicGlassMessageComposerStyle (.classicGlass / .automatic)
 
 /// Default Liquid Glass composer style featuring a detached circular `+` button (`44×44pt`)
-/// and independent sibling controls inside `GlassEffectContainer(spacing: 8)`.
+/// and a rounded text pill (`minHeight: 44`, `cornerRadius: 22`) inside `GlassEffectContainer`.
 ///
-/// Houses a detached circular `+` button (`44×44pt`), a central rounded text pill (`minHeight: 44`, `cornerRadius: 22`),
-/// a detached compact circular model icon button (`34×34pt`), focus-driven keyboard dismiss (`34×34pt`), and primary send/stop action (`34×34pt`).
+/// Houses a detached circular `+` button (`44×44pt`) on the leading edge and a classic text pill containing
+/// the prompt text field, compact model selector (`32×32pt`), optional dictation (`32×32pt`), focus-driven keyboard dismiss (`32×32pt`),
+/// and primary send/stop action (`32×32pt`).
 public struct ClassicGlassMessageComposerStyle: MessageComposerStyle, Sendable {
   /// Creates the default classic Liquid Glass composer style.
   public nonisolated init() {}
@@ -168,7 +169,7 @@ public struct ClassicGlassMessageComposerStyle: MessageComposerStyle, Sendable {
 ///
 /// Renders a unified 2-row Liquid Glass card (`cornerRadius: 24`, ~84pt empty height) with `attachmentsTray`,
 /// `tokensBar`, and full-width `textField` in the top section, and a dedicated bottom toolbar row housing
-/// bordered `attachmentButton`, full `modelSelector` pill (with model name), `Spacer()`, `dismissKeyboardButton` (when focused), and `submitButton` (when `canSubmit || isGenerating`).
+/// bordered `attachmentButton` (`32×32pt`), full `modelSelector` pill (`32pt` height), `Spacer()`, `dismissKeyboardButton` (when focused), and `submitButton` (when `canSubmit || isGenerating`, `32×32pt`).
 public struct CardGlassMessageComposerStyle: MessageComposerStyle, Sendable {
   /// Creates a two-row card Liquid Glass composer style.
   public nonisolated init() {}
@@ -187,7 +188,8 @@ private struct ClassicGlassComposerBody: View {
   @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-  private let controlDiameter: CGFloat = 44
+  private let plusDiameter: CGFloat = 44
+  private let buttonDiameter: CGFloat = 32
   private let pillCornerRadius: CGFloat = 22
 
   private var showsSubmitButton: Bool {
@@ -196,27 +198,14 @@ private struct ClassicGlassComposerBody: View {
 
   var body: some View {
     GlassEffectContainer(spacing: 8) {
-      HStack(alignment: .bottom, spacing: configuration.isFocused ? 4 : 8) {
+      HStack(alignment: .bottom, spacing: configuration.isFocused ? 3 : 8) {
         if let plusButton = configuration.attachmentButton {
           detachedPlusButton(plusButton)
         }
 
-        centerTextPill
-
-        if let modelSelector = configuration.compactModelSelector ?? configuration.modelSelector {
-          detachedModelButton(modelSelector)
-        }
-
-        if configuration.isFocused, let dismissButton = configuration.dismissKeyboardButton {
-          detachedActionButton(dismissButton)
-        }
-
-        if showsSubmitButton {
-          detachedActionButton(configuration.submitButton)
-        }
+        classicPill
       }
       .animation(reduceMotion ? nil : .spring(duration: 0.35, bounce: 0.15), value: configuration.isFocused)
-      .animation(reduceMotion ? nil : .snappy(duration: 0.22), value: showsSubmitButton)
     }
     .padding(.horizontal, 12)
     .padding(.vertical, 6)
@@ -226,7 +215,7 @@ private struct ClassicGlassComposerBody: View {
   private func detachedPlusButton(_ button: AnyView) -> some View {
     if reduceTransparency {
       button
-        .frame(width: controlDiameter, height: controlDiameter)
+        .frame(width: plusDiameter, height: plusDiameter)
         .background(Color.platformSecondaryBackground, in: Circle())
         .overlay {
           Circle()
@@ -234,13 +223,13 @@ private struct ClassicGlassComposerBody: View {
         }
     } else {
       button
-        .frame(width: 44, height: 44)
+        .frame(width: plusDiameter, height: plusDiameter)
         .glassEffect(.regular.interactive(), in: .circle)
     }
   }
 
   @ViewBuilder
-  private var centerTextPill: some View {
+  private var classicPill: some View {
     let panelContent = VStack(alignment: .leading, spacing: 6) {
       if configuration.hasAttachments, let attachmentsTray = configuration.attachmentsTray {
         attachmentsTray
@@ -254,12 +243,9 @@ private struct ClassicGlassComposerBody: View {
           .padding(.top, configuration.hasAttachments ? 2 : 8)
       }
 
-      configuration.textField
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
+      mainInputRow
     }
-    .frame(minHeight: controlDiameter)
+    .frame(minHeight: plusDiameter)
 
     if reduceTransparency {
       panelContent
@@ -273,23 +259,64 @@ private struct ClassicGlassComposerBody: View {
         }
     } else {
       panelContent
-        .glassEffect(.regular, in: .rect(cornerRadius: pillCornerRadius))
+        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: pillCornerRadius))
+    }
+  }
+
+  private var hasTrailingButtons: Bool {
+    (configuration.hasModels || configuration.hasCapabilities)
+      || configuration.dictationButton != nil
+      || (configuration.isFocused && configuration.dismissKeyboardButton != nil)
+      || showsSubmitButton
+  }
+
+  @ViewBuilder
+  private var mainInputRow: some View {
+    HStack(alignment: .bottom, spacing: 0) {
+      configuration.textField
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.leading, 14)
+        .padding(.trailing, hasTrailingButtons ? 4 : 14)
+        .padding(.vertical, 10)
+
+      if hasTrailingButtons {
+        trailingButtonsGroup
+          .padding(.trailing, 6)
+          .padding(.bottom, 6)
+      }
     }
   }
 
   @ViewBuilder
-  private func detachedModelButton(_ button: AnyView) -> some View {
-    button
-      .frame(width: 34, height: 34)
-      .fixedSize(horizontal: true, vertical: false)
-      .layoutPriority(1)
-  }
+  private var trailingButtonsGroup: some View {
+    HStack(alignment: .bottom, spacing: 6) {
+      if (configuration.hasModels || configuration.hasCapabilities),
+         let modelSelector = configuration.compactModelSelector ?? configuration.modelSelector {
+        modelSelector
+          .frame(width: buttonDiameter, height: buttonDiameter)
+          .fixedSize(horizontal: true, vertical: false)
+          .layoutPriority(1)
+      }
 
-  @ViewBuilder
-  private func detachedActionButton(_ button: AnyView) -> some View {
-    button
-      .frame(width: 34, height: 34)
-      .transition(.scale(scale: 0.8).combined(with: .opacity))
+      if let dictationButton = configuration.dictationButton {
+        dictationButton
+          .frame(width: buttonDiameter, height: buttonDiameter)
+      }
+
+      if configuration.isFocused, let dismissButton = configuration.dismissKeyboardButton {
+        dismissButton
+          .frame(width: buttonDiameter, height: buttonDiameter)
+          .transition(.scale(scale: 0.8).combined(with: .opacity))
+      }
+
+      if showsSubmitButton {
+        configuration.submitButton
+          .frame(width: buttonDiameter, height: buttonDiameter)
+          .transition(.scale(scale: 0.8).combined(with: .opacity))
+      }
+    }
+    .animation(reduceMotion ? nil : .snappy(duration: 0.22), value: configuration.isFocused)
+    .animation(reduceMotion ? nil : .snappy(duration: 0.22), value: showsSubmitButton)
   }
 }
 
@@ -312,9 +339,12 @@ private struct CardGlassComposerBody: View {
   var body: some View {
     GlassEffectContainer(spacing: 10) {
       cardPanel
+        .scaleEffect(configuration.isFocused ? 1.01 : 1.0)
+        .animation(reduceMotion ? nil : .spring(duration: 0.35, bounce: 0.15), value: configuration.isFocused)
     }
     .padding(.horizontal, 12)
-    .padding(.vertical, 6)
+    .padding(.vertical, configuration.isFocused ? 4 : 6)
+    .animation(reduceMotion ? nil : .spring(duration: 0.35, bounce: 0.15), value: configuration.isFocused)
   }
 
   @ViewBuilder
@@ -339,9 +369,14 @@ private struct CardGlassComposerBody: View {
         .padding(.bottom, 8)
 
       HStack(alignment: .center, spacing: 8) {
-        if let attachmentButton = configuration.attachmentButton {
+        if let attachmentButton = configuration.borderlessAttachmentButton ?? configuration.attachmentButton {
           attachmentButton
             .frame(width: controlDiameter, height: controlDiameter)
+            .background(Color.primary.opacity(0.06), in: Circle())
+            .overlay {
+              Circle()
+                .strokeBorder(Color.platformSeparator.opacity(0.45), lineWidth: 0.5)
+            }
         }
 
         if (configuration.hasModels || configuration.hasCapabilities), let modelSelector = configuration.modelSelector {
@@ -505,7 +540,7 @@ private struct CompactGlassComposerBody: View {
         }
     } else {
       rowContent
-        .glassEffect(.regular, in: .rect(cornerRadius: pillCornerRadius))
+        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: pillCornerRadius))
         .glassEffectID("composer.compactCapsule", in: glassNamespace)
     }
   }

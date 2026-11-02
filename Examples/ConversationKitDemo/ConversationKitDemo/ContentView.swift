@@ -106,6 +106,9 @@ struct ContentView: View {
   @State private var selectedModel: ComposerModelOption? = Self.availableModels.first
   @State private var activeCapabilities: Set<ComposerCapability> = [.think, .search]
   @State private var composerStyleOption: DemoComposerStyleOption = {
+    if ProcessInfo.processInfo.arguments.contains("-cardGlass") {
+      return .cardGlass
+    }
     if ProcessInfo.processInfo.arguments.contains("-compactGlass") {
       return .compactGlass
     }

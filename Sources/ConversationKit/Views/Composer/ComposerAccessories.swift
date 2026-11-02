@@ -258,6 +258,10 @@ public struct ComposerModelSelectorMenu: View {
   /// Optional callback invoked when a capability is toggled.
   public let onToggleCapability: (@MainActor (ComposerCapability, Bool) -> Void)?
 
+  @State private var isShowingMenu: Bool = {
+    ProcessInfo.processInfo.arguments.contains("-showModelMenu")
+  }()
+
   /// Creates a `ComposerModelSelectorMenu`.
   public init(
     models: [ComposerModelOption],
@@ -378,8 +382,8 @@ public struct ComposerModelSelectorMenu: View {
 
   public var body: some View {
     if !models.isEmpty || !capabilities.isEmpty {
-      Menu {
-        menuContent
+      Button {
+        isShowingMenu.toggle()
       } label: {
         if isCompact {
           menuIconOnlyLabel
@@ -387,7 +391,11 @@ public struct ComposerModelSelectorMenu: View {
           menuPillLabel
         }
       }
-      .menuIndicator(.hidden)
+      .buttonStyle(.plain)
+      .popover(isPresented: $isShowingMenu, arrowEdge: .bottom) {
+        popoverContent
+          .presentationCompactAdaptation(.popover)
+      }
       .accessibilityIdentifier(ConversationAccessibilityID.composerModelSelector)
       .accessibilityLabel("AI Model")
       .accessibilityValue(accessibilityDescription)
@@ -396,51 +404,156 @@ public struct ComposerModelSelectorMenu: View {
   }
 
   @ViewBuilder
-  private var menuContent: some View {
-    if !models.isEmpty {
-      if shouldGroupByCategory {
-        if !uncategorizedModels.isEmpty {
-          Picker("Model", selection: modelSelectionBinding) {
-            ForEach(uncategorizedModels) { option in
-              Label(option.menuItemTitle, systemImage: option.systemImage)
-                .tag(Optional(option))
+  private var popoverContent: some View {
+    VStack(alignment: .leading, spacing: 12) {
+      if !capabilities.isEmpty {
+        capabilitiesSection
+      }
+
+      if !capabilities.isEmpty && !models.isEmpty {
+        Divider()
+      }
+
+      if !models.isEmpty {
+        modelsSection
+      }
+    }
+    .padding(16)
+    .frame(minWidth: 220)
+    .background(Color.platformSecondaryBackground)
+  }
+
+  @ViewBuilder
+  private var capabilitiesSection: some View {
+    VStack(alignment: .leading, spacing: 8) {
+      Text("Capabilities")
+        .font(.footnote.weight(.semibold))
+        .foregroundStyle(.secondary)
+        .textCase(.uppercase)
+
+      ForEach(capabilities) { cap in
+        let isEnabled = activeCapabilities?.wrappedValue.contains(cap) == true
+        Button {
+          PlatformHapticEvent.triggerHaptic(.selection)
+          if isEnabled {
+            activeCapabilities?.wrappedValue.remove(cap)
+          } else {
+            activeCapabilities?.wrappedValue.insert(cap)
+          }
+          onToggleCapability?(cap, !isEnabled)
+        } label: {
+          HStack(spacing: 10) {
+            Image(systemName: cap.symbolName)
+              .font(.system(size: 14, weight: .medium))
+              .foregroundStyle(isEnabled ? Color.accentColor : .secondary)
+              .frame(width: 20)
+
+            Text(cap.title)
+              .font(.subheadline)
+              .foregroundStyle(.primary)
+
+            Spacer()
+
+            if isEnabled {
+              Image(systemName: "checkmark")
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(Color.accentColor)
             }
           }
-          .pickerStyle(.inline)
+          .padding(.vertical, 3)
+          .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier(ConversationAccessibilityID.composerCapabilityChip(cap.id))
+      }
+    }
+  }
+
+  @ViewBuilder
+  private var modelsSection: some View {
+    VStack(alignment: .leading, spacing: 8) {
+      Text("Models")
+        .font(.footnote.weight(.semibold))
+        .foregroundStyle(.secondary)
+        .textCase(.uppercase)
+
+      if shouldGroupByCategory {
+        if !uncategorizedModels.isEmpty {
+          ForEach(uncategorizedModels) { option in
+            modelRow(option)
+          }
         }
 
         ForEach(categorizedModelGroups) { group in
-          Menu(group.category) {
-            Picker(group.category, selection: modelSelectionBinding) {
-              ForEach(group.models) { option in
-                Label(option.menuItemTitle, systemImage: option.systemImage)
-                  .tag(Optional(option))
-              }
+          VStack(alignment: .leading, spacing: 6) {
+            Text(group.category)
+              .font(.caption.weight(.medium))
+              .foregroundStyle(.tertiary)
+              .padding(.top, 4)
+
+            ForEach(group.models) { option in
+              modelRow(option)
             }
-            .pickerStyle(.inline)
           }
         }
       } else {
-        Picker("Model", selection: modelSelectionBinding) {
-          ForEach(models) { option in
-            Label(option.menuItemTitle, systemImage: option.systemImage)
-              .tag(Optional(option))
-          }
+        ForEach(models) { option in
+          modelRow(option)
         }
-        .pickerStyle(.inline)
       }
     }
+  }
 
-    if !capabilities.isEmpty {
-      Section("Capabilities") {
-        ForEach(capabilities) { cap in
-          Toggle(isOn: capabilityBinding(for: cap)) {
-            Label(cap.title, systemImage: cap.symbolName)
+  @ViewBuilder
+  private func modelRow(_ option: ComposerModelOption) -> some View {
+    let isSelected = (activeModel?.id == option.id)
+    Button {
+      PlatformHapticEvent.triggerHaptic(.selection)
+      selectedModel = option
+      onSelect?(option)
+      isShowingMenu = false
+    } label: {
+      HStack(spacing: 10) {
+        Image(systemName: option.systemImage)
+          .font(.system(size: 14, weight: .medium))
+          .foregroundStyle(isSelected ? Color.accentColor : .secondary)
+          .frame(width: 20)
+
+        VStack(alignment: .leading, spacing: 2) {
+          HStack(spacing: 6) {
+            Text(option.name)
+              .font(.subheadline.weight(isSelected ? .semibold : .regular))
+              .foregroundStyle(.primary)
+
+            if let badge = option.badge, !badge.isEmpty {
+              Text(badge)
+                .font(.caption2.weight(.medium))
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 5)
+                .padding(.vertical, 1.5)
+                .background(Color.primary.opacity(0.06), in: Capsule())
+            }
           }
-          .accessibilityIdentifier(ConversationAccessibilityID.composerCapabilityChip(cap.id))
+
+          if let subtitle = option.subtitle, !subtitle.isEmpty {
+            Text(subtitle)
+              .font(.caption)
+              .foregroundStyle(.secondary)
+          }
+        }
+
+        Spacer()
+
+        if isSelected {
+          Image(systemName: "checkmark")
+            .font(.system(size: 12, weight: .bold))
+            .foregroundStyle(Color.accentColor)
         }
       }
+      .padding(.vertical, 3)
+      .contentShape(Rectangle())
     }
+    .buttonStyle(.plain)
   }
 
   @ViewBuilder

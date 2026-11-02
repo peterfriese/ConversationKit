@@ -277,6 +277,12 @@ public struct ConversationView<MessageType: Message, Content: View>: View {
           }
         }
       }
+      if ProcessInfo.processInfo.arguments.contains("-focusComposer") {
+        Task { @MainActor in
+          try? await Task.sleep(for: .milliseconds(150))
+          isComposerFocused = true
+        }
+      }
       if !messages.isEmpty {
         hasSentFirstMessage = true
       }

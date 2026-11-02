@@ -422,9 +422,9 @@ public struct MessageComposerView: View {
           .contentShape(Circle())
       } else {
         Image(systemName: "plus")
-          .font(.system(size: 18, weight: .medium))
+          .font(.system(size: effectiveDiameter > 34 ? 18 : 15, weight: .medium))
           .foregroundStyle(.primary)
-          .frame(width: 44, height: 44)
+          .frame(maxWidth: .infinity, maxHeight: .infinity)
           .contentShape(Circle())
       }
     }
@@ -493,7 +493,7 @@ public struct MessageComposerView: View {
       Image(systemName: "waveform")
         .font(.system(size: 14, weight: .semibold))
         .foregroundStyle(.secondary)
-        .frame(width: 30, height: 30)
+        .frame(width: 32, height: 32)
         .contentShape(Circle())
     }
     .buttonStyle(.plain)
@@ -502,7 +502,7 @@ public struct MessageComposerView: View {
   }
 
   @ViewBuilder
-  private func submitButtonSubview(diameter: CGFloat = 34) -> some View {
+  private func submitButtonSubview(diameter: CGFloat = 32) -> some View {
     Button {
       handlePrimaryAction()
     } label: {
@@ -525,7 +525,7 @@ public struct MessageComposerView: View {
   }
 
   @ViewBuilder
-  private func dismissKeyboardButtonSubview(diameter: CGFloat = 34) -> some View {
+  private func dismissKeyboardButtonSubview(diameter: CGFloat = 32) -> some View {
     Button {
       dismissKeyboard()
     } label: {
