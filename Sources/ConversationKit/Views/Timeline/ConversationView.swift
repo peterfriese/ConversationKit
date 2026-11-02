@@ -494,20 +494,6 @@ public struct ConversationView<MessageType: Message, Content: View>: View {
           .accessibilityIdentifier(ConversationAccessibilityID.disclaimerView)
       }
     }
-    .background(alignment: .bottom) {
-      LinearGradient(
-        stops: [
-          .init(color: Color.platformBackground.opacity(0.0), location: 0.0),
-          .init(color: Color.platformBackground.opacity(0.88), location: 0.28),
-          .init(color: Color.platformBackground, location: 0.55),
-          .init(color: Color.platformBackground, location: 1.0)
-        ],
-        startPoint: .top,
-        endPoint: .bottom
-      )
-      .ignoresSafeArea(edges: .bottom)
-      .allowsHitTesting(false)
-    }
   }
 
   // MARK: - Turn Submission, Suggestion Handoff & Cooperative Stop (`F-1`, `F-8`, `AC-3`, `AC-4`, `AC-12`, `AC-19`)

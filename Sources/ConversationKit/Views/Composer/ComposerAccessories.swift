@@ -258,10 +258,6 @@ public struct ComposerModelSelectorMenu: View {
   /// Optional callback invoked when a capability is toggled.
   public let onToggleCapability: (@MainActor (ComposerCapability, Bool) -> Void)?
 
-  @State private var isShowingMenu: Bool = {
-    ProcessInfo.processInfo.arguments.contains("-showModelMenu")
-  }()
-
   /// Creates a `ComposerModelSelectorMenu`.
   public init(
     models: [ComposerModelOption],
@@ -382,8 +378,14 @@ public struct ComposerModelSelectorMenu: View {
 
   public var body: some View {
     if !models.isEmpty || !capabilities.isEmpty {
-      Button {
-        isShowingMenu.toggle()
+      Menu {
+        if !capabilities.isEmpty {
+          capabilitiesMenuSection
+        }
+
+        if !models.isEmpty {
+          modelsMenuSection
+        }
       } label: {
         if isCompact {
           menuIconOnlyLabel
@@ -391,11 +393,8 @@ public struct ComposerModelSelectorMenu: View {
           menuPillLabel
         }
       }
+      .menuStyle(.button)
       .buttonStyle(.plain)
-      .popover(isPresented: $isShowingMenu, arrowEdge: .bottom) {
-        popoverContent
-          .presentationCompactAdaptation(.popover)
-      }
       .accessibilityIdentifier(ConversationAccessibilityID.composerModelSelector)
       .accessibilityLabel("AI Model")
       .accessibilityValue(accessibilityDescription)
@@ -404,156 +403,61 @@ public struct ComposerModelSelectorMenu: View {
   }
 
   @ViewBuilder
-  private var popoverContent: some View {
-    VStack(alignment: .leading, spacing: 12) {
-      if !capabilities.isEmpty {
-        capabilitiesSection
-      }
-
-      if !capabilities.isEmpty && !models.isEmpty {
-        Divider()
-      }
-
-      if !models.isEmpty {
-        modelsSection
-      }
-    }
-    .padding(16)
-    .frame(minWidth: 220)
-    .background(Color.platformSecondaryBackground)
-  }
-
-  @ViewBuilder
-  private var capabilitiesSection: some View {
-    VStack(alignment: .leading, spacing: 8) {
-      Text("Capabilities")
-        .font(.footnote.weight(.semibold))
-        .foregroundStyle(.secondary)
-        .textCase(.uppercase)
-
+  private var capabilitiesMenuSection: some View {
+    Section("Capabilities") {
       ForEach(capabilities) { cap in
-        let isEnabled = activeCapabilities?.wrappedValue.contains(cap) == true
-        Button {
-          PlatformHapticEvent.triggerHaptic(.selection)
-          if isEnabled {
-            activeCapabilities?.wrappedValue.remove(cap)
-          } else {
-            activeCapabilities?.wrappedValue.insert(cap)
-          }
-          onToggleCapability?(cap, !isEnabled)
-        } label: {
-          HStack(spacing: 10) {
-            Image(systemName: cap.symbolName)
-              .font(.system(size: 14, weight: .medium))
-              .foregroundStyle(isEnabled ? Color.accentColor : .secondary)
-              .frame(width: 20)
-
-            Text(cap.title)
-              .font(.subheadline)
-              .foregroundStyle(.primary)
-
-            Spacer()
-
-            if isEnabled {
-              Image(systemName: "checkmark")
-                .font(.system(size: 12, weight: .bold))
-                .foregroundStyle(Color.accentColor)
-            }
-          }
-          .padding(.vertical, 3)
-          .contentShape(Rectangle())
+        Toggle(isOn: capabilityBinding(for: cap)) {
+          Label(cap.title, systemImage: cap.symbolName)
         }
-        .buttonStyle(.plain)
         .accessibilityIdentifier(ConversationAccessibilityID.composerCapabilityChip(cap.id))
       }
     }
   }
 
   @ViewBuilder
-  private var modelsSection: some View {
-    VStack(alignment: .leading, spacing: 8) {
-      Text("Models")
-        .font(.footnote.weight(.semibold))
-        .foregroundStyle(.secondary)
-        .textCase(.uppercase)
-
-      if shouldGroupByCategory {
-        if !uncategorizedModels.isEmpty {
+  private var modelsMenuSection: some View {
+    if shouldGroupByCategory {
+      if !uncategorizedModels.isEmpty {
+        Section("Models") {
           ForEach(uncategorizedModels) { option in
-            modelRow(option)
+            modelMenuButton(option)
           }
         }
+      }
 
-        ForEach(categorizedModelGroups) { group in
-          VStack(alignment: .leading, spacing: 6) {
-            Text(group.category)
-              .font(.caption.weight(.medium))
-              .foregroundStyle(.tertiary)
-              .padding(.top, 4)
-
-            ForEach(group.models) { option in
-              modelRow(option)
-            }
+      ForEach(categorizedModelGroups) { group in
+        Section(group.category) {
+          ForEach(group.models) { option in
+            modelMenuButton(option)
           }
         }
-      } else {
+      }
+    } else {
+      Section("Models") {
         ForEach(models) { option in
-          modelRow(option)
+          modelMenuButton(option)
         }
       }
     }
   }
 
   @ViewBuilder
-  private func modelRow(_ option: ComposerModelOption) -> some View {
+  private func modelMenuButton(_ option: ComposerModelOption) -> some View {
     let isSelected = (activeModel?.id == option.id)
     Button {
       PlatformHapticEvent.triggerHaptic(.selection)
       selectedModel = option
       onSelect?(option)
-      isShowingMenu = false
     } label: {
-      HStack(spacing: 10) {
-        Image(systemName: option.systemImage)
-          .font(.system(size: 14, weight: .medium))
-          .foregroundStyle(isSelected ? Color.accentColor : .secondary)
-          .frame(width: 20)
-
-        VStack(alignment: .leading, spacing: 2) {
-          HStack(spacing: 6) {
-            Text(option.name)
-              .font(.subheadline.weight(isSelected ? .semibold : .regular))
-              .foregroundStyle(.primary)
-
-            if let badge = option.badge, !badge.isEmpty {
-              Text(badge)
-                .font(.caption2.weight(.medium))
-                .foregroundStyle(.secondary)
-                .padding(.horizontal, 5)
-                .padding(.vertical, 1.5)
-                .background(Color.primary.opacity(0.06), in: Capsule())
-            }
-          }
-
-          if let subtitle = option.subtitle, !subtitle.isEmpty {
-            Text(subtitle)
-              .font(.caption)
-              .foregroundStyle(.secondary)
-          }
+      Label {
+        Text(option.menuItemTitle)
+        if let subtitle = option.subtitle, !subtitle.isEmpty {
+          Text(subtitle)
         }
-
-        Spacer()
-
-        if isSelected {
-          Image(systemName: "checkmark")
-            .font(.system(size: 12, weight: .bold))
-            .foregroundStyle(Color.accentColor)
-        }
+      } icon: {
+        Image(systemName: isSelected ? "checkmark" : option.systemImage)
       }
-      .padding(.vertical, 3)
-      .contentShape(Rectangle())
     }
-    .buttonStyle(.plain)
   }
 
   @ViewBuilder
@@ -561,23 +465,19 @@ public struct ComposerModelSelectorMenu: View {
     let current = activeModel
     ZStack(alignment: .topTrailing) {
       Image(systemName: current?.symbolName ?? "sparkles")
-        .font(.system(size: 14, weight: .semibold))
-        .foregroundStyle(.primary)
+        .font(.system(size: 15, weight: .semibold))
+        .foregroundStyle(.secondary)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
 
       if !activeCapabilitiesList.isEmpty {
         Circle()
           .fill(Color.accentColor)
           .frame(width: 6, height: 6)
-          .padding(.top, 2)
-          .padding(.trailing, 2)
+          .padding(.top, 3)
+          .padding(.trailing, 3)
       }
     }
     .frame(width: 32, height: 32)
-    .background(Color.primary.opacity(0.06), in: Circle())
-    .overlay {
-      Circle()
-        .strokeBorder(Color.platformSeparator.opacity(0.45), lineWidth: 0.5)
-    }
     .contentShape(Circle())
     .fixedSize(horizontal: true, vertical: false)
     .layoutPriority(1)

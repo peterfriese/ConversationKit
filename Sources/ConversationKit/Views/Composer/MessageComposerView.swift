@@ -502,15 +502,14 @@ public struct MessageComposerView: View {
   }
 
   @ViewBuilder
-  private func submitButtonSubview(diameter: CGFloat = 32) -> some View {
+  private func submitButtonSubview() -> some View {
     Button {
       handlePrimaryAction()
     } label: {
       Image(systemName: isGenerating ? "stop.fill" : "arrow.up")
-        .font(isGenerating ? .system(size: diameter > 32 ? 12 : 11, weight: .black) : .system(size: diameter > 32 ? 15 : 13.5, weight: .semibold))
+        .font(isGenerating ? .system(size: 12, weight: .black) : .system(size: 15, weight: .semibold))
         .foregroundStyle(Color.white)
-        .frame(width: diameter, height: diameter)
-        .background(Color.accentColor, in: Circle())
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .contentShape(Circle())
     }
     .buttonStyle(.plain)
@@ -525,15 +524,15 @@ public struct MessageComposerView: View {
   }
 
   @ViewBuilder
-  private func dismissKeyboardButtonSubview(diameter: CGFloat = 32) -> some View {
+  private func dismissKeyboardButtonSubview() -> some View {
     Button {
       dismissKeyboard()
     } label: {
       Image(systemName: "keyboard.chevron.compact.down")
-        .font(.system(size: diameter > 32 ? 17 : 15, weight: .regular))
+        .font(.system(size: 15, weight: .regular))
         .foregroundStyle(.secondary)
-        .frame(width: diameter, height: diameter)
-        .contentShape(Rectangle())
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .contentShape(Circle())
     }
     .buttonStyle(.plain)
     .accessibilityLabel("Dismiss keyboard")

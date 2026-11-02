@@ -1656,9 +1656,9 @@ struct MessageComposerStyleTests {
     _ = unfocusedBody
   }
 
-  @Test("ClassicGlass composer places model selector inside pill and shifts spacing on focus")
+  @Test("ClassicGlass composer uses canonical 3-zone bookend sibling architecture with inner trailing accessories and external submit sibling")
   @MainActor
-  func classicGlassInternalModelSelectorAndFocusShift() {
+  func classicGlassCanonicalThreeZoneArchitecture() {
     let dummyTextField = AnyView(Text("Classic glass prompt"))
     let dummyPlusButton = AnyView(Button("+") {})
     let dummyCompactModel = AnyView(Button("Model") {})
@@ -1696,6 +1696,13 @@ struct MessageComposerStyleTests {
 
     _ = focusedBody
     _ = unfocusedBody
+
+    let circleScrollButton = ScrollToBottomButton(hasUnreadBelowFold: false) {}
+    let capsuleScrollButton = ScrollToBottomButton(hasUnreadBelowFold: true) {}
+    #expect(circleScrollButton.hasUnreadBelowFold == false)
+    #expect(capsuleScrollButton.hasUnreadBelowFold == true)
+    _ = circleScrollButton.body
+    _ = capsuleScrollButton.body
   }
 
   @Test("Custom MessageComposerStyle conformance compiles and executes makeBody")

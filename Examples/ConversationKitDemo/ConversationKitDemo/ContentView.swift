@@ -125,6 +125,10 @@ struct ContentView: View {
   @State private var thinkingStyleOption: DemoThinkingStyleOption = .collapsibleHeader
   @State private var bubbleStyleOption: DemoBubbleStyleOption = .tailedBubble
   @State private var simulateUploadProgress: Bool = false
+  @State private var isShowingPrototypeLab: Bool = {
+    let args = ProcessInfo.processInfo.arguments
+    return args.contains("-prototypeLab") || args.contains("-prototype")
+  }()
 
   // MARK: - Static Showcase Catalog (`F-5`, `F-8`, `F-9`)
 
@@ -275,62 +279,71 @@ struct ContentView: View {
   // MARK: - Body
 
   var body: some View {
-    NavigationStack {
-      ConversationView(messages: $messages, attachments: $attachments, userPrompt: initialUserPrompt)
-        .onSendMessage { submission in
-          await handleSubmission(submission)
+    if isShowingPrototypeLab {
+      LiquidGlassPrototypeLabView {
+        withAnimation(.snappy(duration: 0.25)) {
+          isShowingPrototypeLab = false
         }
-        .suggestionChips(Self.starterSuggestions)
-        .slashCommands(Self.availableCommands)
-        .resourceMentions(Self.availableMentions)
-        .composerModels(Self.availableModels, selection: $selectedModel)
-        .composerCapabilities([.think, .search, .image], active: $activeCapabilities)
-        .composerTokens($tokens)
-        .messageComposerStyle(composerStyleOption.anyStyle)
-        .thinkingStateStyle(thinkingStyleOption.anyStyle)
-        .userMessageBubbleStyle(bubbleStyleOption.anyStyle)
-        .emptyConversationView {
-          emptyShowcasePlaceholder
-        }
-        .attachmentActions {
-          Button("Sample Diagram Image", systemImage: "photo") {
-            attachSampleImage()
+      }
+    } else {
+      NavigationStack {
+        ConversationView(messages: $messages, attachments: $attachments, userPrompt: initialUserPrompt)
+          .onSendMessage { submission in
+            await handleSubmission(submission)
           }
-          Button("Sample Architecture PDF", systemImage: "doc.richtext") {
-            attachSamplePDF()
+          .suggestionChips(Self.starterSuggestions)
+          .slashCommands(Self.availableCommands)
+          .resourceMentions(Self.availableMentions)
+          .composerModels(Self.availableModels, selection: $selectedModel)
+          .composerCapabilities([.think, .search, .image], active: $activeCapabilities)
+          .composerTokens($tokens)
+          .messageComposerStyle(composerStyleOption.anyStyle)
+          .thinkingStateStyle(thinkingStyleOption.anyStyle)
+          .userMessageBubbleStyle(bubbleStyleOption.anyStyle)
+          .emptyConversationView {
+            emptyShowcasePlaceholder
           }
-          Button("Sample Swift Source File", systemImage: "chevron.left.forwardslash.chevron.right") {
-            attachSampleSwiftFile()
+          .attachmentActions {
+            Button("Sample Diagram Image", systemImage: "photo") {
+              attachSampleImage()
+            }
+            Button("Sample Architecture PDF", systemImage: "doc.richtext") {
+              attachSamplePDF()
+            }
+            Button("Sample Swift Source File", systemImage: "chevron.left.forwardslash.chevron.right") {
+              attachSampleSwiftFile()
+            }
+            Button("Simulate Uploading Attachment", systemImage: "arrow.up.doc") {
+              attachSimulatedUploadingFile()
+            }
           }
-          Button("Simulate Uploading Attachment", systemImage: "arrow.up.doc") {
-            attachSimulatedUploadingFile()
+          .onApprovalDecision { request, decision in
+            resolveApproval(request: request, decision: decision)
           }
-        }
-        .onApprovalDecision { request, decision in
-          resolveApproval(request: request, decision: decision)
-        }
-        .onToolCallRetry { failedToolCall in
-          await retryToolCall(failedToolCall)
-        }
-        .onMessageFeedback { messageID, feedback in
-          updateFeedback(for: messageID, feedback: feedback)
-        }
-        .onRegenerateMessage { messageID in
-          await regenerateMessage(id: messageID)
-        }
-        .onRetryMessage { messageID in
-          await regenerateMessage(id: messageID)
-        }
-        .navigationTitle("ConversationKit v2")
-        #if os(iOS)
-        .navigationBarTitleDisplayMode(.inline)
-        #endif
-        .toolbar {
-          ToolbarItemGroup(placement: .primaryAction) {
-            styleAndSamplesMenu
-            resetConversationButton
+          .onToolCallRetry { failedToolCall in
+            await retryToolCall(failedToolCall)
           }
-        }
+          .onMessageFeedback { messageID, feedback in
+            updateFeedback(for: messageID, feedback: feedback)
+          }
+          .onRegenerateMessage { messageID in
+            await regenerateMessage(id: messageID)
+          }
+          .onRetryMessage { messageID in
+            await regenerateMessage(id: messageID)
+          }
+          .navigationTitle("ConversationKit v2")
+          #if os(iOS)
+          .navigationBarTitleDisplayMode(.inline)
+          #endif
+          .toolbar {
+            ToolbarItemGroup(placement: .primaryAction) {
+              prototypeLabButton
+              styleAndSamplesMenu
+              resetConversationButton
+            }
+          }
+      }
     }
   }
 
@@ -398,10 +411,29 @@ struct ContentView: View {
           attachSimulatedUploadingFile()
         }
       }
+
+      Section("Liquid Glass Review Lab") {
+        Button("Liquid Glass Prototype Lab", systemImage: "flask.fill") {
+          withAnimation(.snappy(duration: 0.25)) {
+            isShowingPrototypeLab = true
+          }
+        }
+      }
     } label: {
       Label("Composer Style", systemImage: "slider.horizontal.3")
     }
     .accessibilityIdentifier("demo.styleMenu")
+  }
+
+  private var prototypeLabButton: some View {
+    Button {
+      withAnimation(.snappy(duration: 0.25)) {
+        isShowingPrototypeLab = true
+      }
+    } label: {
+      Label("Liquid Glass Prototype Lab", systemImage: "flask")
+    }
+    .accessibilityIdentifier("demo.prototypeLabButton")
   }
 
   private var resetConversationButton: some View {

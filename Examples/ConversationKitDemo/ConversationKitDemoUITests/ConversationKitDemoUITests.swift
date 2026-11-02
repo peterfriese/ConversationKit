@@ -120,4 +120,25 @@ final class ConversationKitDemoUITests: XCTestCase {
       )
     }
   }
+
+  func testModelSelectorMenuInsideInteractiveClassicGlassPill() throws {
+    XCTContext.runActivity(named: "Test Model Selector Menu opens without vanishing ClassicGlass pill") { _ in
+      let modelSelector = app.descendants(matching: .any)["composer.modelSelector"].firstMatch
+      XCTAssertTrue(modelSelector.waitForExistence(timeout: 15), "Model selector menu button should exist")
+
+      modelSelector.tap()
+
+      let thinkToggle = app.buttons["composer.capability.think"].firstMatch
+      let modelOption = app.buttons.containing(NSPredicate(format: "label CONTAINS %@", "Claude")).firstMatch
+      XCTAssertTrue(
+        thinkToggle.waitForExistence(timeout: 10) || modelOption.waitForExistence(timeout: 10),
+        "Native model selector Menu should open when tapped inside ClassicGlass composer"
+      )
+
+      let pngData = XCUIScreen.main.screenshot().pngRepresentation
+      try? pngData.write(
+        to: URL(fileURLWithPath: "/private/var/folders/x1/nrkqnm6j0755nn48dkyv7pl80000gn/T/opencode/breathing-4-menu-open.png")
+      )
+    }
+  }
 }
