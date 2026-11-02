@@ -332,7 +332,7 @@ private struct ClassicGlassComposerBody: View {
           detachedSubmitButton(configuration.submitButton)
         }
       }
-      .animation(reduceMotion ? nil : .snappy(duration: 0.24), value: showsSubmitButton)
+      .animation(reduceMotion ? nil : .snappy(duration: 0.18), value: showsSubmitButton)
     }
     .padding(.horizontal, 12)
     .padding(.vertical, 6)
@@ -367,8 +367,8 @@ private struct ClassicGlassComposerBody: View {
       button
         .frame(width: plusDiameter, height: plusDiameter)
         .glassEffect(.regular.tint(.accentColor).interactive(), in: .circle)
-        .glassEffectID("classic.submit", in: glassNamespace)
-        .glassEffectTransition(.matchedGeometry)
+        .glassEffectTransition(.materialize)
+        .transition(.scale(scale: 0.85).combined(with: .opacity))
     }
   }
 

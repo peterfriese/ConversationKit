@@ -95,7 +95,6 @@ public struct ConversationView<MessageType: Message, Content: View>: View {
 
   // Scroll & Unoccluded Viewport Runway State (`[MF-3]`, `AC-14`)
   @State private var lockedUnoccludedHeight: CGFloat = 0
-  @State private var currentVisibleHeight: CGFloat = 0
   @State private var isScrolledAwayFromBottom: Bool = false
 
   private static var bottomAnchorID: String { "timeline.bottomAnchor" }
@@ -386,8 +385,6 @@ public struct ConversationView<MessageType: Message, Content: View>: View {
         distanceFromBottom: distanceFromBottom
       )
     } action: { _, snapshot in
-      currentVisibleHeight = snapshot.unoccludedCandidateHeight
-
       // [MF-3]: Lock unoccluded viewport height so transient keyboard or suggestion chip dismissal insets
       // never shrink activeTurnMinHeight below the full post-dismissal viewport height.
       let candidateMax = max(snapshot.unoccludedCandidateHeight, snapshot.fullContainerRunway)
@@ -436,17 +433,19 @@ public struct ConversationView<MessageType: Message, Content: View>: View {
   private var emptyStateContainer: some View {
     if let emptyConversationView {
       let shouldShowEmptyState = isDraftEmpty
-      emptyConversationView()
-        .frame(maxWidth: .infinity, minHeight: max(currentVisibleHeight - 32, 160), alignment: .center)
-        .padding(.horizontal, 24)
-        .opacity(shouldShowEmptyState ? 1 : 0)
-        .allowsHitTesting(shouldShowEmptyState)
-        .accessibilityHidden(!shouldShowEmptyState)
-        .animation(
-          reduceMotion ? nil : .snappy(duration: 0.22),
-          value: shouldShowEmptyState
-        )
-        .accessibilityIdentifier(ConversationAccessibilityID.emptyConversationView)
+      VStack(spacing: 0) {
+        emptyConversationView()
+      }
+      .frame(maxWidth: .infinity, minHeight: 300, alignment: .center)
+      .padding(.horizontal, 24)
+      .opacity(shouldShowEmptyState ? 1 : 0)
+      .allowsHitTesting(shouldShowEmptyState)
+      .accessibilityHidden(!shouldShowEmptyState)
+      .animation(
+        reduceMotion ? nil : .easeInOut(duration: 0.22),
+        value: shouldShowEmptyState
+      )
+      .accessibilityIdentifier(ConversationAccessibilityID.emptyConversationView)
     } else {
       Color.clear
         .frame(maxWidth: .infinity, minHeight: 1)
@@ -490,6 +489,10 @@ public struct ConversationView<MessageType: Message, Content: View>: View {
           .accessibilityIdentifier(ConversationAccessibilityID.disclaimerView)
       }
     }
+    .animation(
+      reduceMotion ? nil : .snappy(duration: 0.2),
+      value: shouldShowSuggestionChips
+    )
   }
 
   // MARK: - Turn Submission, Suggestion Handoff & Cooperative Stop (`F-1`, `F-8`, `AC-3`, `AC-4`, `AC-12`, `AC-19`)

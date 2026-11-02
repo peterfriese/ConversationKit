@@ -69,9 +69,17 @@ Following the `Sofia` reference architecture, `ClassicGlassMessageComposerStyle`
 
 - **Zone 1 — Outside Left (`44×44pt` Liquid Glass Circle Sibling):** The leading `+` attachment `Menu` button, framed to `44×44pt` with `.glassEffect(.regular.interactive(), in: .circle)`.
 - **Zone 2 — Center Interactive Text Vessel (`minHeight: 44pt`, `cornerRadius: 22`):** Houses the growing `TextField` and `innerTrailingAccessories` (`compactModelSelector`, `dictationButton`, `dismissKeyboardButton`) in a single `mainInputRow` inside `panelContent`, while `.overlayPreferenceValue(ComposerMenuSlotAnchorKey.self)` mounts the zero-opacity `Menu` hit-target over `compactModelSelector` outside `.glassEffect`.
-- **Zone 3 — Outside Right (`44×44pt` Prominent Tinted Liquid Glass Circle Sibling):** When `canSubmit || isGenerating` is `true`, the trailing `Send`/`Stop` button appears as a detached `44×44pt` sibling with `.glassEffect(.regular.tint(.accentColor).interactive(), in: .circle)` and `.glassEffectTransition(.matchedGeometry)`.
+- **Zone 3 — Outside Right (`44×44pt` Prominent Tinted Liquid Glass Circle Sibling):** When `canSubmit || isGenerating` is `true`, the trailing `Send`/`Stop` button appears as a detached `44×44pt` sibling with `.glassEffect(.regular.tint(.accentColor).interactive(), in: .circle)`, `.glassEffectTransition(.materialize)`, and `.transition(.scale(scale: 0.85).combined(with: .opacity))` under `.snappy(duration: 0.18)`.
 - **True 1:1 Circular Geometry (`Sofia` Part 9):** Across `ClassicGlassComposerBody` (`44×44pt`) and `ScrollToBottomButton` (`40×40pt`), replacing `.buttonStyle(.glass)` + `.buttonBorderShape(.circle)` with `.buttonStyle(.plain)` + explicit `.frame(width: d, height: d)` + `.glassEffect(..., in: .circle)` guarantees mathematically exact 1:1 circular geometry.
 - **Pure `.safeAreaBar(edge: .bottom)` Refraction:** Removing the legacy opaque `LinearGradient` from `ConversationView`'s `.safeAreaBar(edge: .bottom)` allows timeline bubbles passing under `.scrollEdgeEffectStyle(.soft, for: .bottom)` to refract naturally through all three Liquid Glass zones.
+
+### 4. When to Use `.matchedGeometry` vs `.materialize` Inside `GlassEffectContainer` & Stationary `emptyStateContainer` Cross-Fade
+Two additional transition physics traps surfaced in `ClassicGlass` and `ConversationView` when typing the first character of a draft:
+1. **`.glassEffectTransition(.materialize)` vs `.glassEffectTransition(.matchedGeometry)` for Unpaired Conditional Siblings (`ClassicGlass`):**
+   - Applying `.glassEffectID("classic.submit", in: glassNamespace)` + `.glassEffectTransition(.matchedGeometry)` to a conditionally inserted sibling (`if showsSubmitButton`) that has **no prior source view** sharing that ID causes the Liquid Glass SDF shader to synthesize a slow, viscous metaball extrusion from the neighboring glass sibling (`classic.textPill`) while the text pill simultaneously compresses its width by `52pt` (`44pt` button + `8pt` gap).
+   - Replacing `.glassEffectID` + `.glassEffectTransition(.matchedGeometry)` with `.glassEffectTransition(.materialize)` paired with `.transition(.scale(scale: 0.85).combined(with: .opacity))` and `.snappy(duration: 0.18)` materializes the detached `Send` button crisply in place without unpaired SDF extrusion lag. Reserve `.matchedGeometry` strictly for true 1-to-1 morphs between two views that share a `.glassEffectID` across states.
+2. **Stationary `emptyStateContainer` Cross-Fade Rule (`ConversationView`):**
+   - Never bind an empty-state placeholder's `minHeight` (with `.center` alignment) to dynamic `ScrollGeometry.containerSize.height` (`currentVisibleHeight`). Because software keyboard appearance and `.safeAreaBar(edge: .bottom)` accessory transitions (such as `SuggestionChipsBar` hiding when typing starts) mutate `containerSize.height`, binding `minHeight` to `currentVisibleHeight` causes the `.center`-aligned placeholder to jump vertically while cross-fading out. Using a static `minHeight: 300` with `.opacity(shouldShowEmptyState ? 1 : 0)` keeps the placeholder completely stationary during keyboard and bottom-bar transitions.
 
 | Style | Layout Grammar | Leading Control | Inner Vessel Accessories | Trailing Primary Action |
 | :--- | :--- | :--- | :--- | :--- |
@@ -79,7 +87,7 @@ Following the `Sofia` reference architecture, `ClassicGlassMessageComposerStyle`
 | **`Card Glass`** (`.cardGlass`) | 2-Row Assistant Card (`cornerRadius: 24`) | Bottom row `32×32pt` bordered circle (`anchorPreference` -> `.attachmentMenu`) | Bottom row full `modelSelector` pill (`anchorPreference` -> `.modelSelectorMenu`) + `dictation` & `dismissKeyboard` | Bottom row `32×32pt` accent circle |
 | **`Compact Glass`** (`.compactGlass`) | Single-Row Capsule (`cornerRadius: 22`) | Inside leading `32×32pt` borderless `+` (`anchorPreference` -> `.attachmentMenu`) | Single `trailingControls` inside `panelContent` (`anchorPreference` -> `.modelSelectorMenu`), `dictation`, `dismissKeyboard` | Inside trailing `32×32pt` accent circle |
 
-### 4. Canonical SwiftUI Performance & Ergonomics Refinements (`F-02`, `F-03`, `F-04`, `F-08`)
+### 5. Canonical SwiftUI Performance & Ergonomics Refinements (`F-02`, `F-03`, `F-04`, `F-08`)
 To ensure 60Hz–120Hz token streaming and keystroke responsiveness remain free of redundant SwiftUI attribute-graph invalidations and heap allocations, we completed four companion refinements:
 1. **`EnvironmentBindingBox: Equatable` (`F-02`):** Because `EnvironmentBindingBox<Value>` wraps `@MainActor @Sendable` getter and setter closures to carry two-way bindings inside `@Entry EnvironmentValues` (`selectedComposerModelBox`, `activeComposerCapabilitiesBox`, `composerTokensBox`), Swift cannot auto-synthesize `Equatable`. Without `Equatable`, every 60Hz token tick in `ConversationView` recreated fresh `EnvironmentBindingBox` instances that compared as unequal by closure identity, invalidating downstream composer views even when the selected model, capabilities, and tokens were unchanged. Capturing `public let snapshot: Value = binding.wrappedValue` at initialization and conforming `EnvironmentBindingBox: Equatable where Value: Equatable` (checking `lhs.snapshot == rhs.snapshot` and `MainActor.assumeIsolated { lhs.wrappedValue == rhs.wrappedValue }`) makes `@Entry` diffing $O(1)$ and suppresses false subtree invalidations during streaming.
 2. **Lazy Subview Slot Evaluation in `MessageComposerStyleConfiguration` (`F-03`):** Each concrete `MessageComposerStyle` (`ClassicGlassMessageComposerStyle`, `CardGlassMessageComposerStyle`, `CompactGlassMessageComposerStyle`) renders only one attachment button variant (`attachmentButton` or `borderlessAttachmentButton`) and one model selector variant (`compactModelSelector` or `modelSelector`). Backing `MessageComposerStyleConfiguration`'s subview properties (`textField`, `attachmentButton`, `borderlessAttachmentButton`, `attachmentsTray`, `tokensBar`, `modelSelector`, `compactModelSelector`, `capabilitiesBar`, `dictationButton`, `submitButton`, `dismissKeyboardButton`) with lazy `@MainActor` closure builders (`() -> AnyView`) via `internal init(lazyTextField:...)` ensures unused style variants are never constructed or wrapped in `AnyView` on keystrokes, while preserving 100% public API source compatibility.
@@ -130,19 +138,21 @@ GlassEffectContainer(spacing: 12) {
       detachedSubmitButton(configuration.submitButton)
     }
   }
-  .animation(reduceMotion ? nil : .snappy(duration: 0.24), value: showsSubmitButton)
+  .animation(reduceMotion ? nil : .snappy(duration: 0.18), value: showsSubmitButton)
 }
 ```
 
-### 2. True 1:1 Circular Glass Siblings (`Sofia` Part 9)
+### 2. True 1:1 Circular Glass Siblings & `.glassEffectTransition(.materialize)` (`Sofia` Part 9)
 
 ```swift
-// ❌ BEFORE: .buttonStyle(.glass) + .buttonBorderShape(.circle) applied horizontal padding heuristics, creating ovals
+// ❌ BEFORE: .buttonStyle(.glass) + .buttonBorderShape(.circle) applied horizontal padding heuristics, creating ovals;
+// and unpaired .glassEffectID("classic.submit") + .glassEffectTransition(.matchedGeometry) caused viscous SDF extrusion lag
 button
   .buttonStyle(.glass)
   .buttonBorderShape(.circle)
 
-// ✅ AFTER: Explicit 44×44pt square frame + .glassEffect(..., in: .circle) guarantees a 1:1 circle
+// ✅ AFTER: Explicit 44×44pt square frame + .glassEffect(..., in: .circle) guarantees a 1:1 circle,
+// and .glassEffectTransition(.materialize) materializes the unpaired conditional sibling crisply in place
 private func detachedPlusButton(_ button: AnyView) -> some View {
   button
     .frame(width: 44, height: 44)
@@ -154,8 +164,8 @@ private func detachedSubmitButton(_ button: AnyView) -> some View {
   button
     .frame(width: 44, height: 44)
     .glassEffect(.regular.tint(.accentColor).interactive(), in: .circle)
-    .glassEffectID("classic.submit", in: glassNamespace)
-    .glassEffectTransition(.matchedGeometry)
+    .glassEffectTransition(.materialize)
+    .transition(.scale(scale: 0.85).combined(with: .opacity))
 }
 ```
 
@@ -368,5 +378,6 @@ private var promptTextField: some View {
 - **Check `PlatformPasteboard.hasAttachments` Inside `Menu` Builders:** Never call `PlatformPasteboard.readAttachments()` inside a SwiftUI `Menu` builder just to check `.isEmpty`. Use `PlatformPasteboard.hasAttachments` to inspect pasteboard type metadata in $O(1)$ with zero `Data` or image allocations on `@MainActor`.
 - **Use the 3-Zone Bookend Sibling Grammar (`Sofia` Pattern):** Structure `.classicGlass` as `[ 44×44 + Sibling ] | 8pt | [ 44pt Interactive Vessel + Anchor-Isolated Menu Hit Target ] | 8pt | [ 44×44 Tinted Send/Stop Sibling ]`. This keeps secondary utilities (`32×32pt` borderless icons) inside the text vessel while giving the attachment trigger and primary submit/stop action balanced `44×44pt` bookend weight.
 - **Construct Circular Glass with Explicit Square Frames (`Sofia` Part 9):** Avoid `.buttonStyle(.glass)` + `.buttonBorderShape(.circle)`, which stretches buttons into horizontal ovals. Always pair `.buttonStyle(.plain)` + `.frame(width: d, height: d)` + `.glassEffect(..., in: .circle)` for true 1:1 circular geometry.
+- **Use `.glassEffectTransition(.materialize)` for Unpaired Conditional Glass Siblings & Keep `emptyStateContainer` `minHeight` Static:** Applying `.glassEffectID("classic.submit", in: glassNamespace)` + `.glassEffectTransition(.matchedGeometry)` to a conditionally inserted sibling (`if showsSubmitButton`) with no prior source view sharing that ID causes the Liquid Glass SDF shader to synthesize a slow, viscous metaball extrusion from the neighboring `classic.textPill` while the pill simultaneously compresses by `52pt`. Use `.glassEffectTransition(.materialize)` with `.transition(.scale(scale: 0.85).combined(with: .opacity))` and `.snappy(duration: 0.18)` so the detached Send button materializes crisply in place. Similarly, never bind `emptyStateContainer`'s `minHeight` (with `.center` alignment) to dynamic `ScrollGeometry.containerSize.height` (`currentVisibleHeight`), as keyboard and `.safeAreaBar(edge: .bottom)` accessory transitions (`SuggestionChipsBar`) mutate `containerSize.height` and make the placeholder jump vertically while fading.
 - **Keep `.safeAreaBar(edge: .bottom)` Free of Opaque Gradients:** Never add a `LinearGradient` background to `.safeAreaBar(edge: .bottom)`. Pair `.scrollEdgeEffectStyle(.soft, for: .bottom)` on the timeline `ScrollView` with transparent safe-area chrome so content refracts directly through the floating Liquid Glass siblings.
 - **Conform `@Entry` Binding Boxes to `Equatable`, Use Lazy Style Configuration Builders, and Prefer Native `TextField(..., prompt:)` (`F-02`, `F-03`, `F-04`, `F-08`):** Capture `snapshot: Value` on `EnvironmentBindingBox` so `@Entry` environment diffing skips composer invalidation during 60Hz token streaming (`F-02`); back `MessageComposerStyleConfiguration` subview slots with lazy `@MainActor` closures so unused style variants (`borderlessAttachmentButton` vs. `attachmentButton`, `compactModelSelector` vs. `modelSelector`) are never built on keystrokes (`F-03`); pass `prompt: hasTokens ? Text("") : Text(placeholder).foregroundStyle(.secondary)` to `TextField` so native baseline metrics and VoiceOver traits apply whenever `tokens.isEmpty` (`F-04`); and maintain unary `VStack` roots and direct/lazy `ForEach` collections (`F-08`).
