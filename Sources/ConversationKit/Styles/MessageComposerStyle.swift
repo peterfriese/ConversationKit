@@ -409,7 +409,6 @@ private struct ClassicGlassComposerBody: View {
 private struct CardGlassComposerBody: View {
   let configuration: MessageComposerStyleConfiguration
 
-  @Namespace private var glassNamespace
   @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -461,20 +460,17 @@ private struct CardGlassComposerBody: View {
             .strokeBorder(Color.platformSeparator.opacity(0.45), lineWidth: 0.5)
         }
     } else {
-      GlassEffectContainer(spacing: 10) {
-        panelContent
-          .glassEffect(.regular.interactive(), in: .rect(cornerRadius: cardCornerRadius))
-          .glassEffectID("composer.cardPanel", in: glassNamespace)
-      }
-      .overlayPreferenceValue(ComposerMenuSlotAnchorKey.self) { anchors in
-        composerMenuHitTargetsOverlay(
-          anchors: anchors,
-          attachmentMenu: configuration.borderlessAttachmentButton ?? configuration.attachmentButton,
-          modelSelectorMenu: (configuration.hasModels || configuration.hasCapabilities)
-            ? configuration.modelSelector
-            : nil
-        )
-      }
+      panelContent
+        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: cardCornerRadius))
+        .overlayPreferenceValue(ComposerMenuSlotAnchorKey.self) { anchors in
+          composerMenuHitTargetsOverlay(
+            anchors: anchors,
+            attachmentMenu: configuration.borderlessAttachmentButton ?? configuration.attachmentButton,
+            modelSelectorMenu: (configuration.hasModels || configuration.hasCapabilities)
+              ? configuration.modelSelector
+              : nil
+          )
+        }
     }
   }
 
@@ -568,7 +564,6 @@ public struct CompactGlassMessageComposerStyle: MessageComposerStyle, Sendable {
 private struct CompactGlassComposerBody: View {
   let configuration: MessageComposerStyleConfiguration
 
-  @Namespace private var glassNamespace
   @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -628,20 +623,17 @@ private struct CompactGlassComposerBody: View {
             .strokeBorder(Color.platformSeparator.opacity(0.45), lineWidth: 0.5)
         }
     } else {
-      GlassEffectContainer(spacing: 8) {
-        panelContent
-          .glassEffect(.regular.interactive(), in: .rect(cornerRadius: pillCornerRadius))
-          .glassEffectID("composer.compactCapsule", in: glassNamespace)
-      }
-      .overlayPreferenceValue(ComposerMenuSlotAnchorKey.self) { anchors in
-        composerMenuHitTargetsOverlay(
-          anchors: anchors,
-          attachmentMenu: configuration.borderlessAttachmentButton ?? configuration.attachmentButton,
-          modelSelectorMenu: (configuration.hasModels || configuration.hasCapabilities)
-            ? (configuration.compactModelSelector ?? configuration.modelSelector)
-            : nil
-        )
-      }
+      panelContent
+        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: pillCornerRadius))
+        .overlayPreferenceValue(ComposerMenuSlotAnchorKey.self) { anchors in
+          composerMenuHitTargetsOverlay(
+            anchors: anchors,
+            attachmentMenu: configuration.borderlessAttachmentButton ?? configuration.attachmentButton,
+            modelSelectorMenu: (configuration.hasModels || configuration.hasCapabilities)
+              ? (configuration.compactModelSelector ?? configuration.modelSelector)
+              : nil
+          )
+        }
     }
   }
 

@@ -226,10 +226,8 @@ public struct ComposerPopupView: View {
             .strokeBorder(Color.platformSeparator.opacity(0.45), lineWidth: 0.5)
         }
     } else {
-      GlassEffectContainer(spacing: 8) {
-        content
-          .glassEffect(.regular, in: .rect(cornerRadius: Self.cornerRadius))
-      }
+      content
+        .glassEffect(.regular, in: .rect(cornerRadius: Self.cornerRadius))
     }
   }
 

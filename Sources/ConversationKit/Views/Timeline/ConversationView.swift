@@ -16,6 +16,7 @@ import SwiftUI
 /// only fire when geometry metrics meaningfully change.
 private struct ScrollGeometrySnapshot: Equatable, Sendable {
   let unoccludedCandidateHeight: CGFloat
+  let fullContainerRunway: CGFloat
   let distanceFromBottom: CGFloat
 }
 
@@ -89,6 +90,7 @@ public struct ConversationView<MessageType: Message, Content: View>: View {
   @State private var hasSentFirstMessage: Bool = false
   @State private var activeTurnToken: UUID?
   @State private var sendingTask: Task<Void, Never>?
+  @State private var scrollTask: Task<Void, Never>?
   @State private var pendingScrollTargetTurnID: String?
 
   // Scroll & Unoccluded Viewport Runway State (`[MF-3]`, `AC-14`)
@@ -222,7 +224,7 @@ public struct ConversationView<MessageType: Message, Content: View>: View {
     max(lockedUnoccludedHeight, 320)
   }
 
-  /// First-turn suggestion chips are visible only when configured, before the first message is sent, and while the draft is pristine (`F-8`, `AC-12`, `IVE-03`).
+  /// Suggestion chips are visible whenever configured, while the draft is pristine, and when no turn is actively streaming (`F-8`, `AC-12`, `IVE-03`).
   private var shouldShowSuggestionChips: Bool {
     let isDraftPristine = ComposerTextBuffer.cleanText(draftText)
       .trimmingCharacters(in: .whitespacesAndNewlines)
@@ -230,9 +232,8 @@ public struct ConversationView<MessageType: Message, Content: View>: View {
       && tokensBinding.wrappedValue.isEmpty
       && attachmentsBinding.wrappedValue.isEmpty
     return !suggestionChips.isEmpty
-      && !hasSentFirstMessage
-      && displayedMessages.isEmpty
       && isDraftPristine
+      && !isGenerating
   }
 
   // MARK: - Body
@@ -259,50 +260,55 @@ public struct ConversationView<MessageType: Message, Content: View>: View {
         bottomChromeBar(proxy: proxy)
       }
     }
-    .task {
-      try? await Task.sleep(for: .milliseconds(500))
-      if !draftText.isEmpty {
-        isComposerFocused = true
-      }
-    }
     .onAppear {
       if !hasSeededInitialPrompt {
         hasSeededInitialPrompt = true
         let cleaned = ComposerTextBuffer.cleanText(initialUserPrompt)
         if !cleaned.isEmpty && draftText.isEmpty {
           draftText = cleaned
-          Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(150))
-            isComposerFocused = true
-          }
-        }
-      }
-      if ProcessInfo.processInfo.arguments.contains("-focusComposer") {
-        Task { @MainActor in
-          try? await Task.sleep(for: .milliseconds(150))
-          isComposerFocused = true
         }
       }
       if !messages.isEmpty {
         hasSentFirstMessage = true
       }
     }
+    .task {
+      guard !draftText.isEmpty || ProcessInfo.processInfo.arguments.contains("-focusComposer") else {
+        return
+      }
+      try? await Task.sleep(for: .milliseconds(150))
+      if !Task.isCancelled {
+        isComposerFocused = true
+      }
+    }
     .onChange(of: messages) { _, newMessages in
+      if newMessages.isEmpty {
+        hasSentFirstMessage = false
+        optimisticUserMessage = nil
+        return
+      }
       if let optimistic = optimisticUserMessage,
         newMessages.contains(where: { $0.id == optimistic.id })
       {
         optimisticUserMessage = nil
       }
-      if !newMessages.isEmpty && !hasSentFirstMessage {
+      if !hasSentFirstMessage {
         hasSentFirstMessage = true
       }
     }
     .onDisappear {
       sendingTask?.cancel()
+      scrollTask?.cancel()
     }
   }
 
   // MARK: - Timeline ScrollView (`F-1`, `F-2`, `AC-3`, `AC-4`, `[MF-3]`)
+
+  private var scrollAnimation: Animation {
+    reduceMotion
+      ? .easeOut(duration: 0.15)
+      : .spring(duration: 0.38, bounce: 0.0)
+  }
 
   @ViewBuilder
   private func timelineScrollView(proxy: ScrollViewProxy) -> some View {
@@ -314,38 +320,33 @@ public struct ConversationView<MessageType: Message, Content: View>: View {
         emptyStateContainer
           .transition(.opacity)
       } else {
-        LazyVStack(alignment: .leading, spacing: 24) {
+        VStack(alignment: .leading, spacing: 24) {
           ForEach(currentTurns) { turn in
             let isLastTurn = (turn.id == lastTurnID)
             turnContainerView(for: turn, isLastTurn: isLastTurn)
               .id(turn.id)
-              .transition(
-                reduceMotion
-                  ? .opacity
-                  : .asymmetric(
-                      insertion: .move(edge: .bottom).combined(with: .opacity),
-                      removal: .opacity
-                    )
-              )
+              .transition(.opacity)
               .accessibilityIdentifier(ConversationAccessibilityID.turnContainer(turn.id))
+              .onAppear {
+                if pendingScrollTargetTurnID == turn.id {
+                  withAnimation(scrollAnimation) {
+                    proxy.scrollTo(turn.id, anchor: .top)
+                  }
+                }
+              }
           }
-
+        }
+        .scrollTargetLayout()
+        .padding(.horizontal, 16)
+        .padding(.top, 12)
+        .padding(.bottom, 16)
+        .background(alignment: .bottom) {
           Color.clear
             .frame(height: 1)
             .id(Self.bottomAnchorID)
             .accessibilityHidden(true)
         }
-        .padding(.horizontal, 16)
-        .padding(.top, 12)
-        .padding(.bottom, 16)
-        .transition(
-          reduceMotion
-            ? .opacity
-            : .asymmetric(
-                insertion: .move(edge: .bottom).combined(with: .opacity),
-                removal: .opacity
-              )
-        )
+        .transition(.opacity)
       }
     }
     .scrollDismissesKeyboard(.interactively)
@@ -353,33 +354,24 @@ public struct ConversationView<MessageType: Message, Content: View>: View {
     .accessibilityIdentifier(ConversationAccessibilityID.timelineScrollView)
     .onChange(of: turns.last?.id) { _, newLastID in
       if let targetTurnID = pendingScrollTargetTurnID, targetTurnID == newLastID {
-        pendingScrollTargetTurnID = nil
-        withAnimation(
-          reduceMotion
-            ? .easeOut(duration: 0.15)
-            : .spring(duration: 0.42, bounce: 0.05)
-        ) {
-          proxy.scrollTo(targetTurnID, anchor: .top)
-        }
+        scrollTurnToTop(targetTurnID, proxy: proxy)
       }
     }
     .onChange(of: pendingScrollTargetTurnID) { _, newTargetID in
       if let newTargetID, turns.last?.id == newTargetID {
-        pendingScrollTargetTurnID = nil
-        withAnimation(
-          reduceMotion
-            ? .easeOut(duration: 0.15)
-            : .spring(duration: 0.42, bounce: 0.05)
-        ) {
-          proxy.scrollTo(newTargetID, anchor: .top)
-        }
+        scrollTurnToTop(newTargetID, proxy: proxy)
       }
     }
     .onScrollGeometryChange(for: ScrollGeometrySnapshot.self) { geo in
-      // Available scroll viewport height excluding top navigation and bottom safeAreaBar insets
-      let availableRunway = max(
+      // In SwiftUI ScrollGeometry, `geo.containerSize.height` is already the visible container height
+      // excluding `contentInsets.top` and `contentInsets.bottom`.
+      let availableRunway = max(0, geo.containerSize.height)
+      // Reconstruct the full ScrollView frame height so transient software keyboard or SuggestionChipsBar
+      // bottom insets never reduce the locked post-dismissal runway height.
+      let fullScrollViewHeight = geo.containerSize.height + geo.contentInsets.top + geo.contentInsets.bottom
+      let fullContainerRunway = max(
         0,
-        geo.containerSize.height - geo.contentInsets.top - geo.contentInsets.bottom
+        fullScrollViewHeight - geo.contentInsets.top - 88
       )
       // Distance from the bottom of the content to the bottom of the visible scroll area
       let distanceFromBottom = max(
@@ -388,14 +380,17 @@ public struct ConversationView<MessageType: Message, Content: View>: View {
       )
       return ScrollGeometrySnapshot(
         unoccludedCandidateHeight: availableRunway,
+        fullContainerRunway: fullContainerRunway,
         distanceFromBottom: distanceFromBottom
       )
     } action: { _, snapshot in
       currentVisibleHeight = snapshot.unoccludedCandidateHeight
 
-      // [MF-3]: Lock unoccluded viewport height so transient keyboard dismissal insets never shrink activeTurnMinHeight
-      if snapshot.unoccludedCandidateHeight > lockedUnoccludedHeight {
-        lockedUnoccludedHeight = snapshot.unoccludedCandidateHeight
+      // [MF-3]: Lock unoccluded viewport height so transient keyboard or suggestion chip dismissal insets
+      // never shrink activeTurnMinHeight below the full post-dismissal viewport height.
+      let candidateMax = max(snapshot.unoccludedCandidateHeight, snapshot.fullContainerRunway)
+      if candidateMax > lockedUnoccludedHeight {
+        lockedUnoccludedHeight = candidateMax
       }
 
       // [AC-14]: Hysteresis state machine (>80pt show, <24pt hide)
@@ -415,12 +410,11 @@ public struct ConversationView<MessageType: Message, Content: View>: View {
     }
   }
 
-  @ViewBuilder
   private func turnContainerView(
     for turn: ConversationTurn<MessageType>,
     isLastTurn: Bool
   ) -> some View {
-    let turnStack = VStack(alignment: .leading, spacing: 16) {
+    VStack(alignment: .leading, spacing: 16) {
       if let userMessage = turn.userMessage {
         content(userMessage)
       }
@@ -429,14 +423,11 @@ public struct ConversationView<MessageType: Message, Content: View>: View {
         content(assistantMessage)
       }
     }
-    .frame(maxWidth: .infinity, alignment: .topLeading)
-
-    if isLastTurn {
-      turnStack
-        .frame(minHeight: activeTurnMinHeight, alignment: .top)
-    } else {
-      turnStack
-    }
+    .frame(
+      maxWidth: .infinity,
+      minHeight: isLastTurn ? activeTurnMinHeight : 0,
+      alignment: .topLeading
+    )
   }
 
   @ViewBuilder
@@ -578,23 +569,12 @@ public struct ConversationView<MessageType: Message, Content: View>: View {
     attachmentsBinding.wrappedValue.removeAll()
     pendingScrollTargetTurnID = newTurnID
 
-    if !hasSentFirstMessage {
-      if reduceMotion {
-        hasSentFirstMessage = true
-      } else {
-        withAnimation(.snappy(duration: 0.28)) {
-          hasSentFirstMessage = true
-        }
-      }
-    }
-
-    withAnimation(
-      reduceMotion
-        ? .easeOut(duration: 0.15)
-        : .spring(duration: 0.42, bounce: 0.05)
-    ) {
+    withAnimation(scrollAnimation) {
+      hasSentFirstMessage = true
       optimisticUserMessage = userMessage
     }
+
+    scrollTurnToTop(newTurnID, proxy: proxy)
 
     // 3. Token-guarded async turn execution
     sendingTask?.cancel()
@@ -632,7 +612,41 @@ public struct ConversationView<MessageType: Message, Content: View>: View {
     activeTurnToken = nil
   }
 
+  private func scrollTurnToTop(_ turnID: String, proxy: ScrollViewProxy) {
+    scrollTask?.cancel()
+    scrollTask = Task { @MainActor in
+      // Pass 1 (t = 0ms): Immediate scroll request so LazyVStack begins scrolling toward
+      // and realizing the target turn container even if the previous turn was long or scrolled up.
+      withAnimation(scrollAnimation) {
+        proxy.scrollTo(turnID, anchor: .top)
+      }
+
+      // Pass 2 (t = 60ms): Confirm top anchor after `onSendMessage` appends `submission.message`
+      // and the initial `assistantMessage` placeholder (t ~ 1–16ms) and LazyVStack realizes
+      // the new turn's full `activeTurnMinHeight` runway.
+      try? await Task.sleep(for: .milliseconds(60))
+      guard !Task.isCancelled, pendingScrollTargetTurnID == turnID else { return }
+
+      withAnimation(scrollAnimation) {
+        proxy.scrollTo(turnID, anchor: .top)
+      }
+
+      // Pass 3 (t = 150ms): Final confirmation after keyboard / SuggestionChipsBar safeAreaBar
+      // inset transitions settle, still well before token streaming begins (~320ms+),
+      // then clear `pendingScrollTargetTurnID` so streaming tokens never trigger scrollTo (AC-4).
+      try? await Task.sleep(for: .milliseconds(90))
+      guard !Task.isCancelled, pendingScrollTargetTurnID == turnID else { return }
+
+      withAnimation(scrollAnimation) {
+        proxy.scrollTo(turnID, anchor: .top)
+      }
+      pendingScrollTargetTurnID = nil
+    }
+  }
+
   private func scrollToBottom(proxy: ScrollViewProxy) {
+    scrollTask?.cancel()
+    pendingScrollTargetTurnID = nil
     let targetID = Self.bottomAnchorID
     withAnimation(
       reduceMotion

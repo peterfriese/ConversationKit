@@ -71,9 +71,7 @@ public struct ScrollToBottomButton: View {
   }
 
   public var body: some View {
-    GlassEffectContainer(spacing: 8) {
-      buttonContent
-    }
+    buttonContent
   }
 
   @ViewBuilder

@@ -907,6 +907,7 @@ private struct MarkdownBlockContentView: View {
         .textSelection(.enabled)
         .fixedSize(horizontal: false, vertical: true)
     }
+    .fixedSize(horizontal: false, vertical: true)
     .padding(.vertical, 2)
     .padding(.leading, 2)
   }

@@ -28,7 +28,6 @@ public struct SuggestionChipsBar: View {
   /// Callback invoked on `@MainActor` when the user taps a suggestion chip.
   public let onSelect: @MainActor (PromptSuggestion) -> Void
 
-  @Namespace private var glassNamespace
   @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
   /// Alias for `suggestions` preserving terminology parity with `chips`.
@@ -136,7 +135,6 @@ public struct SuggestionChipsBar: View {
     } else {
       content
         .glassEffect(.regular.interactive(), in: .capsule)
-        .glassEffectID("suggestion.\(suggestion.id)", in: glassNamespace)
     }
   }
 
