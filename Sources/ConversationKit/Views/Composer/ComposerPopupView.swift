@@ -115,21 +115,6 @@ public struct ComposerPopupView: View {
   private static let maxVisibleRows: Int = 6
   private static let cornerRadius: CGFloat = 18
 
-  /// Creates a `ComposerPopupView` with explicit `ComposerPopupItem` entries.
-  public init(
-    query: String,
-    items: [ComposerPopupItem],
-    isLoading: Bool = false,
-    onSelectCommand: (@MainActor (SlashCommand) -> Void)? = nil,
-    onSelectMention: (@MainActor (ResourceMention) -> Void)? = nil
-  ) {
-    self.query = ComposerTextBuffer.cleanText(query)
-    self.items = items
-    self.isLoading = isLoading
-    self.onSelectCommand = onSelectCommand
-    self.onSelectMention = onSelectMention
-  }
-
   /// Creates a `ComposerPopupView` from matching `SlashCommand` and `ResourceMention` collections.
   public init(
     query: String,
@@ -185,7 +170,7 @@ public struct ComposerPopupView: View {
         .padding(.horizontal, 12)
         .padding(.bottom, 4)
         .accessibilityElement(children: .contain)
-        .accessibilityIdentifier(ConversationAccessibilityID.composerPopup)
+        .accessibilityIdentifier(ConversationAccessibilityID.popupView)
     }
   }
 
@@ -258,7 +243,7 @@ public struct ComposerPopupView: View {
             .lineLimit(1)
 
           if let secondaryText = item.secondaryText, !secondaryText.isEmpty {
-            highlightedSecondaryText(for: secondaryText, matching: query)
+            highlightedText(for: secondaryText, matching: query)
               .font(.caption)
               .lineLimit(1)
           }
@@ -330,26 +315,6 @@ public struct ComposerPopupView: View {
 
   /// Renders matched query characters in `.semibold` primary ink and remaining characters in secondary ink.
   internal func highlightedText(for candidate: String, matching query: String) -> Text {
-    let segments = ComposerTextBuffer.highlightSegments(in: candidate, matching: query)
-    guard !segments.isEmpty else {
-      return Text(candidate)
-    }
-
-    return segments.reduce(Text("")) { partial, segment in
-      let styledSegment: Text = if segment.isMatched {
-        Text(segment.text)
-          .fontWeight(.semibold)
-          .foregroundStyle(.primary)
-      } else {
-        Text(segment.text)
-          .fontWeight(.regular)
-          .foregroundStyle(.secondary)
-      }
-      return Text("\(partial)\(styledSegment)")
-    }
-  }
-
-  internal func highlightedSecondaryText(for candidate: String, matching query: String) -> Text {
     let segments = ComposerTextBuffer.highlightSegments(in: candidate, matching: query)
     guard !segments.isEmpty else {
       return Text(candidate).foregroundStyle(.secondary)

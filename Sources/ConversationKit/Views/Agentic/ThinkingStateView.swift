@@ -41,9 +41,6 @@ public struct ThinkingStateView: View {
   /// Internal expansion state, initialized strictly to `ThinkingTrace.defaultExpanded` (`false`).
   @State private var internalIsExpanded: Bool = ThinkingTrace.defaultExpanded
 
-  /// Tracks whether the user has manually toggled the header during this view's lifetime.
-  @State private var hasUserManuallyToggled: Bool = false
-
   @Environment(\.thinkingStateStyle) private var thinkingStateStyle
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -76,8 +73,7 @@ public struct ThinkingStateView: View {
       toggleExpanded: toggleExpansion,
       headerLabel: AnyView(
         ThinkingHeaderLabelView(
-          status: trace.status,
-          summary: trace.summary
+          status: trace.status
         )
         .accessibilityIdentifier(ConversationAccessibilityID.thinkingHeader)
       ),
@@ -105,7 +101,6 @@ public struct ThinkingStateView: View {
 
   @MainActor
   private func toggleExpansion() {
-    hasUserManuallyToggled = true
     PlatformHapticEvent.triggerHaptic(.selection)
 
     let animation: Animation = reduceMotion
@@ -134,25 +129,6 @@ public struct ThinkingStateView: View {
       return "\(max(0, duration).formatted(.number.precision(.fractionLength(1))))s"
     }
   }
-
-  /// Formats the complete status headline string for a given `ThinkingTrace.Status` and reference `Date`.
-  public nonisolated static func formattedHeadline(
-    for status: ThinkingTrace.Status,
-    now: Date = .now
-  ) -> String {
-    switch status {
-    case .thinking(let startedAt):
-      let elapsed = max(0, now.timeIntervalSince(startedAt))
-      let formatted = elapsed.formatted(.number.precision(.fractionLength(1)))
-      return "Thinking · \(formatted)s"
-    case .completed(let duration):
-      let roundedSeconds = Int(max(0, duration).rounded())
-      return "Thought for \(roundedSeconds)s"
-    case .cancelled(let duration):
-      let formatted = max(0, duration).formatted(.number.precision(.fractionLength(1)))
-      return "Thinking stopped · \(formatted)s"
-    }
-  }
 }
 
 // MARK: - ThinkingHeaderLabelView
@@ -167,7 +143,6 @@ extension EnvironmentValues {
 /// Combines the phase-locked status icon and the leaf-scoped elapsed label.
 private struct ThinkingHeaderLabelView: View {
   let status: ThinkingTrace.Status
-  let summary: String?
 
   @Environment(\.thinkingHeaderShowsInlineIcon) private var showsInlineIcon
 
@@ -176,7 +151,7 @@ private struct ThinkingHeaderLabelView: View {
       if showsInlineIcon {
         ThinkingStatusIconView(status: status)
       }
-      ThinkingElapsedLabelView(status: status, summary: summary)
+      ThinkingElapsedLabelView(status: status)
     }
   }
 }
@@ -243,7 +218,6 @@ private struct ThinkingStatusIconView: View {
 /// the transcript or parent hierarchy on timer ticks.
 private struct ThinkingElapsedLabelView: View {
   let status: ThinkingTrace.Status
-  let summary: String?
 
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
 

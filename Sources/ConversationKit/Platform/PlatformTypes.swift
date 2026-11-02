@@ -93,19 +93,6 @@ public struct PlatformImageBox: @unchecked Sendable, Hashable, Codable, Identifi
     #endif
   }
 
-  /// Creates a `PlatformImageBox` from an SF Symbol name.
-  public static func systemSymbol(_ name: String) -> PlatformImageBox? {
-    #if canImport(UIKit)
-    guard let img = UIImage(systemName: name) else { return nil }
-    return PlatformImageBox(img)
-    #elseif canImport(AppKit)
-    guard let img = NSImage(systemSymbolName: name, accessibilityDescription: nil) else {
-      return nil
-    }
-    return PlatformImageBox(img)
-    #endif
-  }
-
   /// Creates a solid-color image of the requested size (useful for placeholders and unit tests).
   public static func solidColor(
     red: CGFloat = 0.2,
@@ -255,7 +242,6 @@ public struct PlatformImageBox: @unchecked Sendable, Hashable, Codable, Identifi
 
 /// Errors thrown by `PlatformThumbnailGenerator` during thumbnail generation or QuickLook URL resolution.
 public enum PlatformThumbnailError: Error, Sendable, Equatable, LocalizedError {
-  case invalidImageSource
   case thumbnailGenerationFailed
   case missingAttachmentData
   case quickLookWriteFailed(String)
@@ -263,8 +249,6 @@ public enum PlatformThumbnailError: Error, Sendable, Equatable, LocalizedError {
 
   public var errorDescription: String? {
     switch self {
-    case .invalidImageSource:
-      return "The attachment could not be read as a valid image or document source."
     case .thumbnailGenerationFailed:
       return "Failed to generate a downsampled thumbnail for the attachment."
     case .missingAttachmentData:
@@ -315,17 +299,6 @@ public actor PlatformThumbnailGenerator {
     return hit
   }
 
-  /// Current number of cached thumbnails.
-  public var cachedCount: Int {
-    cache.count
-  }
-
-  /// Evicts all in-memory cached thumbnails.
-  public func clearMemoryCache() {
-    cache.removeAll()
-    accessOrder.removeAll()
-  }
-
   // MARK: Data-Backed Thumbnailing
 
   /// Generates a memory-safe downsampled thumbnail from raw `Data` off the main actor.
@@ -373,23 +346,6 @@ public actor PlatformThumbnailGenerator {
       inFlight[key] = nil
       throw error
     }
-  }
-
-  /// Overload accepting `UUID` identifier and `Int` pixel size.
-  public func thumbnail(
-    id: UUID,
-    data: Data,
-    contentType: UTType? = nil,
-    maxPixelSize: Int = PlatformThumbnailGenerator.defaultMaxPixelSize,
-    scale: CGFloat = 2.0
-  ) async throws -> PlatformImageBox {
-    try await thumbnail(
-      id: id.uuidString,
-      data: data,
-      contentType: contentType,
-      maxPixelSize: maxPixelSize,
-      scale: scale
-    )
   }
 
   // MARK: URL-Backed Thumbnailing
@@ -461,23 +417,6 @@ public actor PlatformThumbnailGenerator {
       inFlight[key] = nil
       throw error
     }
-  }
-
-  /// Overload accepting `UUID` identifier for a local file `URL`.
-  public func thumbnail(
-    id: UUID,
-    fileURL: URL,
-    contentType: UTType? = nil,
-    maxPixelSize: Int = PlatformThumbnailGenerator.defaultMaxPixelSize,
-    scale: CGFloat = 2.0
-  ) async throws -> PlatformImageBox {
-    try await thumbnail(
-      id: id.uuidString,
-      fileURL: fileURL,
-      contentType: contentType,
-      maxPixelSize: maxPixelSize,
-      scale: scale
-    )
   }
 
   // MARK: PlatformImageBox Downsampling
@@ -567,23 +506,10 @@ public actor PlatformThumbnailGenerator {
   /// Resolves a local `URL` suitable for SwiftUI's `.quickLookPreview(_:)` off the main actor.
   ///
   /// Sanitizes `filename` (`lastPathComponent`, strips `/`, `\`, `:`, `..`, control chars),
-  /// prefixes with `id.uuidString`, writes atomically into
+  /// prefixes with `idString`, writes atomically into
   /// `FileManager.default.temporaryDirectory.appending(path: "ConversationKitQuickLook")`,
   /// and strictly verifies `resolvedURL.standardizedFileURL.path.hasPrefix(quickLookDir.standardizedFileURL.path)`
   /// to prevent path traversal (`MUST-FIX-2`).
-  public func resolveQuickLookURL(
-    id: UUID,
-    filename: String,
-    dataProvider: @Sendable () -> Data?
-  ) throws -> URL {
-    try resolveQuickLookURL(
-      idString: id.uuidString,
-      filename: filename,
-      dataProvider: dataProvider
-    )
-  }
-
-  /// String-ID overload for `resolveQuickLookURL` supporting deterministic UUID derivation when `id` is a `String`.
   public func resolveQuickLookURL(
     idString: String,
     filename: String,
@@ -624,15 +550,6 @@ public actor PlatformThumbnailGenerator {
       return resolvedURL
     } catch {
       throw PlatformThumbnailError.quickLookWriteFailed(error.localizedDescription)
-    }
-  }
-
-  /// Removes all temporary files inside `ConversationKitQuickLook`.
-  public func cleanupQuickLookCache() {
-    let fileManager = FileManager.default
-    let quickLookDir = Self.quickLookDirectoryURL.standardizedFileURL
-    if fileManager.fileExists(atPath: quickLookDir.path) {
-      try? fileManager.removeItem(at: quickLookDir)
     }
   }
 
@@ -934,17 +851,8 @@ public enum PlatformHapticEvent: Sendable, Hashable {
   case error
 
   // Aliases matching ADR §3.2.1 & §3.5.2 terminology
-  public static let messageSent: PlatformHapticEvent = .send
-  public static let chipSelected: PlatformHapticEvent = .selection
   public static let tokenInserted: PlatformHapticEvent = .selection
   public static let tokenRemoved: PlatformHapticEvent = .selection
-  public static let copied: PlatformHapticEvent = .copySuccess
-}
-
-/// Triggers native platform haptic feedback for a `PlatformHapticEvent`.
-@MainActor
-public func triggerHaptic(_ event: PlatformHapticEvent) {
-  PlatformHaptics.triggerHaptic(event)
 }
 
 /// Namespace providing cross-platform haptic feedback triggers.
@@ -980,19 +888,6 @@ public enum PlatformHaptics: Sendable {
     }
     #endif
   }
-
-  @MainActor
-  public static func trigger(_ event: PlatformHapticEvent) {
-    triggerHaptic(event)
-  }
-}
-
-extension PlatformPasteboard {
-  /// Convenience forwarder for triggering platform haptics from `PlatformPasteboard.triggerHaptic(_:)`.
-  @MainActor
-  public static func triggerHaptic(_ event: PlatformHapticEvent) {
-    PlatformHaptics.triggerHaptic(event)
-  }
 }
 
 extension PlatformHapticEvent {
@@ -1000,12 +895,6 @@ extension PlatformHapticEvent {
   @MainActor
   public static func triggerHaptic(_ event: PlatformHapticEvent) {
     PlatformHaptics.triggerHaptic(event)
-  }
-
-  /// Triggers this haptic event on the main actor.
-  @MainActor
-  public func trigger() {
-    PlatformHaptics.triggerHaptic(self)
   }
 }
 

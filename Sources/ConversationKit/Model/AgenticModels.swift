@@ -45,18 +45,6 @@ public struct ThinkingTrace: Identifiable, Hashable, Sendable, Codable {
   /// Full reasoning transcript text.
   public var transcript: String
 
-  /// Alias for `summary` preserving terminology parity with `title`.
-  public var title: String? {
-    get { summary }
-    set { summary = newValue }
-  }
-
-  /// Alias for `transcript` preserving terminology parity with `content`.
-  public var content: String {
-    get { transcript }
-    set { transcript = newValue }
-  }
-
   /// Returns `true` while `status` is `.thinking`.
   public var isStreaming: Bool {
     if case .thinking = status {
@@ -86,21 +74,6 @@ public struct ThinkingTrace: Identifiable, Hashable, Sendable, Codable {
     self.status = status
     self.summary = summary
     self.transcript = transcript
-  }
-
-  /// Convenience initializer accepting `title` and `content`.
-  public init(
-    id: String = UUID().uuidString,
-    title: String?,
-    content: String,
-    status: Status,
-    defaultExpanded: Bool = ThinkingTrace.defaultExpanded
-  ) {
-    _ = defaultExpanded
-    self.id = id
-    self.status = status
-    self.summary = title
-    self.transcript = content
   }
 
   // MARK: $O(1)$ Fast-Path Equatable & Hashable
@@ -147,11 +120,6 @@ public struct ToolCall: Identifiable, Hashable, Sendable, Codable {
     case failed(error: String, duration: TimeInterval? = nil)
     /// Cancelled before completion with optional elapsed `duration`.
     case cancelled(duration: TimeInterval? = nil)
-
-    /// Convenience factory matching `.failed(duration:error:)` parameter order.
-    public static func failed(duration: TimeInterval, error: String) -> Status {
-      .failed(error: error, duration: duration)
-    }
   }
 
   /// Stable unique identifier for the tool call.
@@ -177,18 +145,6 @@ public struct ToolCall: Identifiable, Hashable, Sendable, Codable {
 
   /// Optional raw or pretty-printed JSON result string shown in the expandable inspector.
   public var resultJSON: String?
-
-  /// Alias for `argumentsSummary ?? name` preserving terminology parity with `title`.
-  public var title: String {
-    get { argumentsSummary ?? name }
-    set { argumentsSummary = newValue }
-  }
-
-  /// Alias for `symbolName` preserving terminology parity with `systemImage`.
-  public var systemImage: String {
-    get { symbolName }
-    set { symbolName = newValue }
-  }
 
   /// Returns `true` when `status` is `.pending` or `.running`.
   public var isActive: Bool {
@@ -219,28 +175,6 @@ public struct ToolCall: Identifiable, Hashable, Sendable, Codable {
     self.resultSummary = resultSummary
     self.argumentsJSON = argumentsJSON
     self.resultJSON = resultJSON
-  }
-
-  /// Convenience initializer accepting `title` and `systemImage`.
-  public init(
-    id: String = UUID().uuidString,
-    name: String,
-    title: String,
-    systemImage: String = "wrench.and.screwdriver",
-    argumentsJSON: String? = nil,
-    resultJSON: String? = nil,
-    status: Status
-  ) {
-    self.init(
-      id: id,
-      name: name,
-      symbolName: systemImage,
-      status: status,
-      argumentsSummary: title,
-      resultSummary: nil,
-      argumentsJSON: argumentsJSON,
-      resultJSON: resultJSON
-    )
   }
 
   // MARK: $O(1)$ Fast-Path Equatable & Hashable
@@ -280,9 +214,6 @@ public struct ToolCall: Identifiable, Hashable, Sendable, Codable {
 /// Represents an external source citation rendered inside `SourceStackView` with strict URL allowlisting (`AC-18`, `[MF-5]`).
 public struct Citation: Identifiable, Hashable, Sendable, Codable {
 
-  /// Allowed URL schemes (`"http"` and `"https"`).
-  public static let allowedSchemes: Set<String> = ["http", "https"]
-
   /// Stable unique identifier.
   public let id: String
 
@@ -306,11 +237,6 @@ public struct Citation: Identifiable, Hashable, Sendable, Codable {
   /// Rejects `javascript:`, `file:`, `data:`, `vbscript:`, and custom schemes (`AC-18`).
   public var sanitizedURL: URL? {
     url?.isAllowedConversationURL == true ? url : nil
-  }
-
-  /// String representation of `url`, if present.
-  public var rawURLString: String {
-    url?.absoluteString ?? ""
   }
 
   /// Creates a `Citation` with an optional `URL` and automatic domain extraction when `domain` is omitted.
@@ -451,9 +377,6 @@ public struct ApprovalRequest: Identifiable, Hashable, Sendable, Codable {
     case low
     case medium
     case high
-
-    /// Alias for `.high` preserving terminology parity with `.destructive`.
-    public static let destructive: RiskLevel = .high
   }
 
   /// User or system decision state for the approval request.
@@ -486,24 +409,6 @@ public struct ApprovalRequest: Identifiable, Hashable, Sendable, Codable {
   /// Current resolution decision (defaults to `.pending`).
   public var decision: Decision
 
-  /// Alias for `detail` preserving terminology parity with `summary`.
-  public var summary: String {
-    get { detail }
-    set { detail = newValue }
-  }
-
-  /// Alias for `scopeIdentifier` preserving terminology parity with `toolName`.
-  public var toolName: String? {
-    get { scopeIdentifier }
-    set { scopeIdentifier = newValue }
-  }
-
-  /// Alias for `changePreview` preserving terminology parity with `commandPreview`.
-  public var commandPreview: String? {
-    get { changePreview }
-    set { changePreview = newValue }
-  }
-
   /// Returns `true` when `decision != .pending`.
   public var isResolved: Bool {
     decision != .pending
@@ -526,27 +431,6 @@ public struct ApprovalRequest: Identifiable, Hashable, Sendable, Codable {
     self.scopeIdentifier = scopeIdentifier
     self.changePreview = changePreview
     self.decision = decision
-  }
-
-  /// Convenience initializer accepting `summary`, `toolName`, and `commandPreview`.
-  public init(
-    id: String = UUID().uuidString,
-    title: String,
-    summary: String,
-    toolName: String? = nil,
-    commandPreview: String? = nil,
-    riskLevel: RiskLevel = .medium,
-    decision: Decision? = nil
-  ) {
-    self.init(
-      id: id,
-      title: title,
-      detail: summary,
-      riskLevel: riskLevel,
-      scopeIdentifier: toolName,
-      changePreview: commandPreview,
-      decision: decision ?? .pending
-    )
   }
 }
 

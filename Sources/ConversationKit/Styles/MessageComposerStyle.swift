@@ -56,7 +56,6 @@ public struct MessageComposerStyleConfiguration {
   private let tokensBarBuilder: (() -> AnyView)?
   private let modelSelectorBuilder: (() -> AnyView)?
   private let compactModelSelectorBuilder: (() -> AnyView)?
-  private let capabilitiesBarBuilder: (() -> AnyView)?
   private let dictationButtonBuilder: (() -> AnyView)?
   private let submitButtonBuilder: () -> AnyView
   private let dismissKeyboardButtonBuilder: (() -> AnyView)?
@@ -94,11 +93,6 @@ public struct MessageComposerStyleConfiguration {
   /// Compact circular icon-only model selector button (`ComposerModelOption`) without text label.
   public var compactModelSelector: AnyView? {
     compactModelSelectorBuilder?()
-  }
-
-  /// Toggleable capability chips bar (`Think`, `Search`, `Image`, etc.).
-  public var capabilitiesBar: AnyView? {
-    capabilitiesBarBuilder?()
   }
 
   /// Optional voice/dictation button.
@@ -144,7 +138,6 @@ public struct MessageComposerStyleConfiguration {
     attachmentsTray: AnyView? = nil,
     tokensBar: AnyView? = nil,
     modelSelector: AnyView? = nil,
-    capabilitiesBar: AnyView? = nil,
     dictationButton: AnyView? = nil,
     submitButton: AnyView,
     dismissKeyboardButton: AnyView? = nil,
@@ -154,7 +147,7 @@ public struct MessageComposerStyleConfiguration {
     hasAttachments: Bool? = nil,
     hasTokens: Bool? = nil,
     hasModels: Bool? = nil,
-    hasCapabilities: Bool? = nil,
+    hasCapabilities: Bool = false,
     compactModelSelector: AnyView? = nil,
     borderlessAttachmentButton: AnyView? = nil
   ) {
@@ -165,7 +158,6 @@ public struct MessageComposerStyleConfiguration {
     self.tokensBarBuilder = tokensBar.map { view in { view } }
     self.modelSelectorBuilder = modelSelector.map { view in { view } }
     self.compactModelSelectorBuilder = compactModelSelector.map { view in { view } }
-    self.capabilitiesBarBuilder = capabilitiesBar.map { view in { view } }
     self.dictationButtonBuilder = dictationButton.map { view in { view } }
     self.submitButtonBuilder = { submitButton }
     self.dismissKeyboardButtonBuilder = dismissKeyboardButton.map { view in { view } }
@@ -175,7 +167,7 @@ public struct MessageComposerStyleConfiguration {
     self.hasAttachments = hasAttachments ?? (attachmentsTray != nil)
     self.hasTokens = hasTokens ?? (tokensBar != nil)
     self.hasModels = hasModels ?? (modelSelector != nil || compactModelSelector != nil)
-    self.hasCapabilities = hasCapabilities ?? (capabilitiesBar != nil)
+    self.hasCapabilities = hasCapabilities
   }
 
   /// Creates a `MessageComposerStyleConfiguration` with lazy subview builders so unused style slots are never constructed (`F-03`).
@@ -187,7 +179,6 @@ public struct MessageComposerStyleConfiguration {
     tokensBar: (() -> AnyView)? = nil,
     modelSelector: (() -> AnyView)? = nil,
     compactModelSelector: (() -> AnyView)? = nil,
-    capabilitiesBar: (() -> AnyView)? = nil,
     dictationButton: (() -> AnyView)? = nil,
     submitButton: @escaping () -> AnyView,
     dismissKeyboardButton: (() -> AnyView)? = nil,
@@ -197,7 +188,7 @@ public struct MessageComposerStyleConfiguration {
     hasAttachments: Bool? = nil,
     hasTokens: Bool? = nil,
     hasModels: Bool? = nil,
-    hasCapabilities: Bool? = nil
+    hasCapabilities: Bool = false
   ) {
     self.textFieldBuilder = lazyTextField
     self.attachmentButtonBuilder = attachmentButton
@@ -206,7 +197,6 @@ public struct MessageComposerStyleConfiguration {
     self.tokensBarBuilder = tokensBar
     self.modelSelectorBuilder = modelSelector
     self.compactModelSelectorBuilder = compactModelSelector
-    self.capabilitiesBarBuilder = capabilitiesBar
     self.dictationButtonBuilder = dictationButton
     self.submitButtonBuilder = submitButton
     self.dismissKeyboardButtonBuilder = dismissKeyboardButton
@@ -216,7 +206,7 @@ public struct MessageComposerStyleConfiguration {
     self.hasAttachments = hasAttachments ?? (attachmentsTray != nil)
     self.hasTokens = hasTokens ?? (tokensBar != nil)
     self.hasModels = hasModels ?? (modelSelector != nil || compactModelSelector != nil)
-    self.hasCapabilities = hasCapabilities ?? (capabilitiesBar != nil)
+    self.hasCapabilities = hasCapabilities
   }
 }
 
@@ -225,7 +215,7 @@ public struct MessageComposerStyleConfiguration {
 /// Default Liquid Glass composer style featuring a canonical 3-zone bookend sibling architecture (`Sofia` pattern):
 /// - **Outside Left (`44×44pt` Liquid Glass Circle Sibling):** Leading `+` attachment menu button (`.glassEffect(.regular.interactive(), in: .circle)`).
 /// - **Inside the Interactive Text Vessel (`44pt` minHeight, `cornerRadius: 22`):** `.glassEffect(.regular.interactive(), in: .rect(cornerRadius: 22))` housing `textField` and borderless `32×32pt` inner trailing accessories (`compactModelSelector`, `dictationButton`, and focus-driven `dismissKeyboardButton`).
-/// - **Outside Right (`44×44pt` Prominent Tinted Liquid Glass Circle Sibling):** Trailing `submitButton` (`Send` / `Stop`) when `canSubmit || isGenerating` is `true` inside `GlassEffectContainer(spacing: 12)` with static `HStack(alignment: .bottom, spacing: 8)`.
+/// - **Outside Right (`44×44pt` Prominent Tinted Liquid Glass Circle Sibling):** Trailing `submitButton` (`Send` / `Stop`) when `canSubmit || isGenerating` is `true` inside `GlassEffectContainer(spacing: 6)` with static `HStack(alignment: .bottom, spacing: 8)`.
 public struct ClassicGlassMessageComposerStyle: MessageComposerStyle, Sendable {
   /// Creates the default classic Liquid Glass composer style.
   public nonisolated init() {}
@@ -317,7 +307,7 @@ private struct ClassicGlassComposerBody: View {
   }
 
   var body: some View {
-    GlassEffectContainer(spacing: 12) {
+    GlassEffectContainer(spacing: 6) {
       HStack(alignment: .bottom, spacing: 8) {
         // Outside Left: 44×44pt Liquid Glass Circle Sibling (+ Attachment Menu)
         if let plusButton = configuration.attachmentButton {

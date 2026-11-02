@@ -84,11 +84,6 @@ public struct ThinkingStateStyleConfiguration {
     }
   }
 
-  /// Alias for `transcriptContent` preserving terminology parity with `traceContent` (`§3.3.2`).
-  public var traceContent: AnyView {
-    transcriptContent
-  }
-
   /// Creates a `ThinkingStateStyleConfiguration` with `summary`, `transcript`, `headerLabel`, and `transcriptContent`.
   public init(
     status: ThinkingTrace.Status,
@@ -117,34 +112,6 @@ public struct ThinkingStateStyleConfiguration {
     )
   }
 
-  /// Convenience initializer matching `title`, `formattedElapsed`, `headerIcon`, and `traceContent` (`§3.3.2`).
-  public init(
-    status: ThinkingTrace.Status,
-    title: String,
-    formattedElapsed: String,
-    isExpanded: Bool = ThinkingTrace.defaultExpanded,
-    toggleExpanded: @escaping @MainActor () -> Void,
-    headerIcon: AnyView,
-    traceContent: AnyView,
-    transcript: String = ""
-  ) {
-    self.status = status
-    self.summary = title
-    self.transcript = transcript
-    self.formattedElapsed = formattedElapsed
-    self.isExpanded = isExpanded
-    self.toggleExpanded = toggleExpanded
-    self.headerIcon = headerIcon
-    self.transcriptContent = traceContent
-    self.headerLabel = AnyView(
-      ThinkingCustomHeaderLabelView(
-        headerIcon: headerIcon,
-        title: title,
-        formattedElapsed: formattedElapsed
-      )
-    )
-  }
-
   private static func defaultFormattedElapsed(for status: ThinkingTrace.Status) -> String {
     switch status {
     case .thinking:
@@ -160,31 +127,6 @@ public struct ThinkingStateStyleConfiguration {
       return String(format: "%.1fs", clamped)
     }
     return "\(Int(clamped.rounded()))s"
-  }
-}
-
-private struct ThinkingCustomHeaderLabelView: View {
-  let headerIcon: AnyView
-  let title: String
-  let formattedElapsed: String
-
-  @Environment(\.thinkingHeaderShowsInlineIcon) private var showsInlineIcon
-
-  var body: some View {
-    HStack(spacing: 6) {
-      if showsInlineIcon {
-        headerIcon
-      }
-      Text(title)
-        .fontWeight(.medium)
-      if !formattedElapsed.isEmpty {
-        Text("·")
-          .foregroundStyle(.tertiary)
-        Text(formattedElapsed)
-          .monospacedDigit()
-          .foregroundStyle(.secondary)
-      }
-    }
   }
 }
 

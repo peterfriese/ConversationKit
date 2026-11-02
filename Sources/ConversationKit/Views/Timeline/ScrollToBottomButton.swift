@@ -8,13 +8,6 @@
 import Foundation
 import SwiftUI
 
-// MARK: - Accessibility Identifier Extensions
-
-extension ConversationAccessibilityID {
-  /// Alias for `scrollToBottomButton` (`"timeline.scrollToBottomButton"`).
-  public static let timelineScrollToBottomButton = scrollToBottomButton
-}
-
 // MARK: - ScrollToBottomButton (`F-10`, `AC-10`, `AC-14`)
 
 /// Floating Liquid Glass button overlaid above the message composer when the user scrolls away from
@@ -98,7 +91,7 @@ public struct ScrollToBottomButton: View {
     }
     .buttonStyle(.plain)
     .fixedSize()
-    .accessibilityIdentifier(ConversationAccessibilityID.timelineScrollToBottomButton)
+    .accessibilityIdentifier(ConversationAccessibilityID.scrollToBottomButton)
     .accessibilityLabel(hasUnreadBelowFold ? "Scroll to latest message" : "Scroll to bottom")
     .accessibilityHint("Scrolls to the bottom of the conversation")
 

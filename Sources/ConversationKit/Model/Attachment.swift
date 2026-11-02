@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import SwiftUI
 import UniformTypeIdentifiers
 
 /// A universal multimodal attachment representing an image, PDF, audio clip, video, source code file,
@@ -123,6 +124,18 @@ public struct ConversationAttachment: Identifiable, Hashable, Sendable, Codable 
         return "doc.text"
       }
     }
+
+    /// Canonical accent color representing this attachment kind in badges and file chips.
+    public var accentColor: Color {
+      switch self {
+      case .image: return .blue
+      case .pdf: return .red
+      case .code: return .purple
+      case .audio: return .orange
+      case .video: return .pink
+      case .document: return .secondary
+      }
+    }
   }
 
   // MARK: - Stored Properties
@@ -146,12 +159,6 @@ public struct ConversationAttachment: Identifiable, Hashable, Sendable, Codable 
   public var uploadState: UploadState
 
   // MARK: - Computed Properties
-
-  /// Alias for `fileSize` preserving terminology parity with `fileSizeBytes`.
-  public var fileSizeBytes: Int64? {
-    get { fileSize }
-    set { fileSize = newValue }
-  }
 
   /// Semantic category automatically inferred from `payload` and `contentType`.
   public var kind: Kind {
@@ -316,95 +323,16 @@ public struct ConversationAttachment: Identifiable, Hashable, Sendable, Codable 
     self.uploadState = uploadState
   }
 
-  // MARK: - Static Factory Convenience Methods
-
-  /// Creates a `ConversationAttachment` wrapping a `PlatformImage`.
-  public static func image(
-    id: String = UUID().uuidString,
-    _ image: PlatformImage,
-    filename: String = "Image.png",
-    uploadState: UploadState = .ready
-  ) -> ConversationAttachment {
-    ConversationAttachment(
-      id: id,
-      image: image,
-      filename: filename,
-      uploadState: uploadState
-    )
-  }
-
-  /// Creates a `ConversationAttachment` wrapping a `PlatformImageBox`.
-  public static func image(
-    id: String = UUID().uuidString,
-    _ imageBox: PlatformImageBox,
-    filename: String = "Image.png",
-    uploadState: UploadState = .ready
-  ) -> ConversationAttachment {
-    ConversationAttachment(
-      id: id,
-      imageBox: imageBox,
-      filename: filename,
-      uploadState: uploadState
-    )
-  }
-
-  /// Creates a `ConversationAttachment` referencing a local file `URL`.
-  public static func file(
-    id: String = UUID().uuidString,
-    url: URL,
-    contentType: UTType? = nil,
-    fileSizeBytes: Int64? = nil,
-    uploadState: UploadState = .ready
-  ) -> ConversationAttachment {
-    ConversationAttachment(
-      id: id,
-      fileURL: url,
-      fileSize: fileSizeBytes,
-      contentType: contentType,
-      uploadState: uploadState
-    )
-  }
-
-  /// Creates a `ConversationAttachment` from in-memory `Data`.
-  public static func data(
-    id: String = UUID().uuidString,
-    _ data: Data,
-    contentType: UTType,
-    filename: String,
-    uploadState: UploadState = .ready
-  ) -> ConversationAttachment {
-    ConversationAttachment(
-      id: id,
-      data: data,
-      contentType: contentType,
-      filename: filename,
-      uploadState: uploadState
-    )
-  }
-
   // MARK: - $O(1)$ Equatable & Hashable (`[MF-4]`)
 
   /// $O(1)$ equality check comparing metadata and stable payload identity without scanning raw `Data` buffers.
   public static func == (lhs: ConversationAttachment, rhs: ConversationAttachment) -> Bool {
-    guard
-      lhs.id == rhs.id,
-      lhs.filename == rhs.filename,
-      lhs.fileSize == rhs.fileSize,
-      lhs.contentType == rhs.contentType,
-      lhs.uploadState == rhs.uploadState
-    else {
-      return false
-    }
-    switch (lhs.payload, rhs.payload) {
-    case (.image(let lhsBox), .image(let rhsBox)):
-      return lhsBox.id == rhsBox.id
-    case (.file(let lhsURL), .file(let rhsURL)):
-      return lhsURL == rhsURL
-    case (.data(let lhsData, _, _), .data(let rhsData, _, _)):
-      return lhsData.count == rhsData.count
-    default:
-      return false
-    }
+    lhs.id == rhs.id
+      && lhs.filename == rhs.filename
+      && lhs.fileSize == rhs.fileSize
+      && lhs.contentType == rhs.contentType
+      && lhs.uploadState == rhs.uploadState
+      && lhs.payload == rhs.payload
   }
 
   /// $O(1)$ hash combining metadata and stable payload identity without hashing raw `Data` bytes.
@@ -414,14 +342,7 @@ public struct ConversationAttachment: Identifiable, Hashable, Sendable, Codable 
     hasher.combine(fileSize)
     hasher.combine(contentType)
     hasher.combine(uploadState)
-    switch payload {
-    case .image(let box):
-      hasher.combine(box.id)
-    case .file(let url):
-      hasher.combine(url)
-    case .data(let data, _, _):
-      hasher.combine(data.count)
-    }
+    hasher.combine(payload)
   }
 
   // MARK: - Off-Main-Actor Thumbnail & QuickLook Delegation
@@ -557,47 +478,5 @@ public struct ConversationAttachment: Identifiable, Hashable, Sendable, Codable 
       }
       return .document
     }
-  }
-}
-
-// MARK: - PlatformThumbnailGenerator Convenience Forwarding
-
-extension PlatformThumbnailGenerator {
-  /// Generates a memory-safe downsampled thumbnail for a `ConversationAttachment`.
-  public func thumbnail(
-    for attachment: ConversationAttachment,
-    maxPixelSize: Int = PlatformThumbnailGenerator.defaultMaxPixelSize,
-    scale: CGFloat = 2.0
-  ) async throws -> PlatformImageBox {
-    switch attachment.payload {
-    case .image(let imageBox):
-      return try await thumbnail(
-        id: attachment.id,
-        imageBox: imageBox,
-        maxPixelSize: maxPixelSize,
-        scale: scale
-      )
-    case .file(let fileURL):
-      return try await thumbnail(
-        id: attachment.id,
-        fileURL: fileURL,
-        contentType: attachment.contentType,
-        maxPixelSize: maxPixelSize,
-        scale: scale
-      )
-    case .data(let data, let contentType, _):
-      return try await thumbnail(
-        id: attachment.id,
-        data: data,
-        contentType: contentType,
-        maxPixelSize: maxPixelSize,
-        scale: scale
-      )
-    }
-  }
-
-  /// Resolves a sanitized local `URL` suitable for SwiftUI's `.quickLookPreview(_:)` for a `ConversationAttachment`.
-  public func resolveQuickLookURL(for attachment: ConversationAttachment) async throws -> URL {
-    try await attachment.resolveQuickLookURL()
   }
 }

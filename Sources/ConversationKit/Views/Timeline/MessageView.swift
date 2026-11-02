@@ -53,11 +53,6 @@ public struct MessageView<MessageType: Message>: View {
     self.message = message
   }
 
-  /// Convenience unlabeled initializer for `MessageView`.
-  public init(_ message: MessageType) {
-    self.message = message
-  }
-
   public var body: some View {
     VStack(alignment: message.participant == .user ? .trailing : .leading, spacing: 0) {
       switch message.participant {
@@ -149,10 +144,7 @@ public struct MessageView<MessageType: Message>: View {
 
       // 4. Human-in-the-loop approval request card
       if let approval = message.approvalRequest {
-        AgentApprovalView(
-          request: approval,
-          messageID: message.id
-        )
+        AgentApprovalView(request: approval)
       }
 
       // 5. Multimodal attachments grid / document cards
@@ -301,23 +293,6 @@ public struct MessageView<MessageType: Message>: View {
     }
     .accessibilityElement(children: .contain)
     .accessibilityIdentifier(ConversationAccessibilityID.messageErrorBanner(message.id))
-  }
-}
-
-// MARK: - Legacy-Friendly DefaultMessage Initializer
-
-extension MessageView where MessageType == DefaultMessage {
-  /// Creates a `MessageView` from raw `content` and `participant` using `DefaultMessage`.
-  public init(
-    content: String?,
-    participant: Participant
-  ) {
-    self.init(
-      message: DefaultMessage(
-        content: content,
-        participant: participant
-      )
-    )
   }
 }
 
@@ -611,13 +586,6 @@ private struct SentImageCollageTile: View {
     )
     .accessibilityHint("Double-tap to preview image with QuickLook")
     .task(id: attachment.id) {
-      if let cached = await PlatformThumbnailGenerator.shared.cachedThumbnail(
-        for: attachment.id,
-        maxPixelSize: 320
-      ) {
-        thumbnailBox = cached
-        return
-      }
       thumbnailBox = await attachment.generateThumbnail(maxPixelSize: 320)
     }
   }
@@ -636,7 +604,7 @@ private struct SentDocumentAttachmentCard: View {
       HStack(spacing: 10) {
         ZStack {
           RoundedRectangle(cornerRadius: 8, style: .continuous)
-            .fill(kindAccentColor.opacity(0.12))
+            .fill(attachment.kind.accentColor.opacity(0.12))
 
           if let thumbnailBox {
             thumbnailBox.swiftUIImage
@@ -647,7 +615,7 @@ private struct SentDocumentAttachmentCard: View {
           } else {
             Image(systemName: attachment.symbolName)
               .font(.system(size: 16, weight: .semibold))
-              .foregroundStyle(kindAccentColor)
+              .foregroundStyle(attachment.kind.accentColor)
           }
         }
         .frame(width: 38, height: 48)
@@ -683,31 +651,7 @@ private struct SentDocumentAttachmentCard: View {
     .accessibilityLabel("\(attachment.filename), \(attachment.formattedSubtitle)")
     .accessibilityHint("Double-tap to preview document with QuickLook")
     .task(id: attachment.id) {
-      if let cached = await PlatformThumbnailGenerator.shared.cachedThumbnail(
-        for: attachment.id,
-        maxPixelSize: 320
-      ) {
-        thumbnailBox = cached
-        return
-      }
       thumbnailBox = await attachment.generateThumbnail(maxPixelSize: 320)
-    }
-  }
-
-  private var kindAccentColor: Color {
-    switch attachment.kind {
-    case .image:
-      return .blue
-    case .pdf:
-      return .red
-    case .audio:
-      return .orange
-    case .video:
-      return .purple
-    case .code:
-      return .indigo
-    case .document:
-      return .accentColor
     }
   }
 }

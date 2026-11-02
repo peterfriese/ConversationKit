@@ -62,16 +62,6 @@ public struct UserMessageBubbleStyleConfiguration {
   /// Indicates whether the user message has one or more structured tokens.
   public let hasTokens: Bool
 
-  /// Alias for `attachmentsContent` preserving terminology parity with `attachmentsView` (`§3.3.3`).
-  public var attachmentsView: AnyView? {
-    attachmentsContent
-  }
-
-  /// Alias for `tokensContent` preserving terminology parity with `tokensView` (`§3.3.3`).
-  public var tokensView: AnyView? {
-    tokensContent
-  }
-
   /// Creates a `UserMessageBubbleStyleConfiguration` using `attachmentsContent` and `tokensContent`.
   public init(
     content: AnyView,
@@ -87,25 +77,6 @@ public struct UserMessageBubbleStyleConfiguration {
     self.hasText = hasText
     self.hasAttachments = hasAttachments ?? (attachmentsContent != nil)
     self.hasTokens = hasTokens ?? (tokensContent != nil)
-  }
-
-  /// Convenience initializer accepting `attachmentsView` and `tokensView` (`§3.3.3`).
-  public init(
-    content: AnyView,
-    attachmentsView: AnyView?,
-    tokensView: AnyView? = nil,
-    hasText: Bool = true,
-    hasAttachments: Bool? = nil,
-    hasTokens: Bool? = nil
-  ) {
-    self.init(
-      content: content,
-      attachmentsContent: attachmentsView,
-      tokensContent: tokensView,
-      hasText: hasText,
-      hasAttachments: hasAttachments,
-      hasTokens: hasTokens
-    )
   }
 }
 

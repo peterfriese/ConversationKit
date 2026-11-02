@@ -8,47 +8,9 @@
 
 import SwiftUI
 
-// MARK: - Composer Accessibility Identifier Aliases & Extensions
+// MARK: - Composer Accessibility Identifier Extensions
 
 extension ConversationAccessibilityID {
-  /// Alias for `suggestionChipsBar` (`"composer.suggestionChipsBar"`).
-  public static let composerSuggestionChipsBar = suggestionChipsBar
-
-  /// Alias for `attachmentTray` (`"composer.attachmentTray"`).
-  public static let composerAttachmentTray = attachmentTray
-
-  /// Alias for `popupView` (`"composer.popupView"`).
-  public static let composerPopup = popupView
-
-  /// Alias for `tokensBar` (`"composer.tokensBar"`).
-  public static let composerTokensBar = tokensBar
-
-  /// Alias for `modelSelector` (`"composer.modelSelector"`).
-  public static let composerModelSelector = modelSelector
-
-  /// Alias for `capabilitiesBar` (`"composer.capabilitiesBar"`).
-  public static let composerCapabilitiesBar = capabilitiesBar
-
-  /// Alias for `attachmentButton` (`"composer.attachmentButton"`).
-  public static let composerAttachmentButton = attachmentButton
-
-  /// Alias for `textField` (`"composer.textField"`).
-  public static let composerTextField = textField
-
-  /// Alias for `dictationButton` (`"composer.dictationButton"`).
-  public static let composerDictationButton = dictationButton
-
-  /// Alias for `submitButton` (`"composer.submitButton"`).
-  public static let composerSubmitButton = submitButton
-
-  /// Alias for `dismissKeyboardButton` (`"composer.dismissKeyboardButton"`).
-  public static let composerDismissKeyboardButton = dismissKeyboardButton
-
-  /// Accessibility identifier for an attachment tile (`composer.attachment.<id>`).
-  public static func attachmentTile(_ id: String) -> String {
-    attachmentCard(id)
-  }
-
   /// Accessibility identifier for an attachment upload progress ring (`composer.attachment.progress.<id>`).
   public static func attachmentUploadProgress(_ id: String) -> String {
     "composer.attachment.progress.\(id)"
@@ -64,19 +26,9 @@ extension ConversationAccessibilityID {
     "composer.attachment.remove.\(id)"
   }
 
-  /// Alias for `tokenChip(_:)` (`composer.token.<id>`).
-  public static func composerTokenChip(_ id: String) -> String {
-    tokenChip(id)
-  }
-
   /// Accessibility identifier for a token's remove button (`composer.token.remove.<id>`).
   public static func composerTokenRemoveButton(_ id: String) -> String {
     "composer.token.remove.\(id)"
-  }
-
-  /// Alias for `capabilityChip(_:)` (`composer.capability.<id>`).
-  public static func composerCapabilityChip(_ id: String) -> String {
-    capabilityChip(id)
   }
 }
 
@@ -147,7 +99,7 @@ public struct ComposerTokensBar: View {
         .padding(.vertical, 2)
       }
       .accessibilityElement(children: .contain)
-      .accessibilityIdentifier(ConversationAccessibilityID.composerTokensBar)
+      .accessibilityIdentifier(ConversationAccessibilityID.tokensBar)
     }
   }
 
@@ -208,7 +160,7 @@ public struct ComposerTokensBar: View {
       value: isPulsed
     )
     .accessibilityElement(children: .combine)
-    .accessibilityIdentifier(ConversationAccessibilityID.composerTokenChip(token.id))
+    .accessibilityIdentifier(ConversationAccessibilityID.tokenChip(token.id))
     .accessibilityLabel(token.displayText)
     .accessibilityValue(isHighlighted ? "Selected for deletion" : "")
     .accessibilityAction(named: "Remove") {
@@ -280,26 +232,6 @@ public struct ComposerModelSelectorMenu: View {
     self.onToggleCapability = onToggleCapability
   }
 
-  /// Convenience initializer preserving parameter signature without `isCompact`.
-  public init(
-    models: [ComposerModelOption],
-    selectedModel: Binding<ComposerModelOption?>,
-    capabilities: [ComposerCapability] = [],
-    activeCapabilities: Binding<Set<ComposerCapability>>? = nil,
-    onSelect: (@MainActor (ComposerModelOption) -> Void)? = nil,
-    onToggleCapability: (@MainActor (ComposerCapability, Bool) -> Void)? = nil
-  ) {
-    self.init(
-      models: models,
-      selectedModel: selectedModel,
-      capabilities: capabilities,
-      activeCapabilities: activeCapabilities,
-      isCompact: false,
-      onSelect: onSelect,
-      onToggleCapability: onToggleCapability
-    )
-  }
-
   private var activeModel: ComposerModelOption? {
     selectedModel ?? models.first
   }
@@ -347,19 +279,6 @@ public struct ComposerModelSelectorMenu: View {
 
   private var uncategorizedModels: [ComposerModelOption] {
     models.filter { $0.category == nil || $0.category?.isEmpty == true }
-  }
-
-  private var modelSelectionBinding: Binding<ComposerModelOption?> {
-    Binding(
-      get: { selectedModel ?? models.first },
-      set: { option in
-        PlatformHapticEvent.triggerHaptic(.selection)
-        selectedModel = option
-        if let option {
-          onSelect?(option)
-        }
-      }
-    )
   }
 
   private func capabilityBinding(for cap: ComposerCapability) -> Binding<Bool> {
@@ -412,7 +331,7 @@ public struct ComposerModelSelectorMenu: View {
         }
         .menuStyle(.button)
         .buttonStyle(.plain)
-        .accessibilityIdentifier(ConversationAccessibilityID.composerModelSelector)
+        .accessibilityIdentifier(ConversationAccessibilityID.modelSelector)
         .accessibilityLabel("AI Model")
         .accessibilityValue(accessibilityDescription)
         .accessibilityHint("Double-tap to switch the active AI model or toggle capabilities")
@@ -427,7 +346,7 @@ public struct ComposerModelSelectorMenu: View {
         Toggle(isOn: capabilityBinding(for: cap)) {
           Label(cap.title, systemImage: cap.symbolName)
         }
-        .accessibilityIdentifier(ConversationAccessibilityID.composerCapabilityChip(cap.id))
+        .accessibilityIdentifier(ConversationAccessibilityID.capabilityChip(cap.id))
       }
     }
   }
@@ -544,106 +463,6 @@ extension ComposerModelOption {
       return "\(name) (\(badge))"
     }
     return name
-  }
-}
-
-// MARK: - ComposerCapabilitiesBar (`F-9`, `AC-13`)
-
-/// Horizontal strip of toggleable `ComposerCapability` capsule chips (`Think`, `Search`,
-/// `Image`, or custom capabilities) rendered inside `MessageComposerView` (`F-9`, `AC-13`).
-@MainActor
-public struct ComposerCapabilitiesBar: View {
-  /// Ordered capability options available to toggle.
-  public let capabilities: [ComposerCapability]
-
-  /// Two-way binding to the set of currently active capabilities.
-  @Binding public var activeCapabilities: Set<ComposerCapability>
-
-  /// Optional callback invoked when a capability is toggled.
-  public let onToggle: (@MainActor (ComposerCapability, Bool) -> Void)?
-
-  @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-  /// Creates a `ComposerCapabilitiesBar`.
-  public init(
-    capabilities: [ComposerCapability],
-    activeCapabilities: Binding<Set<ComposerCapability>>,
-    onToggle: (@MainActor (ComposerCapability, Bool) -> Void)? = nil
-  ) {
-    self.capabilities = capabilities
-    self._activeCapabilities = activeCapabilities
-    self.onToggle = onToggle
-  }
-
-  public var body: some View {
-    if !capabilities.isEmpty {
-      ScrollView(.horizontal, showsIndicators: false) {
-        HStack(spacing: 6) {
-          ForEach(capabilities) { capability in
-            capabilityChipButton(for: capability)
-          }
-        }
-        .padding(.vertical, 1)
-      }
-      .accessibilityElement(children: .contain)
-      .accessibilityIdentifier(ConversationAccessibilityID.composerCapabilitiesBar)
-    }
-  }
-
-  @ViewBuilder
-  private func capabilityChipButton(for capability: ComposerCapability) -> some View {
-    let isSelected = activeCapabilities.contains(capability)
-
-    Button {
-      PlatformHapticEvent.triggerHaptic(.selection)
-      let nextState = !isSelected
-      if reduceMotion {
-        updateCapability(capability, isActive: nextState)
-      } else {
-        withAnimation(.snappy(duration: 0.2)) {
-          updateCapability(capability, isActive: nextState)
-        }
-      }
-      onToggle?(capability, nextState)
-    } label: {
-      HStack(spacing: 4) {
-        Image(systemName: capability.symbolName)
-          .font(.system(size: 11, weight: .semibold))
-
-        Text(capability.title)
-          .font(.caption.weight(.medium))
-          .lineLimit(1)
-      }
-      .foregroundStyle(isSelected ? Color.accentColor : Color.secondary)
-      .padding(.horizontal, 9)
-      .padding(.vertical, 5)
-      .background(
-        isSelected ? Color.accentColor.opacity(0.15) : Color.primary.opacity(0.06),
-        in: Capsule()
-      )
-      .overlay {
-        Capsule()
-          .strokeBorder(
-            isSelected
-              ? Color.accentColor.opacity(0.55)
-              : Color.platformSeparator.opacity(0.35),
-            lineWidth: isSelected ? 1.0 : 0.5
-          )
-      }
-      .contentShape(Capsule())
-    }
-    .buttonStyle(.plain)
-    .accessibilityIdentifier(ConversationAccessibilityID.composerCapabilityChip(capability.id))
-    .accessibilityLabel(capability.title)
-    .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : [.isButton])
-  }
-
-  private func updateCapability(_ capability: ComposerCapability, isActive: Bool) {
-    if isActive {
-      activeCapabilities.insert(capability)
-    } else {
-      activeCapabilities.remove(capability)
-    }
   }
 }
 

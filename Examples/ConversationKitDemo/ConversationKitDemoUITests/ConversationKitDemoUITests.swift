@@ -156,17 +156,13 @@ final class ConversationKitDemoUITests: XCTestCase {
         "Follow-up suggestion chip should appear after Turn 1 finishes"
       )
 
-      print("=== BEFORE TURN 2 ===")
-      var logLines: [String] = []
       let t0 = Date()
       func elapsedMs() -> Int {
         Int(Date().timeIntervalSince(t0) * 1000)
       }
-      logLines.append("BEFORE TURN 2: scrollView.frame=\(listView.frame) copyButton.frame=\(copyButton.frame) followUpChip.frame=\(followUpChip.frame)")
 
       // Submit Turn 2 by tapping follow-up suggestion chip ("Compare Classic vs Card Glass")
       followUpChip.tap()
-      logLines.append("t=\(elapsedMs())ms: followUpChip.tap() returned")
 
       let secondTurnBubble = app.staticTexts.containing(
         NSPredicate(format: "label CONTAINS %@", "Compare ClassicGlass")
@@ -184,8 +180,6 @@ final class ConversationKitDemoUITests: XCTestCase {
         let ms = elapsedMs()
         let turn2Frame = secondTurnBubble.frame
         let copyFrame = copyButton.exists ? copyButton.frame : .zero
-        let line = "[sample \(i) at t=\(ms)ms] turn2Bubble.minY=\(String(format: "%.1f", turn2Frame.minY)) maxY=\(String(format: "%.1f", turn2Frame.maxY)) | turn1CopyButton.minY=\(String(format: "%.1f", copyFrame.minY)) maxY=\(String(format: "%.1f", copyFrame.maxY))"
-        logLines.append(line)
 
         // Once the top-anchor spring settles (~sample 2 onwards, t >= 1,200ms), enforce strict top-pinning
         if i >= 2 {
@@ -211,12 +205,6 @@ final class ConversationKitDemoUITests: XCTestCase {
           }
         }
       }
-
-      try? logLines.joined(separator: "\n").write(
-        to: URL(fileURLWithPath: "/private/var/folders/x1/nrkqnm6j0755nn48dkyv7pl80000gn/T/opencode/turn2-log.txt"),
-        atomically: true,
-        encoding: .utf8
-      )
 
       let finalMinY = secondTurnBubble.frame.minY
       let finalCopyMaxY = copyButton.exists ? copyButton.frame.maxY : 0
@@ -274,11 +262,6 @@ final class ConversationKitDemoUITests: XCTestCase {
       XCTAssertTrue(
         thinkToggle.waitForExistence(timeout: 10) || modelOption.waitForExistence(timeout: 10),
         "Native model selector Menu should open when tapped inside ClassicGlass composer"
-      )
-
-      let pngData = XCUIScreen.main.screenshot().pngRepresentation
-      try? pngData.write(
-        to: URL(fileURLWithPath: "/private/var/folders/x1/nrkqnm6j0755nn48dkyv7pl80000gn/T/opencode/breathing-4-menu-open.png")
       )
     }
   }

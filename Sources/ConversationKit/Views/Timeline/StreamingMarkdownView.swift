@@ -57,11 +57,6 @@ public struct MarkdownBlock: Identifiable, Equatable, Hashable, Sendable {
     case list(items: [ListItem], isOrdered: Bool)
     case table(headers: [String], rows: [[String]])
     case thematicBreak
-
-    /// Convenience factory matching `ordered:` parameter naming.
-    public static func list(items: [ListItem], ordered: Bool) -> Kind {
-      .list(items: items, isOrdered: ordered)
-    }
   }
 
   /// Stable block identifier across streaming updates.
@@ -631,15 +626,6 @@ public struct StreamingMarkdownView: View {
   ///   - isStreaming: Indicates whether the message is actively streaming tokens (`false` by default).
   public init(
     markdown: String,
-    isStreaming: Bool = false
-  ) {
-    self.markdown = markdown
-    self.isStreaming = isStreaming
-  }
-
-  /// Convenience initializer accepting an unlabeled Markdown string.
-  public init(
-    _ markdown: String,
     isStreaming: Bool = false
   ) {
     self.markdown = markdown

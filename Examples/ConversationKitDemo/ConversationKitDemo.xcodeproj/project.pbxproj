@@ -8,8 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		886B819C2E65FCA2001F5F75 /* ConversationKit in Frameworks */ = {isa = PBXBuildFile; productRef = 886B819B2E65FCA2001F5F75 /* ConversationKit */; };
-		889F4BE22E16D3A1006001CB /* ConversationKit in Frameworks */ = {isa = PBXBuildFile; productRef = 889F4BE12E16D3A1006001CB /* ConversationKit */; };
-		88B46D212E4B51B7002219A9 /* ConversationKit in Frameworks */ = {isa = PBXBuildFile; productRef = 88B46D202E4B51B7002219A9 /* ConversationKit */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -53,8 +51,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				886B819C2E65FCA2001F5F75 /* ConversationKit in Frameworks */,
-				88B46D212E4B51B7002219A9 /* ConversationKit in Frameworks */,
-				889F4BE22E16D3A1006001CB /* ConversationKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -122,8 +118,6 @@
 			);
 			name = ConversationKitDemo;
 			packageProductDependencies = (
-				889F4BE12E16D3A1006001CB /* ConversationKit */,
-				88B46D202E4B51B7002219A9 /* ConversationKit */,
 				886B819B2E65FCA2001F5F75 /* ConversationKit */,
 			);
 			productName = ConversationKitDemo;
@@ -493,14 +487,6 @@
 
 /* Begin XCSwiftPackageProductDependency section */
 		886B819B2E65FCA2001F5F75 /* ConversationKit */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = ConversationKit;
-		};
-		889F4BE12E16D3A1006001CB /* ConversationKit */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = ConversationKit;
-		};
-		88B46D202E4B51B7002219A9 /* ConversationKit */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = ConversationKit;
 		};

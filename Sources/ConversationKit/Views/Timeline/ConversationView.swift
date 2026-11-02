@@ -87,7 +87,6 @@ public struct ConversationView<MessageType: Message, Content: View>: View {
 
   // Optimistic UI & Turn Coordinator State (`[MF-3]`)
   @State private var optimisticUserMessage: MessageType?
-  @State private var hasSentFirstMessage: Bool = false
   @State private var activeTurnToken: UUID?
   @State private var sendingTask: Task<Void, Never>?
   @State private var scrollTask: Task<Void, Never>?
@@ -269,9 +268,6 @@ public struct ConversationView<MessageType: Message, Content: View>: View {
           draftText = cleaned
         }
       }
-      if !messages.isEmpty {
-        hasSentFirstMessage = true
-      }
     }
     .task {
       guard !draftText.isEmpty || ProcessInfo.processInfo.arguments.contains("-focusComposer") else {
@@ -284,7 +280,6 @@ public struct ConversationView<MessageType: Message, Content: View>: View {
     }
     .onChange(of: messages) { _, newMessages in
       if newMessages.isEmpty {
-        hasSentFirstMessage = false
         optimisticUserMessage = nil
         return
       }
@@ -292,9 +287,6 @@ public struct ConversationView<MessageType: Message, Content: View>: View {
         newMessages.contains(where: { $0.id == optimistic.id })
       {
         optimisticUserMessage = nil
-      }
-      if !hasSentFirstMessage {
-        hasSentFirstMessage = true
       }
     }
     .onDisappear {
@@ -578,7 +570,6 @@ public struct ConversationView<MessageType: Message, Content: View>: View {
     pendingScrollTargetTurnID = newTurnID
 
     withAnimation(scrollAnimation) {
-      hasSentFirstMessage = true
       optimisticUserMessage = userMessage
     }
 

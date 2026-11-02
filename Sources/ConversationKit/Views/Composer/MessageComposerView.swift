@@ -126,58 +126,6 @@ public struct MessageComposerView: View {
     self.onStopAction = onStop
   }
 
-  /// Convenience initializer accepting `onSend:` parameter label.
-  public init(
-    text: Binding<String>,
-    attachments: Binding<[ConversationAttachment]>? = nil,
-    tokens: Binding<[ComposerToken]>? = nil,
-    isFocused: FocusState<Bool>.Binding? = nil,
-    isGenerating: Bool = false,
-    placeholder: String = "Message…",
-    showsPopupInline: Bool = true,
-    onSend: @escaping @MainActor () -> Void,
-    onStop: @escaping @MainActor () -> Void = {}
-  ) {
-    self.init(
-      text: text,
-      attachments: attachments,
-      tokens: tokens,
-      isFocused: isFocused,
-      isGenerating: isGenerating,
-      placeholder: placeholder,
-      showsPopupInline: showsPopupInline,
-      onDictation: nil,
-      onSubmit: onSend,
-      onStop: onStop
-    )
-  }
-
-  /// Convenience initializer accepting `message:` parameter label.
-  public init(
-    message: Binding<String>,
-    attachments: Binding<[ConversationAttachment]>? = nil,
-    tokens: Binding<[ComposerToken]>? = nil,
-    isFocused: FocusState<Bool>.Binding? = nil,
-    isGenerating: Bool = false,
-    placeholder: String = "Message…",
-    showsPopupInline: Bool = true,
-    onSubmit: @escaping @MainActor () -> Void = {},
-    onStop: @escaping @MainActor () -> Void = {}
-  ) {
-    self.init(
-      text: message,
-      attachments: attachments,
-      tokens: tokens,
-      isFocused: isFocused,
-      isGenerating: isGenerating,
-      placeholder: placeholder,
-      showsPopupInline: showsPopupInline,
-      onDictation: nil,
-      onSubmit: onSubmit,
-      onStop: onStop
-    )
-  }
-
   /// Convenience initializer accepting a standard `Binding<Bool>` for `isFocused`.
   public init(
     text: Binding<String>,
@@ -348,7 +296,6 @@ public struct MessageComposerView: View {
       compactModelSelector: (hasModels || hasCapabilities)
         ? { AnyView(modelSelectorSubview(isCompact: true)) }
         : nil,
-      capabilitiesBar: nil,
       dictationButton: onDictationAction.map { action in
         { AnyView(dictationButtonSubview(action: action)) }
       },
@@ -397,7 +344,7 @@ public struct MessageComposerView: View {
             .accessibilityHidden(true)
         }
       }
-      .accessibilityIdentifier(ConversationAccessibilityID.composerTextField)
+      .accessibilityIdentifier(ConversationAccessibilityID.textField)
       .accessibilityLabel(placeholder)
       .accessibilityValue(ComposerTextBuffer.cleanText(text))
   }
@@ -460,19 +407,6 @@ public struct MessageComposerView: View {
   }
 
   @ViewBuilder
-  private func attachmentButton(isBorderless: Bool, diameter: CGFloat? = nil) -> some View {
-    attachmentMenu(isBorderless: isBorderless, diameter: diameter)
-  }
-
-  @ViewBuilder
-  private var capabilitiesBarSubview: some View {
-    ComposerCapabilitiesBar(
-      capabilities: composerCapabilities,
-      activeCapabilities: activeCapabilitiesBinding
-    )
-  }
-
-  @ViewBuilder
   private func dictationButtonSubview(action: @escaping @MainActor () -> Void) -> some View {
     Button {
       PlatformHapticEvent.triggerHaptic(.selection)
@@ -485,7 +419,7 @@ public struct MessageComposerView: View {
         .contentShape(Circle())
     }
     .buttonStyle(.plain)
-    .accessibilityIdentifier(ConversationAccessibilityID.composerDictationButton)
+    .accessibilityIdentifier(ConversationAccessibilityID.dictationButton)
     .accessibilityLabel("Dictate message")
   }
 
@@ -503,7 +437,7 @@ public struct MessageComposerView: View {
     .buttonStyle(.plain)
     .disabled(!isGenerating && !canSubmit)
     .accessibilityLabel(isGenerating ? "Stop generating" : "Send message")
-    .accessibilityIdentifier(ConversationAccessibilityID.composerSubmitButton)
+    .accessibilityIdentifier(ConversationAccessibilityID.submitButton)
     .accessibilityHint(
       isGenerating
         ? "Stops the active assistant response"
@@ -524,7 +458,7 @@ public struct MessageComposerView: View {
     }
     .buttonStyle(.plain)
     .accessibilityLabel("Dismiss keyboard")
-    .accessibilityIdentifier(ConversationAccessibilityID.composerDismissKeyboardButton)
+    .accessibilityIdentifier(ConversationAccessibilityID.dismissKeyboardButton)
   }
 
   // MARK: - `\u{200B}` Sentinel & Two-Stage Backspace Binding (`AC-9`, `[MF-5]`)
@@ -971,21 +905,12 @@ private struct ComposerAttachmentMenuView: View {
   @Environment(\.isComposerMenuVisualOnly) private var isMenuVisualOnly
   @Environment(\.isComposerMenuHitTargetOverlay) private var isMenuHitTargetOverlay
 
-  @ViewBuilder
   private var iconLabel: some View {
-    if isBorderless {
-      Image(systemName: "plus")
-        .font(.system(size: 16, weight: .medium))
-        .foregroundStyle(.primary)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .contentShape(Circle())
-    } else {
-      Image(systemName: "plus")
-        .font(.system(size: effectiveDiameter > 34 ? 18 : 15, weight: .medium))
-        .foregroundStyle(.primary)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .contentShape(Circle())
-    }
+    Image(systemName: "plus")
+      .font(.system(size: isBorderless ? 16 : (effectiveDiameter > 34 ? 18 : 15), weight: .medium))
+      .foregroundStyle(.primary)
+      .frame(maxWidth: .infinity, maxHeight: .infinity)
+      .contentShape(Circle())
   }
 
   var body: some View {
@@ -1021,7 +946,7 @@ private struct ComposerAttachmentMenuView: View {
       .frame(width: effectiveDiameter, height: effectiveDiameter)
       .menuStyle(.button)
       .buttonStyle(.plain)
-      .accessibilityIdentifier(ConversationAccessibilityID.composerAttachmentButton)
+      .accessibilityIdentifier(ConversationAccessibilityID.attachmentButton)
       .accessibilityLabel("Add attachment")
       .accessibilityHint("Opens menu to attach photos, files, or clipboard items")
     }

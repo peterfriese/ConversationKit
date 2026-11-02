@@ -36,12 +36,6 @@ public struct ComposerModelOption: Identifiable, Hashable, Sendable, Codable {
   /// Optional grouping category for submenus in the model selector (e.g., `"Anthropic"`, `"OpenAI"`).
   public let category: String?
 
-  /// Alias for `name` preserving terminology parity with `title`.
-  public var title: String {
-    get { name }
-    set { name = newValue }
-  }
-
   /// Non-optional SF Symbol name (defaults to `"sparkles"` when `symbolName` is `nil`).
   public var systemImage: String {
     get { symbolName ?? "sparkles" }
@@ -62,23 +56,6 @@ public struct ComposerModelOption: Identifiable, Hashable, Sendable, Codable {
     self.subtitle = subtitle
     self.badge = badge
     self.symbolName = symbolName
-    self.category = category
-  }
-
-  /// Convenience initializer accepting `title` and `systemImage`.
-  public init(
-    id: String,
-    title: String,
-    subtitle: String? = nil,
-    systemImage: String = "sparkles",
-    badge: String? = nil,
-    category: String? = nil
-  ) {
-    self.id = id
-    self.name = title
-    self.subtitle = subtitle
-    self.badge = badge
-    self.symbolName = systemImage
     self.category = category
   }
 }
@@ -105,25 +82,6 @@ public enum ComposerCapability: Identifiable, Hashable, Sendable, Codable {
   case image
   /// Custom domain-specific capability toggle.
   case custom(id: String, title: String, symbolName: String)
-
-  // MARK: Aliases
-
-  /// Alias for `.think`.
-  public static let thinking: ComposerCapability = .think
-  /// Alias for `.search`.
-  public static let webSearch: ComposerCapability = .search
-  /// Alias for `.image`.
-  public static let imageGeneration: ComposerCapability = .image
-
-  /// Creates a custom `ComposerCapability`.
-  public init(id: String, title: String, symbolName: String) {
-    self = .custom(id: id, title: title, symbolName: symbolName)
-  }
-
-  /// Creates a custom `ComposerCapability` using `systemImage`.
-  public init(id: String, title: String, systemImage: String) {
-    self = .custom(id: id, title: title, symbolName: systemImage)
-  }
 
   /// Stable capability identifier.
   public var id: String {
@@ -165,11 +123,6 @@ public enum ComposerCapability: Identifiable, Hashable, Sendable, Codable {
     case .custom(_, _, let symbolName):
       return symbolName
     }
-  }
-
-  /// Alias for `symbolName`.
-  public var systemImage: String {
-    symbolName
   }
 }
 
@@ -234,25 +187,6 @@ public struct SlashCommand: Identifiable, Hashable, Sendable, Codable {
     self.category = category
   }
 
-  /// Convenience initializer accepting `systemImage`.
-  public init(
-    id: String = UUID().uuidString,
-    trigger: String,
-    title: String,
-    description: String? = nil,
-    systemImage: String,
-    category: String? = nil
-  ) {
-    self.init(
-      id: id,
-      trigger: trigger,
-      title: title,
-      description: description,
-      symbolName: systemImage,
-      category: category
-    )
-  }
-
   /// Strips leading `/` characters and surrounding whitespace from a raw trigger string.
   public static func normalizeTrigger(_ rawTrigger: String) -> String {
     var trimmed = rawTrigger.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -262,9 +196,6 @@ public struct SlashCommand: Identifiable, Hashable, Sendable, Codable {
     return trimmed.trimmingCharacters(in: .whitespacesAndNewlines)
   }
 }
-
-/// Type alias preserving terminology parity with `CommandItem`.
-public typealias CommandItem = SlashCommand
 
 // MARK: - ResourceMention
 
@@ -344,18 +275,6 @@ public struct ResourceMention: Identifiable, Hashable, Sendable, Codable {
   /// Semantic category of this resource.
   public var kind: Kind
 
-  /// Alias for `queryHandle` preserving terminology parity with `handle`.
-  public var handle: String {
-    get { queryHandle }
-    set { queryHandle = Self.normalizeHandle(newValue) }
-  }
-
-  /// Alias for `symbolName` preserving terminology parity with `systemImage`.
-  public var systemImage: String {
-    get { symbolName }
-    set { symbolName = newValue }
-  }
-
   /// Optional category string derived from `kind`.
   public var category: String? {
     kind.displayName
@@ -384,30 +303,6 @@ public struct ResourceMention: Identifiable, Hashable, Sendable, Codable {
     self.symbolName = symbolName ?? kind.defaultSymbolName
   }
 
-  /// Convenience initializer accepting `handle` and `systemImage`.
-  public init(
-    id: String = UUID().uuidString,
-    handle: String,
-    title: String,
-    subtitle: String? = nil,
-    systemImage: String = "doc.text",
-    category: String? = nil
-  ) {
-    let resolvedKind: Kind = if let category, !category.isEmpty {
-      .custom(category)
-    } else {
-      .document
-    }
-    self.init(
-      id: id,
-      queryHandle: handle,
-      title: title,
-      subtitle: subtitle,
-      symbolName: systemImage,
-      kind: resolvedKind
-    )
-  }
-
   /// Strips leading `@` characters and surrounding whitespace from a raw handle string.
   public static func normalizeHandle(_ rawHandle: String) -> String {
     var trimmed = rawHandle.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -417,9 +312,6 @@ public struct ResourceMention: Identifiable, Hashable, Sendable, Codable {
     return trimmed.trimmingCharacters(in: .whitespacesAndNewlines)
   }
 }
-
-/// Type alias preserving terminology parity with `MentionItem`.
-public typealias MentionItem = ResourceMention
 
 /// Asynchronous search provider closure for dynamic `@mention` resolution with cooperative cancellation.
 public typealias ResourceMentionProvider = @Sendable (String) async throws -> [ResourceMention]
@@ -433,16 +325,6 @@ public struct ComposerToken: Identifiable, Hashable, Sendable, Codable {
   public enum Kind: Sendable, Hashable, Codable {
     case command(SlashCommand)
     case mention(ResourceMention)
-
-    /// Alias factory for `.command(command)`.
-    public static func slashCommand(_ command: SlashCommand) -> Kind {
-      .command(command)
-    }
-
-    /// Alias factory for `.mention(mention)`.
-    public static func resourceMention(_ mention: ResourceMention) -> Kind {
-      .mention(mention)
-    }
   }
 
   /// Stable unique identifier for the token instance.
@@ -456,12 +338,6 @@ public struct ComposerToken: Identifiable, Hashable, Sendable, Codable {
 
   /// SF Symbol name displayed inside the token pill.
   public var symbolName: String
-
-  /// Alias for `symbolName`.
-  public var systemImage: String {
-    get { symbolName }
-    set { symbolName = newValue }
-  }
 
   /// Extracts the underlying `SlashCommand` when `kind` is `.command`, otherwise `nil`.
   public var command: SlashCommand? {
@@ -542,18 +418,6 @@ public struct PromptSuggestion: Identifiable, Hashable, Sendable, Codable {
   /// Optional handoff behavior override (defaults to `.immediateSend` if not overridden by environment).
   public var behavior: PromptHandoffBehavior
 
-  /// Alias for `category` preserving terminology parity with `subtitle`.
-  public var subtitle: String? {
-    get { category }
-    set { category = newValue }
-  }
-
-  /// Alias for `symbolName` preserving terminology parity with `systemImage`.
-  public var systemImage: String? {
-    get { symbolName }
-    set { symbolName = newValue }
-  }
-
   /// Creates a `PromptSuggestion` chip.
   public init(
     id: String = UUID().uuidString,
@@ -570,29 +434,7 @@ public struct PromptSuggestion: Identifiable, Hashable, Sendable, Codable {
     self.category = category
     self.behavior = behavior
   }
-
-  /// Convenience initializer accepting `subtitle` and `systemImage`.
-  public init(
-    id: String = UUID().uuidString,
-    title: String,
-    subtitle: String?,
-    prompt: String? = nil,
-    systemImage: String? = nil,
-    behavior: PromptHandoffBehavior = .immediateSend
-  ) {
-    self.init(
-      id: id,
-      title: title,
-      prompt: prompt,
-      symbolName: systemImage,
-      category: subtitle,
-      behavior: behavior
-    )
-  }
 }
-
-/// Type alias preserving terminology parity with `SuggestionChip`.
-public typealias SuggestionChip = PromptSuggestion
 
 // MARK: - ComposerTextBuffer (`[MF-5]`)
 
@@ -610,9 +452,6 @@ public typealias SuggestionChip = PromptSuggestion
 /// - **Global Sentinel Stripping (`[MF-5]`):** `cleanText` strips **all** occurrences of `\u{200B}` anywhere in the string,
 ///   protecting against mid-string cursor movement or pasted text.
 public struct ComposerTextBuffer: Sendable, Hashable {
-
-  /// The invisible zero-width space character (`U+200B`) used as a backspace-detection sentinel.
-  public static let sentinelCharacter: Character = "\u{200B}"
 
   /// The invisible zero-width space string (`"\u{200B}"`) used as a backspace-detection sentinel.
   public static let sentinel: String = "\u{200B}"

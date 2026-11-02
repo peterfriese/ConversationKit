@@ -27,12 +27,10 @@ struct AIChatDemoApp: App {
   var body: some Scene {
     WindowGroup {
       TabView {
-        if #available(iOS 26.0, macCatalyst 26.0, *) {
-          FoundationModelChatView()
-            .tabItem {
-              Label("On-Device", systemImage: "cpu")
-            }
-        }
+        FoundationModelChatView()
+          .tabItem {
+            Label("On-Device", systemImage: "cpu")
+          }
 
         FirebaseAILogicChatView()
           .tabItem {

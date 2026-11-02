@@ -618,17 +618,9 @@ struct ComposerTokenAndSentinelBufferTests {
       symbolName: "sparkles",
       category: "Anthropic"
     )
+    #expect(categorizedModel.name == "Claude Sonnet 4.6")
+    #expect(categorizedModel.symbolName == "sparkles")
     #expect(categorizedModel.category == "Anthropic")
-
-    let convenienceModel = ComposerModelOption(
-      id: "gpt-4o",
-      title: "GPT-4o",
-      subtitle: "Omni",
-      systemImage: "brain",
-      badge: "Fast",
-      category: "OpenAI"
-    )
-    #expect(convenienceModel.category == "OpenAI")
 
     // Codable roundtrip
     let encoder = JSONEncoder()
@@ -790,8 +782,6 @@ struct ThinkingAndAgenticModelsTests {
     #expect(plan.progressFraction == 0.5)
 
     // ApprovalRequest risk levels and decision lifecycle
-    #expect(ApprovalRequest.RiskLevel.destructive == .high)
-
     var approval = ApprovalRequest(
       id: "req-1",
       title: "Execute shell command",
@@ -803,8 +793,8 @@ struct ThinkingAndAgenticModelsTests {
     )
     #expect(approval.isResolved == false)
     #expect(approval.riskLevel == .high)
-    #expect(approval.toolName == "shell.exec")
-    #expect(approval.commandPreview == "swift test")
+    #expect(approval.scopeIdentifier == "shell.exec")
+    #expect(approval.changePreview == "swift test")
 
     for resolvedDecision in [
       ApprovalRequest.Decision.allowOnce,
@@ -886,7 +876,7 @@ struct ThinkingAndAgenticModelsTests {
       }
     }
 
-    // Verify configuration fallback title when summary is nil and convenience initializer preservation
+    // Verify configuration fallback title and default formattedElapsed when summary/formattedElapsed are nil
     let fallbackThinkingConfig = ThinkingStateStyleConfiguration(
       status: .thinking(startedAt: startedAt),
       summary: nil,
@@ -901,22 +891,6 @@ struct ThinkingAndAgenticModelsTests {
     #expect(fallbackThinkingConfig.title == "Thinking")
     #expect(fallbackThinkingConfig.transcript == "Fallback transcript")
     #expect(fallbackThinkingConfig.formattedElapsed == "")
-
-    let convenienceConfig = ThinkingStateStyleConfiguration(
-      status: .completed(duration: 3.2),
-      title: "Custom Title",
-      formattedElapsed: "3.2s",
-      isExpanded: true,
-      toggleExpanded: {},
-      headerIcon: AnyView(Image(systemName: "brain")),
-      traceContent: AnyView(Text("Trace body")),
-      transcript: "Detailed trace"
-    )
-    #expect(convenienceConfig.title == "Custom Title")
-    #expect(convenienceConfig.summary == "Custom Title")
-    #expect(convenienceConfig.transcript == "Detailed trace")
-    #expect(convenienceConfig.formattedElapsed == "3.2s")
-    #expect(convenienceConfig.isExpanded == true)
   }
 }
 
@@ -1535,36 +1509,49 @@ struct AdversarialAndPerformanceStressTests {
 @Suite("Message Composer Style Presets & Ergonomics (AC-16)")
 struct MessageComposerStyleTests {
 
-  @Test("Style presets and type-erased wrapper construct and makeBody cleanly")
+  @Test("Style presets and type-erased wrapper construct and makeBody cleanly across minimal, focused, and rich configurations")
   @MainActor
   func stylePresetsConstructionAndMakeBody() {
     let dummyTextField = AnyView(Text("Input"))
     let dummySubmitButton = AnyView(Button("Send") {})
     let dummyAttachmentButton = AnyView(Button("+") {})
     let dummyBorderlessAttachmentButton = AnyView(Button("+") {})
+    let dummyAttachmentsTray = AnyView(Text("Tray"))
+    let dummyTokensBar = AnyView(Text("Tokens"))
     let dummyModelSelector = AnyView(Text("Sonnet"))
     let dummyCompactModelSelector = AnyView(Image(systemName: "sparkles"))
+    let dummyDictationButton = AnyView(Button("Dictate") {})
+    let dummyDismissButton = AnyView(Button("Dismiss") {})
 
-    let config = MessageComposerStyleConfiguration(
+    let richFocusedConfig = MessageComposerStyleConfiguration(
       textField: dummyTextField,
       attachmentButton: dummyAttachmentButton,
+      attachmentsTray: dummyAttachmentsTray,
+      tokensBar: dummyTokensBar,
       modelSelector: dummyModelSelector,
+      dictationButton: dummyDictationButton,
       submitButton: dummySubmitButton,
+      dismissKeyboardButton: dummyDismissButton,
       isFocused: true,
       isGenerating: false,
       canSubmit: true,
+      hasAttachments: true,
+      hasTokens: true,
+      hasModels: true,
+      hasCapabilities: true,
       compactModelSelector: dummyCompactModelSelector,
       borderlessAttachmentButton: dummyBorderlessAttachmentButton
     )
 
-    #expect(config.isFocused == true)
-    #expect(config.isGenerating == false)
-    #expect(config.canSubmit == true)
-    #expect(config.hasAttachments == false)
-    #expect(config.hasTokens == false)
-    #expect(config.hasModels == true)
-    #expect(config.compactModelSelector != nil)
-    #expect(config.borderlessAttachmentButton != nil)
+    #expect(richFocusedConfig.isFocused == true)
+    #expect(richFocusedConfig.isGenerating == false)
+    #expect(richFocusedConfig.canSubmit == true)
+    #expect(richFocusedConfig.hasAttachments == true)
+    #expect(richFocusedConfig.hasTokens == true)
+    #expect(richFocusedConfig.hasModels == true)
+    #expect(richFocusedConfig.hasCapabilities == true)
+    #expect(richFocusedConfig.compactModelSelector != nil)
+    #expect(richFocusedConfig.borderlessAttachmentButton != nil)
 
     // Verify hasModels defaults to true when only compactModelSelector is provided
     let compactOnlyConfig = MessageComposerStyleConfiguration(
@@ -1574,129 +1561,34 @@ struct MessageComposerStyleTests {
     )
     #expect(compactOnlyConfig.hasModels == true)
 
-    // 1. Classic Glass (.classicGlass & .automatic)
-    let classicStyle = ClassicGlassMessageComposerStyle.classicGlass
-    let automaticStyle = ClassicGlassMessageComposerStyle.automatic
-    _ = classicStyle.makeBody(configuration: config)
-    _ = automaticStyle.makeBody(configuration: config)
-
-    // 2. Card Glass (.cardGlass)
-    let cardStyle = CardGlassMessageComposerStyle.cardGlass
-    _ = cardStyle.makeBody(configuration: config)
-
-    // 3. Compact Glass (.compactGlass)
-    let compactStyle = CompactGlassMessageComposerStyle.compactGlass
-    _ = compactStyle.makeBody(configuration: config)
-
-    // 4. AnyMessageComposerStyle wrapper
-    let anyClassic = AnyMessageComposerStyle(.classicGlass)
-    let anyCard = AnyMessageComposerStyle(.cardGlass)
-    let anyCompact = AnyMessageComposerStyle(.compactGlass)
-    _ = anyClassic.makeBody(configuration: config)
-    _ = anyCard.makeBody(configuration: config)
-    _ = anyCompact.makeBody(configuration: config)
-  }
-
-  @Test("ClassicGlass and CompactGlass composer styles render cleanly with bottom-anchored action buttons")
-  @MainActor
-  func bottomAnchoredStylesRenderCleanly() {
-    let dummyTextField = AnyView(Text("Three-line\nuser message\ngrows vertically"))
-    let dummyAttachmentButton = AnyView(Button("+") {})
-    let dummyBorderlessAttachmentButton = AnyView(Button("+") {})
-    let dummyCompactModelSelector = AnyView(Image(systemName: "sparkles"))
-    let dummySubmitButton = AnyView(Button("Send") {})
-    let dummyDismissButton = AnyView(Button("Dismiss") {})
-
-    let multilineConfig = MessageComposerStyleConfiguration(
-      textField: dummyTextField,
-      attachmentButton: dummyAttachmentButton,
-      submitButton: dummySubmitButton,
-      dismissKeyboardButton: dummyDismissButton,
-      isFocused: true,
-      isGenerating: false,
-      canSubmit: true,
-      compactModelSelector: dummyCompactModelSelector,
-      borderlessAttachmentButton: dummyBorderlessAttachmentButton
-    )
-
-    let classic = ClassicGlassMessageComposerStyle.classicGlass
-    let compact = CompactGlassMessageComposerStyle.compactGlass
-
-    _ = classic.makeBody(configuration: multilineConfig)
-    _ = compact.makeBody(configuration: multilineConfig)
-  }
-
-  @Test("ClassicGlass composer style single-line rest configuration renders 44pt geometry cleanly")
-  @MainActor
-  func classicGlassSingleLineGeometry() {
-    let dummyTextField = AnyView(Text("Hello"))
-    let dummyAttachmentButton = AnyView(Button("+") {})
-    let dummySubmitButton = AnyView(Button("Send") {})
-
-    let singleLineConfig = MessageComposerStyleConfiguration(
-      textField: dummyTextField,
-      attachmentButton: dummyAttachmentButton,
-      submitButton: dummySubmitButton,
-      isFocused: false,
-      isGenerating: false,
-      canSubmit: true
-    )
-
-    let classic = ClassicGlassMessageComposerStyle.classicGlass
-    let body = classic.makeBody(configuration: singleLineConfig)
-    _ = body
-
-    let focusedConfig = MessageComposerStyleConfiguration(
-      textField: dummyTextField,
-      attachmentButton: dummyAttachmentButton,
-      submitButton: dummySubmitButton,
-      isFocused: true,
-      isGenerating: false,
-      canSubmit: true
-    )
-    let focusedBody = classic.makeBody(configuration: focusedConfig)
-    _ = focusedBody
-  }
-
-  @Test("ClassicGlass composer body renders independent siblings inside GlassEffectContainer")
-  @MainActor
-  func classicGlassIndependentSiblingsArchitecture() {
-    let dummyTextField = AnyView(Text("Prompt text"))
-    let dummyPlusButton = AnyView(Button("+") {})
-    let dummyModelButton = AnyView(Button("Model") {})
-    let dummyDismissButton = AnyView(Button("Dismiss") {})
-    let dummySubmitButton = AnyView(Button("Send") {})
-    let dummyTray = AnyView(Text("Attachments"))
-    let dummyTokens = AnyView(Text("Tokens"))
-
-    let fullConfig = MessageComposerStyleConfiguration(
-      textField: dummyTextField,
-      attachmentButton: dummyPlusButton,
-      attachmentsTray: dummyTray,
-      tokensBar: dummyTokens,
-      modelSelector: dummyModelButton,
-      submitButton: dummySubmitButton,
-      dismissKeyboardButton: dummyDismissButton,
-      isFocused: true,
-      isGenerating: false,
-      canSubmit: true,
-      compactModelSelector: dummyModelButton
-    )
-
-    let classic = ClassicGlassMessageComposerStyle.classicGlass
-    let fullBody = classic.makeBody(configuration: fullConfig)
-    _ = fullBody
-
-    // Minimal config without optional controls
-    let minimalConfig = MessageComposerStyleConfiguration(
+    let minimalUnfocusedConfig = MessageComposerStyleConfiguration(
       textField: dummyTextField,
       submitButton: dummySubmitButton,
       isFocused: false,
       isGenerating: false,
       canSubmit: false
     )
-    let minimalBody = classic.makeBody(configuration: minimalConfig)
-    _ = minimalBody
+    #expect(minimalUnfocusedConfig.hasAttachments == false)
+    #expect(minimalUnfocusedConfig.hasTokens == false)
+    #expect(minimalUnfocusedConfig.hasModels == false)
+
+    let configurations = [richFocusedConfig, compactOnlyConfig, minimalUnfocusedConfig]
+    let styles: [AnyMessageComposerStyle] = [
+      AnyMessageComposerStyle(.classicGlass),
+      AnyMessageComposerStyle(.automatic),
+      AnyMessageComposerStyle(.cardGlass),
+      AnyMessageComposerStyle(.compactGlass),
+    ]
+
+    for config in configurations {
+      _ = ClassicGlassMessageComposerStyle.classicGlass.makeBody(configuration: config)
+      _ = ClassicGlassMessageComposerStyle.automatic.makeBody(configuration: config)
+      _ = CardGlassMessageComposerStyle.cardGlass.makeBody(configuration: config)
+      _ = CompactGlassMessageComposerStyle.compactGlass.makeBody(configuration: config)
+      for style in styles {
+        _ = style.makeBody(configuration: config)
+      }
+    }
   }
 
   @Test("ComposerModelSelectorMenu supports compact icon-only mode for single-line styles")
@@ -1736,148 +1628,6 @@ struct MessageComposerStyleTests {
     )
     #expect(standardMenu.isCompact == false)
     _ = standardMenu.body
-  }
-
-  @Test("CardGlass composer style breathes on focus and maintains 32pt button optical parity")
-  @MainActor
-  func cardGlassFocusBreathingAndButtonParity() {
-    let dummyTextField = AnyView(Text("Card glass prompt"))
-    let dummyAttachmentButton = AnyView(Button("+") {})
-    let dummyModelSelector = AnyView(Button("GPT-4o") {})
-    let dummySubmitButton = AnyView(Button("Send") {})
-    let dummyDictationButton = AnyView(Button("Dictate") {})
-    let dummyDismissButton = AnyView(Button("Dismiss") {})
-
-    let focusedConfig = MessageComposerStyleConfiguration(
-      textField: dummyTextField,
-      attachmentButton: dummyAttachmentButton,
-      modelSelector: dummyModelSelector,
-      dictationButton: dummyDictationButton,
-      submitButton: dummySubmitButton,
-      dismissKeyboardButton: dummyDismissButton,
-      isFocused: true,
-      isGenerating: false,
-      canSubmit: true,
-      hasModels: true
-    )
-
-    let unfocusedConfig = MessageComposerStyleConfiguration(
-      textField: dummyTextField,
-      attachmentButton: dummyAttachmentButton,
-      modelSelector: dummyModelSelector,
-      submitButton: dummySubmitButton,
-      isFocused: false,
-      isGenerating: false,
-      canSubmit: false,
-      hasModels: true
-    )
-
-    let cardStyle = CardGlassMessageComposerStyle.cardGlass
-    let focusedBody = cardStyle.makeBody(configuration: focusedConfig)
-    let unfocusedBody = cardStyle.makeBody(configuration: unfocusedConfig)
-
-    _ = focusedBody
-    _ = unfocusedBody
-  }
-
-  @Test("CardGlass and CompactGlass composer styles enclose attachments and tokens inside interactive vessel and isolate Menus in overlays")
-  @MainActor
-  func cardGlassAndCompactGlassCanonicalVesselAndOverlayIsolation() {
-    let dummyTextField = AnyView(Text("Multiline prompt"))
-    let dummyAttachmentButton = AnyView(Button("+") {})
-    let dummyBorderlessAttachmentButton = AnyView(Button("+") {})
-    let dummyAttachmentsTray = AnyView(Text("Tray"))
-    let dummyTokensBar = AnyView(Text("Tokens"))
-    let dummyModelSelector = AnyView(Button("Sonnet 4.6") {})
-    let dummyCompactModel = AnyView(Button("Model") {})
-    let dummyDictationButton = AnyView(Button("Dictate") {})
-    let dummyDismissButton = AnyView(Button("Dismiss") {})
-    let dummySubmitButton = AnyView(Button("Send") {})
-
-    let richConfig = MessageComposerStyleConfiguration(
-      textField: dummyTextField,
-      attachmentButton: dummyAttachmentButton,
-      attachmentsTray: dummyAttachmentsTray,
-      tokensBar: dummyTokensBar,
-      modelSelector: dummyModelSelector,
-      dictationButton: dummyDictationButton,
-      submitButton: dummySubmitButton,
-      dismissKeyboardButton: dummyDismissButton,
-      isFocused: true,
-      isGenerating: false,
-      canSubmit: true,
-      hasAttachments: true,
-      hasTokens: true,
-      hasModels: true,
-      hasCapabilities: true,
-      compactModelSelector: dummyCompactModel,
-      borderlessAttachmentButton: dummyBorderlessAttachmentButton
-    )
-
-    let emptyConfig = MessageComposerStyleConfiguration(
-      textField: dummyTextField,
-      submitButton: dummySubmitButton,
-      isFocused: false,
-      isGenerating: false,
-      canSubmit: false
-    )
-
-    let cardStyle = CardGlassMessageComposerStyle.cardGlass
-    _ = cardStyle.makeBody(configuration: richConfig)
-    _ = cardStyle.makeBody(configuration: emptyConfig)
-
-    let compactStyle = CompactGlassMessageComposerStyle.compactGlass
-    _ = compactStyle.makeBody(configuration: richConfig)
-    _ = compactStyle.makeBody(configuration: emptyConfig)
-  }
-
-  @Test("ClassicGlass composer uses canonical 3-zone bookend sibling architecture with inner trailing accessories and external submit sibling")
-  @MainActor
-  func classicGlassCanonicalThreeZoneArchitecture() {
-    let dummyTextField = AnyView(Text("Classic glass prompt"))
-    let dummyPlusButton = AnyView(Button("+") {})
-    let dummyCompactModel = AnyView(Button("Model") {})
-    let dummySubmit = AnyView(Button("Send") {})
-    let dummyDismiss = AnyView(Button("Dismiss") {})
-    let dummyDictation = AnyView(Button("Dictate") {})
-
-    let focusedConfig = MessageComposerStyleConfiguration(
-      textField: dummyTextField,
-      attachmentButton: dummyPlusButton,
-      dictationButton: dummyDictation,
-      submitButton: dummySubmit,
-      dismissKeyboardButton: dummyDismiss,
-      isFocused: true,
-      isGenerating: false,
-      canSubmit: true,
-      hasModels: true,
-      compactModelSelector: dummyCompactModel
-    )
-
-    let unfocusedConfig = MessageComposerStyleConfiguration(
-      textField: dummyTextField,
-      attachmentButton: dummyPlusButton,
-      submitButton: dummySubmit,
-      isFocused: false,
-      isGenerating: false,
-      canSubmit: false,
-      hasModels: true,
-      compactModelSelector: dummyCompactModel
-    )
-
-    let classicStyle = ClassicGlassMessageComposerStyle.classicGlass
-    let focusedBody = classicStyle.makeBody(configuration: focusedConfig)
-    let unfocusedBody = classicStyle.makeBody(configuration: unfocusedConfig)
-
-    _ = focusedBody
-    _ = unfocusedBody
-
-    let circleScrollButton = ScrollToBottomButton(hasUnreadBelowFold: false) {}
-    let capsuleScrollButton = ScrollToBottomButton(hasUnreadBelowFold: true) {}
-    #expect(circleScrollButton.hasUnreadBelowFold == false)
-    #expect(capsuleScrollButton.hasUnreadBelowFold == true)
-    _ = circleScrollButton.body
-    _ = capsuleScrollButton.body
   }
 
   @Test("Custom MessageComposerStyle conformance compiles and executes makeBody")

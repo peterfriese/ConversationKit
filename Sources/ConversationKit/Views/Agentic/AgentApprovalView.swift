@@ -22,9 +22,6 @@ public struct AgentApprovalView: View {
   /// The approval request model to display.
   public let request: ApprovalRequest
 
-  /// Optional parent message identifier.
-  public let messageID: String
-
   @State private var localDecisionOverride: ApprovalRequest.Decision?
   @State private var didCopyPreview: Bool = false
 
@@ -33,11 +30,9 @@ public struct AgentApprovalView: View {
 
   /// Creates an `AgentApprovalView` for the given `ApprovalRequest`.
   public init(
-    request: ApprovalRequest,
-    messageID: String = ""
+    request: ApprovalRequest
   ) {
     self.request = request
-    self.messageID = messageID
   }
 
   /// Effective decision reflecting either the model's resolved `decision` or an immediate local resolution.

@@ -10,7 +10,7 @@ import SwiftUI
 /// Renders a horizontal view-aligned snapping bar of `PromptSuggestion` pills in Liquid Glass
 /// directly above the message composer before the first user message is sent (`F-8`, `AC-12`).
 ///
-/// Each suggestion pill is wrapped inside a shared `GlassEffectContainer(spacing: 12)` and styled
+/// Each suggestion pill is wrapped inside a shared `GlassEffectContainer(spacing: 6)` and styled
 /// with `.glassEffect(.regular.interactive(), in: .capsule)` (automatically falling back to an
 /// opaque `Color.platformSecondaryBackground` capsule when `accessibilityReduceTransparency` is enabled).
 ///
@@ -30,11 +30,6 @@ public struct SuggestionChipsBar: View {
 
   @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
-  /// Alias for `suggestions` preserving terminology parity with `chips`.
-  public var chips: [PromptSuggestion] {
-    suggestions
-  }
-
   /// Creates a `SuggestionChipsBar` from an array of `PromptSuggestion` items.
   ///
   /// - Parameters:
@@ -48,28 +43,10 @@ public struct SuggestionChipsBar: View {
     self.onSelect = onSelect
   }
 
-  /// Convenience initializer accepting an unlabeled array of `PromptSuggestion` items.
-  public init(
-    _ suggestions: [PromptSuggestion],
-    onSelect: @escaping @MainActor (PromptSuggestion) -> Void
-  ) {
-    self.suggestions = suggestions
-    self.onSelect = onSelect
-  }
-
-  /// Convenience initializer accepting `chips:` parameter label.
-  public init(
-    chips: [PromptSuggestion],
-    onSelect: @escaping @MainActor (PromptSuggestion) -> Void
-  ) {
-    self.suggestions = chips
-    self.onSelect = onSelect
-  }
-
   public var body: some View {
     if !suggestions.isEmpty {
       ScrollView(.horizontal, showsIndicators: false) {
-        GlassEffectContainer(spacing: 12) {
+        GlassEffectContainer(spacing: 6) {
           HStack(spacing: 10) {
             ForEach(suggestions) { suggestion in
               chipButton(for: suggestion)
@@ -82,7 +59,7 @@ public struct SuggestionChipsBar: View {
       .contentMargins(.horizontal, 12, for: .scrollContent)
       .padding(.vertical, 4)
       .accessibilityElement(children: .contain)
-      .accessibilityIdentifier(ConversationAccessibilityID.composerSuggestionChipsBar)
+      .accessibilityIdentifier(ConversationAccessibilityID.suggestionChipsBar)
     }
   }
 

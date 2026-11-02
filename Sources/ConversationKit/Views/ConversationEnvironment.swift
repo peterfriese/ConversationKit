@@ -43,9 +43,6 @@ public enum ConversationAccessibilityID: Sendable {
   /// The integrated AI model selector menu pill in the composer (`F-9`, `AC-13`).
   public static let modelSelector = "composer.modelSelector"
 
-  /// The capability toggle chips bar in the composer (`F-9`, `AC-13`).
-  public static let capabilitiesBar = "composer.capabilitiesBar"
-
   /// The structured `/command` and `@mention` token pills bar in the composer (`F-5`, `AC-8`, `AC-9`).
   public static let tokensBar = "composer.tokensBar"
 
@@ -349,13 +346,10 @@ public struct EmptyConversationViewBuilder: Sendable {
 /// Nominal `@MainActor` builder wrapper for the footer disclaimer view below the composer.
 @MainActor
 public struct ConversationDisclaimerBuilder: Sendable {
-  /// Plain-text representation of the disclaimer, if configured via text/resource.
-  public let text: String?
   private let builder: @MainActor @Sendable () -> AnyView
 
   /// Creates a `ConversationDisclaimerBuilder` from a `LocalizedStringResource`.
   public nonisolated init(resource: LocalizedStringResource) {
-    self.text = String(localized: resource)
     self.builder = { @MainActor in
       AnyView(
         Text(resource)
@@ -368,7 +362,6 @@ public struct ConversationDisclaimerBuilder: Sendable {
 
   /// Creates a `ConversationDisclaimerBuilder` from a plain `String`.
   public nonisolated init(text: String) {
-    self.text = text
     self.builder = { @MainActor in
       AnyView(
         Text(text)
@@ -383,7 +376,6 @@ public struct ConversationDisclaimerBuilder: Sendable {
   public nonisolated init<Content: View>(
     @ViewBuilder _ builder: @escaping @MainActor @Sendable () -> Content
   ) {
-    self.text = nil
     self.builder = { @MainActor in
       AnyView(builder())
     }
@@ -523,35 +515,6 @@ extension EnvironmentValues {
 
   /// Controls whether `StreamingMarkdownView` smooths bursty token chunks via its 60Hz cadence buffer (`AC-17`).
   @Entry public var isStreamingCadenceEnabled: Bool = true
-
-  // MARK: Convenience Binding Accessors on @MainActor
-
-  /// Convenience `@MainActor` accessor for the selected `ComposerModelOption?` binding.
-  @MainActor
-  public var selectedComposerModel: Binding<ComposerModelOption?>? {
-    get { selectedComposerModelBox?.binding }
-    set { selectedComposerModelBox = newValue.map { EnvironmentBindingBox($0) } }
-  }
-
-  /// Convenience `@MainActor` accessor for the active `Set<ComposerCapability>` binding.
-  @MainActor
-  public var activeComposerCapabilities: Binding<Set<ComposerCapability>>? {
-    get { activeComposerCapabilitiesBox?.binding }
-    set { activeComposerCapabilitiesBox = newValue.map { EnvironmentBindingBox($0) } }
-  }
-
-  /// Convenience `@MainActor` accessor for the external `[ComposerToken]` binding.
-  @MainActor
-  public var composerTokens: Binding<[ComposerToken]>? {
-    get { composerTokensBox?.binding }
-    set { composerTokensBox = newValue.map { EnvironmentBindingBox($0) } }
-  }
-
-  /// Alias for `isStreamingCadenceEnabled`.
-  public var streamingCadenceEnabled: Bool {
-    get { isStreamingCadenceEnabled }
-    set { isStreamingCadenceEnabled = newValue }
-  }
 }
 
 // MARK: - Public Stratos View Modifiers

@@ -52,16 +52,6 @@ public struct AttachmentTrayView: View {
     self.onRemove = onRemove
   }
 
-  /// Convenience initializer accepting an unlabeled `Binding<[ConversationAttachment]>`.
-  public init(
-    _ attachments: Binding<[ConversationAttachment]>,
-    onRetry: (@MainActor (ConversationAttachment) -> Void)? = nil
-  ) {
-    self._attachments = attachments
-    self.onRetry = onRetry
-    self.onRemove = nil
-  }
-
   public var body: some View {
     if !attachments.isEmpty {
       ScrollView(.horizontal, showsIndicators: false) {
@@ -79,7 +69,7 @@ public struct AttachmentTrayView: View {
                 retryAttachment(attachment)
               }
             )
-            .accessibilityIdentifier(ConversationAccessibilityID.attachmentTile(attachment.id))
+            .accessibilityIdentifier(ConversationAccessibilityID.attachmentCard(attachment.id))
           }
         }
         .padding(.vertical, 4)
@@ -87,7 +77,7 @@ public struct AttachmentTrayView: View {
       }
       .quickLookPreview($quickLookURL)
       .accessibilityElement(children: .contain)
-      .accessibilityIdentifier(ConversationAccessibilityID.composerAttachmentTray)
+      .accessibilityIdentifier(ConversationAccessibilityID.attachmentTray)
     }
   }
 
@@ -173,13 +163,6 @@ public struct AttachmentPreviewCard: View {
     .padding(.top, 5)
     .padding(.trailing, 5)
     .task(id: attachment.id) {
-      if let cached = await PlatformThumbnailGenerator.shared.cachedThumbnail(
-        for: attachment.id,
-        maxPixelSize: 320
-      ) {
-        thumbnailBox = cached
-        return
-      }
       thumbnailBox = await attachment.generateThumbnail(maxPixelSize: 320)
     }
   }
@@ -252,11 +235,11 @@ public struct AttachmentPreviewCard: View {
         HStack(spacing: 6) {
           Text(fileExtensionBadgeText)
             .font(.system(size: 9, weight: .bold, design: .rounded))
-            .foregroundStyle(kindAccentColor)
+            .foregroundStyle(attachment.kind.accentColor)
             .padding(.horizontal, 5)
             .padding(.vertical, 2)
             .background(
-              kindAccentColor.opacity(0.14),
+              attachment.kind.accentColor.opacity(0.14),
               in: RoundedRectangle(cornerRadius: 4, style: .continuous)
             )
 
@@ -293,7 +276,7 @@ public struct AttachmentPreviewCard: View {
   private var documentThumbnailOrIcon: some View {
     ZStack {
       RoundedRectangle(cornerRadius: 8, style: .continuous)
-        .fill(kindAccentColor.opacity(0.12))
+        .fill(attachment.kind.accentColor.opacity(0.12))
 
       if let thumbnailBox {
         thumbnailBox.swiftUIImage
@@ -304,7 +287,7 @@ public struct AttachmentPreviewCard: View {
       } else {
         Image(systemName: attachment.symbolName)
           .font(.system(size: 18, weight: .semibold))
-          .foregroundStyle(kindAccentColor)
+          .foregroundStyle(attachment.kind.accentColor)
       }
     }
     .frame(width: 42, height: 54)
@@ -402,23 +385,6 @@ public struct AttachmentPreviewCard: View {
       return String(ext.prefix(6))
     }
     return attachment.kind.rawValue.uppercased()
-  }
-
-  private var kindAccentColor: Color {
-    switch attachment.kind {
-    case .image:
-      return .blue
-    case .pdf:
-      return .red
-    case .audio:
-      return .orange
-    case .video:
-      return .purple
-    case .code:
-      return .indigo
-    case .document:
-      return .accentColor
-    }
   }
 
   private var cardAccessibilityLabel: String {

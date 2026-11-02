@@ -121,7 +121,6 @@ public protocol Message: Identifiable, Hashable, Sendable where ID == String {
 
 extension Message {
   public var createdAt: Date { .distantPast }
-  public var timestamp: Date { createdAt }
   public var attachments: [ConversationAttachment] { [] }
   public var tokens: [ComposerToken] { [] }
   public var selectedModelID: String? { nil }
@@ -138,22 +137,6 @@ extension Message {
   /// Convenience error description extracted from `messageError` or `error`.
   public var errorMessage: String? {
     messageError?.message ?? error?.localizedDescription
-  }
-
-  /// Convenience factory overload with defaulted parameters.
-  public static func makeUserMessage(
-    id: String = UUID().uuidString,
-    content: String?,
-    attachments: [ConversationAttachment] = [],
-    tokens: [ComposerToken] = []
-  ) -> Self {
-    makeUserMessage(
-      id: id,
-      content: content,
-      attachments: attachments,
-      tokens: tokens,
-      selectedModelID: nil
-    )
   }
 }
 
@@ -204,12 +187,6 @@ public struct DefaultMessage: Message, Codable {
         messageError = nil
       }
     }
-  }
-
-  /// Alias for `createdAt` preserving terminology parity with `timestamp`.
-  public var timestamp: Date {
-    get { createdAt }
-    set { createdAt = newValue }
   }
 
   /// Convenience string accessor/mutator for `messageError?.message`.
@@ -273,43 +250,6 @@ public struct DefaultMessage: Message, Codable {
       self.messageError = nil
       self.underlyingError = nil
     }
-  }
-
-  /// Convenience initializer accepting `timestamp` and `errorMessage`.
-  public init(
-    id: String = UUID().uuidString,
-    content: String? = nil,
-    participant: Participant = .user,
-    timestamp: Date,
-    attachments: [ConversationAttachment] = [],
-    tokens: [ComposerToken] = [],
-    selectedModelID: String? = nil,
-    thinkingTrace: ThinkingTrace? = nil,
-    toolCalls: [ToolCall] = [],
-    citations: [Citation] = [],
-    plan: AgentPlan? = nil,
-    approvalRequest: ApprovalRequest? = nil,
-    isStreaming: Bool = false,
-    errorMessage: String? = nil,
-    feedback: MessageFeedback? = nil
-  ) {
-    self.init(
-      id: id,
-      content: content,
-      participant: participant,
-      createdAt: timestamp,
-      attachments: attachments,
-      tokens: tokens,
-      selectedModelID: selectedModelID,
-      thinkingTrace: thinkingTrace,
-      toolCalls: toolCalls,
-      citations: citations,
-      plan: plan,
-      approvalRequest: approvalRequest,
-      isStreaming: isStreaming,
-      feedback: feedback,
-      messageError: errorMessage.map { MessageError(message: $0) }
-    )
   }
 
   // MARK: Factory Requirement

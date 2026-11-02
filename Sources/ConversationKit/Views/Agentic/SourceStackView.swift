@@ -9,15 +9,6 @@
 import Foundation
 import SwiftUI
 
-// MARK: - Accessibility Identifier Extensions
-
-extension ConversationAccessibilityID {
-  /// Accessibility identifier for an individual `Citation` card (`message.citation.<id>`).
-  public static func citationCard(_ id: String) -> String {
-    citationRow(id)
-  }
-}
-
 // MARK: - SourceStackView
 
 /// Renders an overlapping source badge pill (`"N sources"`) that expands on tap into numbered
@@ -94,7 +85,7 @@ public struct SourceStackView: View {
                   openURL(safeURL)
                 }
               )
-              .accessibilityIdentifier(ConversationAccessibilityID.citationCard(citation.id))
+              .accessibilityIdentifier(ConversationAccessibilityID.citationRow(citation.id))
             }
           }
           .transition(
