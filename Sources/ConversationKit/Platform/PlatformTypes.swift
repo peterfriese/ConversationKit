@@ -840,6 +840,131 @@ public enum PlatformPasteboard: Sendable {
   #endif
 }
 
+// MARK: - StreamingHapticsConfiguration
+
+/// Configures adaptive haptic feedback during assistant response streaming and agentic lifecycle transitions.
+///
+/// `StreamingHapticsConfiguration` models haptic cadence, coalescing interval, and base intensity
+/// as a `Sendable`, `Hashable`, `Codable` value type suitable for SwiftUI environment propagation.
+public struct StreamingHapticsConfiguration: Sendable, Hashable, Codable {
+  /// The tactile cadence profile applied while an assistant response is streaming.
+  public enum Cadence: String, Sendable, Hashable, Codable, CaseIterable {
+    /// Disables all streaming haptics (silent streaming).
+    case off
+    /// Subtle, tactile taps throttled to ~55ms while tokens reveal, plus milestone and completion taps.
+    case subtle
+    /// Distinct, physical ChatGPT-style Taptic thumps (~65ms interval, `.medium` generator with `.rigid` boundary accents).
+    case punchy
+    /// Sharp, mechanical `.rigid` key-click ticks (~48ms minimum interval).
+    case typewriter
+    /// Only triggers haptics on lifecycle milestones (first token arrival, thinking/tool completion, block commit, stream completion).
+    case milestonesOnly
+  }
+
+  /// The active streaming haptic cadence.
+  public var cadence: Cadence
+
+  /// Minimum time interval (in seconds) between consecutive streaming token ticks, clamped to `>= 0.015`.
+  public var minimumInterval: TimeInterval {
+    didSet {
+      if minimumInterval < 0.015 {
+        minimumInterval = 0.015
+      }
+    }
+  }
+
+  /// Base haptic impact intensity in the normalized range `0.0...1.0`.
+  public var intensity: Double {
+    didSet {
+      intensity = min(1.0, max(0.0, intensity))
+    }
+  }
+
+  /// Creates a streaming haptics configuration.
+  ///
+  /// - Parameters:
+  ///   - cadence: The haptic cadence profile (defaults to `.punchy`).
+  ///   - minimumInterval: Minimum coalescing interval in seconds between token ticks (clamped to `>= 0.015`, defaults to `0.065`).
+  ///   - intensity: Base impact intensity in `0.0...1.0` (clamped to `0.0...1.0`, defaults to `0.82`).
+  public init(
+    cadence: Cadence = .punchy,
+    minimumInterval: TimeInterval = 0.065,
+    intensity: Double = 0.82
+  ) {
+    self.cadence = cadence
+    self.minimumInterval = max(0.015, minimumInterval)
+    self.intensity = min(1.0, max(0.0, intensity))
+  }
+
+  private enum CodingKeys: String, CodingKey {
+    case cadence
+    case minimumInterval
+    case intensity
+  }
+
+  public init(from decoder: any Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    let cadence = try container.decode(Cadence.self, forKey: .cadence)
+    let minimumInterval = try container.decode(TimeInterval.self, forKey: .minimumInterval)
+    let intensity = try container.decode(Double.self, forKey: .intensity)
+    self.init(cadence: cadence, minimumInterval: minimumInterval, intensity: intensity)
+  }
+
+  // MARK: Presets
+
+  /// Disables all streaming haptics.
+  public static let disabled = StreamingHapticsConfiguration(
+    cadence: .off,
+    minimumInterval: 0.055,
+    intensity: 0.0
+  )
+
+  /// Subtle streaming haptics (~55ms coalescing, 0.62 intensity).
+  public static let subtle = StreamingHapticsConfiguration(
+    cadence: .subtle,
+    minimumInterval: 0.055,
+    intensity: 0.62
+  )
+
+  /// Default punchy ChatGPT-style streaming haptics (~65ms coalescing, 0.82 intensity with rigid boundary accents).
+  public static let punchy = StreamingHapticsConfiguration(
+    cadence: .punchy,
+    minimumInterval: 0.065,
+    intensity: 0.82
+  )
+
+  /// Sharp, mechanical typewriter streaming haptics (~48ms coalescing, 0.75 intensity with rigid key-click accents).
+  public static let typewriter = StreamingHapticsConfiguration(
+    cadence: .typewriter,
+    minimumInterval: 0.048,
+    intensity: 0.75
+  )
+
+  /// Milestone-only haptics on key agentic/streaming transitions without per-token ticks.
+  public static let milestonesOnly = StreamingHapticsConfiguration(
+    cadence: .milestonesOnly,
+    minimumInterval: 0.055,
+    intensity: 0.80
+  )
+
+  // MARK: Computed Helpers
+
+  /// Whether streaming haptics are active.
+  public var isEnabled: Bool {
+    cadence != .off
+  }
+
+  /// Whether incremental token reveal ticks should fire.
+  public var triggersTokenTicks: Bool {
+    cadence == .subtle || cadence == .punchy || cadence == .typewriter
+  }
+
+  /// Whether lifecycle milestone and completion haptics should fire.
+  public var triggersMilestones: Bool {
+    cadence != .off
+  }
+}
+
 // MARK: - PlatformHapticEvent & Haptic Triggers
 
 /// Semantic haptic feedback events used across `ConversationKit`.
@@ -849,42 +974,168 @@ public enum PlatformHapticEvent: Sendable, Hashable {
   case copySuccess
   case warning
   case error
+  case streamingTick(intensity: Double)
+  case streamingMilestone
+  case streamingComplete
 
   // Aliases matching ADR §3.2.1 & §3.5.2 terminology
   public static let tokenInserted: PlatformHapticEvent = .selection
   public static let tokenRemoved: PlatformHapticEvent = .selection
+
+  /// Default streaming tick event (`intensity: 0.82`).
+  public static let streamingTick: PlatformHapticEvent = .streamingTick(intensity: 0.82)
 }
 
-/// Namespace providing cross-platform haptic feedback triggers.
+/// Namespace providing cross-platform haptic feedback triggers and coalesced streaming haptics.
 public enum PlatformHaptics: Sendable {
+  #if canImport(UIKit) && !os(visionOS)
+  @MainActor private static let softGenerator = UIImpactFeedbackGenerator(style: .soft)
+  @MainActor private static let lightGenerator = UIImpactFeedbackGenerator(style: .light)
+  @MainActor private static let mediumGenerator = UIImpactFeedbackGenerator(style: .medium)
+  @MainActor private static let rigidGenerator = UIImpactFeedbackGenerator(style: .rigid)
+  @MainActor private static let selectionGenerator = UISelectionFeedbackGenerator()
+  @MainActor private static let notificationGenerator = UINotificationFeedbackGenerator()
+  #endif
+
+  @MainActor private static var lastStreamingTickTime: TimeInterval = -.infinity
+
+  /// Number of coalesced streaming token ticks triggered since the last reset (for deterministic testing).
+  @MainActor public private(set) static var streamingTickCountForTesting: Int = 0
+
+  /// Number of streaming milestone/completion haptics triggered since the last reset (for deterministic testing).
+  @MainActor public private(set) static var streamingMilestoneCountForTesting: Int = 0
+
+  /// Resets the streaming haptic coalescing timestamp and testing counters.
+  @MainActor
+  public static func resetStreamingCountersForTesting() {
+    lastStreamingTickTime = -.infinity
+    streamingTickCountForTesting = 0
+    streamingMilestoneCountForTesting = 0
+  }
+
+  /// Warms up the underlying Taptic Engine generators ahead of an incoming assistant stream.
+  @MainActor
+  public static func prepareStreamingHaptics(
+    configuration: StreamingHapticsConfiguration = .punchy
+  ) {
+    guard configuration.isEnabled else { return }
+    #if canImport(UIKit) && !os(visionOS)
+    lightGenerator.prepare()
+    mediumGenerator.prepare()
+    rigidGenerator.prepare()
+    #endif
+  }
+
+  /// Triggers a coalesced streaming token tick according to `configuration`.
+  ///
+  /// - Parameters:
+  ///   - configuration: The active `StreamingHapticsConfiguration`.
+  ///   - isPunctuationOrBoundary: Lazily evaluated autoclosure indicating whether the newly revealed text ends on a punctuation mark, clause boundary, or newline. Evaluated only after the coalescing gate passes.
+  ///   - now: Monotonic timestamp in seconds (defaults to `ProcessInfo.processInfo.systemUptime`).
+  /// - Returns: `true` if a tick was emitted, or `false` if disabled or throttled by the coalescing gate.
+  @MainActor
+  @discardableResult
+  public static func triggerStreamingTick(
+    configuration: StreamingHapticsConfiguration,
+    isPunctuationOrBoundary: @autoclosure () -> Bool = false,
+    now: TimeInterval = ProcessInfo.processInfo.systemUptime
+  ) -> Bool {
+    guard configuration.triggersTokenTicks else { return false }
+    guard now - lastStreamingTickTime >= configuration.minimumInterval else { return false }
+
+    let isBoundary = isPunctuationOrBoundary()
+    lastStreamingTickTime = now
+    streamingTickCountForTesting += 1
+
+    #if canImport(UIKit) && !os(visionOS)
+    switch configuration.cadence {
+    case .punchy:
+      let effectiveIntensity = min(
+        1.0,
+        max(0.0, configuration.intensity + (isBoundary ? 0.18 : 0.0))
+      )
+      if isBoundary {
+        rigidGenerator.impactOccurred(intensity: CGFloat(effectiveIntensity))
+      } else {
+        mediumGenerator.impactOccurred(intensity: CGFloat(effectiveIntensity))
+      }
+    case .typewriter:
+      let effectiveIntensity = min(
+        1.0,
+        max(0.0, configuration.intensity + (isBoundary ? 0.20 : 0.0))
+      )
+      rigidGenerator.impactOccurred(intensity: CGFloat(effectiveIntensity))
+    case .subtle:
+      let effectiveIntensity = min(
+        1.0,
+        max(0.0, configuration.intensity + (isBoundary ? 0.18 : 0.0))
+      )
+      if isBoundary {
+        mediumGenerator.impactOccurred(intensity: CGFloat(effectiveIntensity))
+      } else {
+        lightGenerator.impactOccurred(intensity: CGFloat(effectiveIntensity))
+      }
+    case .off, .milestonesOnly:
+      break
+    }
+    #elseif canImport(AppKit)
+    // Keep macOS trackpads silent during high-frequency token reveal ticks.
+    _ = isBoundary
+    #endif
+
+    return true
+  }
+
+  /// Triggers a streaming lifecycle milestone haptic (such as first token arrival, block commit, or stream completion).
+  ///
+  /// - Parameters:
+  ///   - configuration: The active `StreamingHapticsConfiguration`.
+  ///   - isCompletion: Whether this milestone marks the completion of the assistant stream.
+  /// - Returns: `true` if the milestone haptic was emitted, or `false` if haptics are disabled.
+  @MainActor
+  @discardableResult
+  public static func triggerStreamingMilestone(
+    configuration: StreamingHapticsConfiguration,
+    isCompletion: Bool = false
+  ) -> Bool {
+    guard configuration.triggersMilestones else { return false }
+    streamingMilestoneCountForTesting += 1
+    triggerHaptic(isCompletion ? .streamingComplete : .streamingMilestone)
+    return true
+  }
+
   @MainActor
   public static func triggerHaptic(_ event: PlatformHapticEvent) {
     #if canImport(UIKit) && !os(visionOS)
     switch event {
     case .send:
-      let generator = UIImpactFeedbackGenerator(style: .rigid)
-      generator.impactOccurred(intensity: 0.85)
+      rigidGenerator.impactOccurred(intensity: 0.85)
     case .selection:
-      let generator = UISelectionFeedbackGenerator()
-      generator.selectionChanged()
+      selectionGenerator.selectionChanged()
     case .copySuccess:
-      let generator = UINotificationFeedbackGenerator()
-      generator.notificationOccurred(.success)
+      notificationGenerator.notificationOccurred(.success)
     case .warning:
-      let generator = UINotificationFeedbackGenerator()
-      generator.notificationOccurred(.warning)
+      notificationGenerator.notificationOccurred(.warning)
     case .error:
-      let generator = UINotificationFeedbackGenerator()
-      generator.notificationOccurred(.error)
+      notificationGenerator.notificationOccurred(.error)
+    case .streamingTick(let intensity):
+      let clamped = min(1.0, max(0.0, intensity))
+      mediumGenerator.impactOccurred(intensity: CGFloat(clamped))
+    case .streamingMilestone:
+      rigidGenerator.impactOccurred(intensity: 0.85)
+    case .streamingComplete:
+      mediumGenerator.impactOccurred(intensity: 0.90)
     }
     #elseif canImport(AppKit)
     switch event {
-    case .send, .copySuccess:
+    case .send, .copySuccess, .streamingComplete:
       NSHapticFeedbackManager.defaultPerformer.perform(.alignment, performanceTime: .default)
-    case .selection:
+    case .selection, .streamingMilestone:
       NSHapticFeedbackManager.defaultPerformer.perform(.levelChange, performanceTime: .default)
     case .warning, .error:
       NSHapticFeedbackManager.defaultPerformer.perform(.generic, performanceTime: .default)
+    case .streamingTick:
+      break
     }
     #endif
   }

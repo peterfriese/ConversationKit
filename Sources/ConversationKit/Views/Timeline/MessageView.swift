@@ -46,7 +46,10 @@ public struct MessageView<MessageType: Message>: View {
   @Environment(\.messageActions) private var customMessageActions
   @Environment(\.onRetryMessage) private var onRetryMessage
   @Environment(\.onRegenerateMessage) private var onRegenerateMessage
+  @Environment(\.streamingHaptics) private var streamingHaptics
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+  @State private var didTriggerFirstTokenMilestone: Bool = false
 
   /// Creates a `MessageView` for the given `Message`.
   public init(message: MessageType) {
@@ -119,9 +122,13 @@ public struct MessageView<MessageType: Message>: View {
 
   // MARK: - `.other` Branch (Full-Width AI Canvas with NO Bubble, `F-3`, `AC-5`)
 
+  private var hasNonEmptyText: Bool {
+    !(message.content ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+  }
+
   private var assistantMessageBranch: some View {
     let textContent = message.content ?? ""
-    let hasNonEmptyText = !textContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    let hasNonEmptyText = self.hasNonEmptyText
 
     return VStack(alignment: .leading, spacing: 12) {
       // 1. Reasoning trace (collapsed by default per F-7 & AC-11)
@@ -200,6 +207,38 @@ public struct MessageView<MessageType: Message>: View {
       }
     }
     .frame(maxWidth: .infinity, alignment: .leading)
+    .onChange(of: hasNonEmptyText) { oldValue, newValue in
+      if !oldValue && newValue && !didTriggerFirstTokenMilestone {
+        didTriggerFirstTokenMilestone = true
+        if message.isStreaming && !reduceMotion && streamingHaptics.triggersMilestones {
+          _ = PlatformHaptics.triggerStreamingMilestone(
+            configuration: streamingHaptics,
+            isCompletion: false
+          )
+        }
+      }
+    }
+    .onChange(of: message.thinkingTrace?.status) { oldStatus, newStatus in
+      if case .thinking = oldStatus, case .completed = newStatus {
+        if message.isStreaming && !reduceMotion && streamingHaptics.triggersMilestones {
+          _ = PlatformHaptics.triggerStreamingMilestone(
+            configuration: streamingHaptics,
+            isCompletion: false
+          )
+        }
+      }
+    }
+    .onChange(of: message.isStreaming) { wasStreaming, isNowStreaming in
+      if wasStreaming && !isNowStreaming {
+        didTriggerFirstTokenMilestone = false
+        if !hasError && !reduceMotion && streamingHaptics.triggersMilestones {
+          _ = PlatformHaptics.triggerStreamingMilestone(
+            configuration: streamingHaptics,
+            isCompletion: true
+          )
+        }
+      }
+    }
   }
 
   // MARK: - Error & Breathing State Helpers

@@ -92,6 +92,46 @@ enum DemoBubbleStyleOption: String, CaseIterable, Identifiable, Sendable {
   }
 }
 
+enum DemoStreamingHapticsOption: String, CaseIterable, Identifiable, Sendable {
+  case punchy = "Punchy (Default)"
+  case typewriter = "Typewriter"
+  case subtle = "Subtle"
+  case milestonesOnly = "Milestones Only"
+  case off = "Off"
+
+  var id: String { rawValue }
+
+  var symbolName: String {
+    switch self {
+    case .punchy:
+      return "waveform.path.ecg"
+    case .typewriter:
+      return "keyboard"
+    case .subtle:
+      return "waveform.path"
+    case .milestonesOnly:
+      return "flag.checkered"
+    case .off:
+      return "speaker.slash"
+    }
+  }
+
+  var configuration: StreamingHapticsConfiguration {
+    switch self {
+    case .punchy:
+      return .punchy
+    case .typewriter:
+      return .typewriter
+    case .subtle:
+      return .subtle
+    case .milestonesOnly:
+      return .milestonesOnly
+    case .off:
+      return .disabled
+    }
+  }
+}
+
 // MARK: - Demo Response Topic
 
 enum DemoResponseTopic: Equatable, Sendable {

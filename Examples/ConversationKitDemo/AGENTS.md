@@ -12,6 +12,7 @@
     *   **`ThinkingStateStyle`**: `.collapsibleHeader`, `.pill`, and `.minimal`.
     *   **`UserMessageBubbleStyle`**: `.tailedBubble`, `.roundedCard`, and `.capsule`.
     *   **60Hz Streaming Cadence Smoother**: `.streamingCadenceEnabled(_:)`.
+    *   **Streaming Haptics**: `.streamingHaptics(_:)` preset switcher (`.punchy`, `.typewriter`, `.subtle`, `.milestonesOnly`, `.disabled`).
     *   **Multimodal Attachments & Upload Simulation**: Photos picker integration (`PhotosPickerItem` -> `PlatformImageBox` -> `ConversationAttachment`) plus one-tap sample image/file attachments and `.onAttachmentUpload` / `.onAttachmentRetry` lifecycle simulation (`ConversationAttachment.UploadState`).
     *   **Structured Prompting**: `/commands` (`SlashCommand`), `@mentions` (`ResourceMention`), suggestion chips (`PromptSuggestion` & `PromptHandoffBehavior`), model picker (`ComposerModelOption`), and capability toggles (`ComposerCapability`).
     *   **Agentic Scenarios**: Simulated multi-phase streaming (reasoning trace -> tool calls -> plan updates -> human-in-the-loop approval card -> 120Hz streaming Markdown with code blocks and citations -> inline retryable `MessageError` simulation).

@@ -515,6 +515,10 @@ extension EnvironmentValues {
 
   /// Controls whether `StreamingMarkdownView` smooths bursty token chunks via its 60Hz cadence buffer (`AC-17`).
   @Entry public var isStreamingCadenceEnabled: Bool = true
+
+  /// Controls the haptic feedback cadence and intensity during AI response streaming.
+  /// Defaults to `.punchy` out of the box.
+  @Entry public var streamingHaptics: StreamingHapticsConfiguration = .punchy
 }
 
 // MARK: - Public Stratos View Modifiers
@@ -713,5 +717,23 @@ extension View {
   /// Enables or disables the 60Hz adaptive token cadence smoother in `StreamingMarkdownView` (`AC-17`).
   public func streamingCadenceEnabled(_ enabled: Bool = true) -> some View {
     environment(\.isStreamingCadenceEnabled, enabled)
+  }
+
+  /// Configures the haptic feedback cadence and intensity during AI response streaming.
+  ///
+  /// By default, `ConversationView` uses `.punchy` streaming haptics. Pass `.subtle` for
+  /// softer taps, `.typewriter` for crisp word/clause feedback, `.milestonesOnly` for lifecycle
+  /// transitions only, or `.disabled` to silence streaming haptics.
+  ///
+  /// - Parameter configuration: The `StreamingHapticsConfiguration` preset or custom configuration.
+  public func streamingHaptics(_ configuration: StreamingHapticsConfiguration) -> some View {
+    environment(\.streamingHaptics, configuration)
+  }
+
+  /// Enables or disables streaming haptic feedback using the `.punchy` preset when enabled.
+  ///
+  /// - Parameter enabled: Whether streaming haptics are enabled (`true` by default).
+  public func streamingHapticsEnabled(_ enabled: Bool = true) -> some View {
+    environment(\.streamingHaptics, enabled ? .punchy : .disabled)
   }
 }

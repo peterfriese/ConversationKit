@@ -38,6 +38,7 @@ struct ContentView: View {
   }()
   @State private var thinkingStyleOption: DemoThinkingStyleOption = .collapsibleHeader
   @State private var bubbleStyleOption: DemoBubbleStyleOption = .tailedBubble
+  @State private var streamingHapticsOption: DemoStreamingHapticsOption = .punchy
 
   private var initialUserPrompt: String {
     if let idx = ProcessInfo.processInfo.arguments.firstIndex(of: "-prompt"),
@@ -62,6 +63,7 @@ struct ContentView: View {
         .messageComposerStyle(composerStyleOption.anyStyle)
         .thinkingStateStyle(thinkingStyleOption.anyStyle)
         .userMessageBubbleStyle(bubbleStyleOption.anyStyle)
+        .streamingHaptics(streamingHapticsOption.configuration)
         .emptyConversationView {
           emptyPlaceholder
         }
@@ -161,6 +163,13 @@ struct ContentView: View {
         Picker("User Bubble Style", selection: $bubbleStyleOption) {
           ForEach(DemoBubbleStyleOption.allCases) { option in
             Text(option.rawValue).tag(option)
+          }
+        }
+      }
+      Section("Streaming Haptics") {
+        Picker("Streaming Haptics", selection: $streamingHapticsOption) {
+          ForEach(DemoStreamingHapticsOption.allCases) { option in
+            Label(option.rawValue, systemImage: option.symbolName).tag(option)
           }
         }
       }

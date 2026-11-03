@@ -15,7 +15,7 @@ The library under `Sources/ConversationKit/` is organized into four main directo
 *   **`Model/ComposerModels.swift`**: Defines structured prompting models and parser utilities: `SlashCommand`, `ResourceMention` (`ResourceMention.Kind`), `ComposerToken`, `PromptSuggestion`, `PromptHandoffBehavior`, `ComposerModelOption`, `ComposerCapability`, and `ComposerTextBuffer` (detecting active `/` and `@` triggers).
 
 ### Platform (`Sources/ConversationKit/Platform/`)
-*   **`Platform/PlatformTypes.swift`**: Centralizes cross-platform abstractions following the Chameleon pattern: `PlatformImage` (`UIImage` / `NSImage`), `PlatformImageBox` (`@unchecked Sendable` value wrapper with PNG/dimension inspection), `PlatformThumbnailGenerator` (off-main-actor `CGImageSource` thumbnail downsampling), and `PlatformPasteboard` (cross-platform clipboard helper).
+*   **`Platform/PlatformTypes.swift`**: Centralizes cross-platform abstractions following the Chameleon pattern: `PlatformImage` (`UIImage` / `NSImage`), `PlatformImageBox` (`@unchecked Sendable` value wrapper with PNG/dimension inspection), `PlatformThumbnailGenerator` (off-main-actor `CGImageSource` thumbnail downsampling), `PlatformPasteboard` (cross-platform clipboard helper), `StreamingHapticsConfiguration` (presets: `.punchy`, `.typewriter`, `.subtle`, `.milestonesOnly`, `.disabled`), `PlatformHaptics`, and `PlatformHapticEvent`.
 
 ### Styles (`Sources/ConversationKit/Styles/`)
 *   **`Styles/MessageComposerStyle.swift`**: Defines the `MessageComposerStyle` protocol, `MessageComposerStyleConfiguration`, `AnyMessageComposerStyle`, and the three built-in Liquid Glass composer styles: `.classicGlass` (`ClassicGlassMessageComposerStyle`), `.cardGlass` (`CardGlassMessageComposerStyle`), and `.compactGlass` (`CompactGlassMessageComposerStyle`).
@@ -23,7 +23,7 @@ The library under `Sources/ConversationKit/` is organized into four main directo
 *   **`Styles/UserMessageBubbleStyle.swift`**: Defines the `UserMessageBubbleStyle` protocol, `UserMessageBubbleStyleConfiguration`, and built-in styles: `.tailedBubble`, `.roundedCard`, and `.capsule`.
 
 ### Views (`Sources/ConversationKit/Views/`)
-*   **`Views/ConversationEnvironment.swift`**: Defines `@Entry` environment values and public view modifiers for styles, structured prompting, attachment configuration, and timeline/agentic callbacks.
+*   **`Views/ConversationEnvironment.swift`**: Defines `@Entry` environment values and public view modifiers for styles, structured prompting, attachment configuration, streaming haptics (`streamingHaptics` `@Entry` and `.streamingHaptics(_:)` / `.streamingHapticsEnabled(_:)`), and timeline/agentic callbacks.
 *   **`Views/Timeline/ConversationView.swift`**: Primary entry point to the SDK. Hosts the turn-grouped timeline (`ConversationTurn.group(_:)`), Top-Floating Turn scroll physics, adaptive 60Hz streaming cadence smoother, suggestion chips bar, and bottom safe-area composer chrome.
 *   **`Views/Timeline/MessageView.swift`**: Renders user bubbles (with attachments and tokens) and full-width assistant responses (`ThinkingStateView`, `AgentPlanView`, `ToolCallsGroupView`, `StreamingMarkdownView`, `AgentApprovalView`, `SourceStackView`, inline `MessageError` banner, and `MessageActionBarView`).
 *   **`Views/Timeline/StreamingMarkdownView.swift`**: 120Hz incremental Markdown renderer with $O(1)$ committed block memoization (`MarkdownBlock`, `MarkdownBlock.parse(_:isStreaming:)`) and native syntax-highlighted fenced code blocks.

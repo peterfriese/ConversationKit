@@ -11,7 +11,7 @@ ConversationKit provides a cross-platform SwiftUI interface for building convers
 ConversationKit organizes its public surface around the 4-layer Stratos Progressive Disclosure model so you only adopt the complexity your app requires:
 
 1. **Layer 1 (Troposphere):** Pass a binding to an array of ``DefaultMessage`` items into ``ConversationView`` and handle prompts with `onSendMessage(_:)`. ConversationKit manages attachment state, turn grouping, and timeline rendering automatically.
-2. **Layer 2 (Stratosphere):** Configure first-turn ``PromptSuggestion`` chips, `/` ``SlashCommand`` and `@` ``ResourceMention`` autocomplete, ``ComposerModelOption`` and ``ComposerCapability`` selectors, and built-in style presets through declarative view modifiers.
+2. **Layer 2 (Stratosphere):** Configure first-turn ``PromptSuggestion`` chips, `/` ``SlashCommand`` and `@` ``ResourceMention`` autocomplete, ``ComposerModelOption`` and ``ComposerCapability`` selectors, adaptive ``StreamingHapticsConfiguration`` presets, and built-in style presets through declarative view modifiers.
 3. **Layer 3 (Mesosphere):** Compose standalone timeline and composer components such as ``MessageComposerView``, ``StreamingMarkdownView``, ``ThinkingStateView``, ``ToolCallsGroupView``, ``SourceStackView``, ``AgentPlanView``, and ``AgentApprovalView`` directly in custom layouts.
 4. **Layer 4 (Thermosphere):** Conform your own domain models to ``Message`` and implement custom ``MessageComposerStyle``, ``ThinkingStateStyle``, and ``UserMessageBubbleStyle`` types.
 
@@ -33,6 +33,10 @@ Assistant turns natively render structured reasoning and tool execution metadata
 - **Tool execution groups:** ``ToolCall`` and ``ToolCallsGroupView`` display live status indicators, expandable JSON argument and result inspectors, and per-tool retry actions.
 - **Grounded citations:** ``Citation`` and ``SourceStackView`` present domain badges and expandable source cards guarded by strict `http` and `https` URL allowlisting.
 - **Execution plans and human-in-the-loop approvals:** ``AgentPlan`` (rendered by ``AgentPlanView``) tracks multi-step progress, while ``ApprovalRequest`` (rendered by ``AgentApprovalView``) presents risk-classified permission cards with interactive allow and deny actions.
+
+### Adaptive streaming haptics
+
+``ConversationView`` and ``StreamingMarkdownView`` provide adaptive haptic feedback synchronized with token arrival and agentic lifecycle milestones through ``StreamingHapticsConfiguration`` and ``PlatformHaptics``. By default, ``ConversationView`` uses the ``StreamingHapticsConfiguration/punchy`` preset for tactile token cadence and boundary accents. Customize the tactile profile with `.streamingHaptics(_:)` using built-in presets such as ``StreamingHapticsConfiguration/punchy``, ``StreamingHapticsConfiguration/typewriter``, ``StreamingHapticsConfiguration/subtle``, ``StreamingHapticsConfiguration/milestonesOnly``, or ``StreamingHapticsConfiguration/disabled``, or toggle haptics directly with `.streamingHapticsEnabled(_:)`.
 
 ```swift
 import ConversationKit
@@ -70,6 +74,7 @@ struct AssistantChatView: View {
                 .messageComposerStyle(.cardGlass)
                 .thinkingStateStyle(.collapsibleHeader)
                 .userMessageBubbleStyle(.tailedBubble)
+                .streamingHaptics(.punchy)
                 .navigationTitle("Assistant")
         }
     }
@@ -115,6 +120,7 @@ struct AssistantChatView: View {
 - ``PlatformThumbnailGenerator``
 - ``PlatformThumbnailError``
 - ``PlatformPasteboard``
+- ``StreamingHapticsConfiguration``
 - ``PlatformHaptics``
 - ``PlatformHapticEvent``
 

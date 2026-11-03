@@ -614,10 +614,12 @@ public struct StreamingMarkdownView: View {
   public var isStreaming: Bool
 
   @Environment(\.isStreamingCadenceEnabled) private var isStreamingCadenceEnabled
+  @Environment(\.streamingHaptics) private var streamingHaptics
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
   @State private var displayedCharacterCount: Int = 0
   @State private var tailRevealProgress: Double = 1.0
+  @State private var lastCommittedBlockCount: Int = 0
 
   /// Creates a `StreamingMarkdownView`.
   ///
@@ -671,14 +673,27 @@ public struct StreamingMarkdownView: View {
     )
     .onAppear {
       displayedCharacterCount = markdown.count
+      lastCommittedBlockCount = parsed.committed.count
+      if isStreaming && !reduceMotion && streamingHaptics.isEnabled {
+        PlatformHaptics.prepareStreamingHaptics(configuration: streamingHaptics)
+      }
     }
     .onChange(of: markdown) { oldValue, newValue in
       handleMarkdownUpdate(from: oldValue, to: newValue)
     }
+    .onChange(of: parsed.committed.count) { _, newCommittedCount in
+      evaluateCommittedBlockMilestone(newCommittedCount: newCommittedCount)
+    }
     .onChange(of: isStreaming) { _, streaming in
-      if !streaming {
+      if streaming {
+        lastCommittedBlockCount = parsed.committed.count
+        if !reduceMotion && streamingHaptics.isEnabled {
+          PlatformHaptics.prepareStreamingHaptics(configuration: streamingHaptics)
+        }
+      } else {
         displayedCharacterCount = markdown.count
         tailRevealProgress = 1.0
+        lastCommittedBlockCount = parsed.committed.count
       }
     }
     .task(id: markdown) {
@@ -688,10 +703,24 @@ public struct StreamingMarkdownView: View {
       }
       let target = markdown.count
       while !Task.isCancelled && displayedCharacterCount < target {
-        displayedCharacterCount = Self.nextCadenceCharacterCount(
-          currentDisplayedCount: displayedCharacterCount,
+        let previousCount = displayedCharacterCount
+        let nextCount = Self.nextCadenceCharacterCount(
+          currentDisplayedCount: previousCount,
           targetCount: target
         )
+        displayedCharacterCount = nextCount
+
+        if isStreaming && !reduceMotion && streamingHaptics.triggersTokenTicks && nextCount > previousCount {
+          _ = PlatformHaptics.triggerStreamingTick(
+            configuration: streamingHaptics,
+            isPunctuationOrBoundary: Self.containsPunctuationOrClauseBoundary(
+              in: markdown,
+              from: previousCount,
+              to: nextCount
+            )
+          )
+        }
+
         if displayedCharacterCount < target {
           try? await Task.sleep(for: .milliseconds(8))
         }
@@ -703,9 +732,21 @@ public struct StreamingMarkdownView: View {
     if !isStreaming || !isStreamingCadenceEnabled || reduceMotion {
       displayedCharacterCount = newValue.count
       tailRevealProgress = 1.0
+
+      if isStreaming && !reduceMotion && streamingHaptics.triggersTokenTicks && newValue.count > oldValue.count {
+        _ = PlatformHaptics.triggerStreamingTick(
+          configuration: streamingHaptics,
+          isPunctuationOrBoundary: Self.containsPunctuationOrClauseBoundary(
+            in: newValue,
+            from: oldValue.count,
+            to: newValue.count
+          )
+        )
+      }
       return
     }
 
+    let previousDisplayed = displayedCharacterCount
     displayedCharacterCount = Self.characterCountOnChunkArrival(
       currentDisplayedCount: displayedCharacterCount,
       oldCount: oldValue.count,
@@ -715,10 +756,63 @@ public struct StreamingMarkdownView: View {
       reduceMotion: reduceMotion
     )
 
+    if displayedCharacterCount > previousDisplayed && streamingHaptics.triggersTokenTicks {
+      _ = PlatformHaptics.triggerStreamingTick(
+        configuration: streamingHaptics,
+        isPunctuationOrBoundary: Self.containsPunctuationOrClauseBoundary(
+          in: newValue,
+          from: previousDisplayed,
+          to: displayedCharacterCount
+        )
+      )
+    }
+
     tailRevealProgress = 0.25
     withAnimation(.easeOut(duration: 0.14)) {
       tailRevealProgress = 1.0
     }
+  }
+
+  private func evaluateCommittedBlockMilestone(newCommittedCount: Int) {
+    if newCommittedCount > lastCommittedBlockCount {
+      lastCommittedBlockCount = newCommittedCount
+      if isStreaming && !reduceMotion && streamingHaptics.triggersMilestones {
+        _ = PlatformHaptics.triggerStreamingMilestone(
+          configuration: streamingHaptics,
+          isCompletion: false
+        )
+      }
+    } else if newCommittedCount < lastCommittedBlockCount {
+      lastCommittedBlockCount = newCommittedCount
+    }
+  }
+
+  /// Determines whether the character slice `[startOffset ..< endOffset)` in `markdown`
+  /// contains a punctuation mark, clause separator, or newline boundary.
+  nonisolated internal static func containsPunctuationOrClauseBoundary(
+    in markdown: String,
+    from startOffset: Int,
+    to endOffset: Int
+  ) -> Bool {
+    let totalCount = markdown.count
+    guard totalCount > 0 else { return false }
+    let clampedStart = min(max(0, startOffset), totalCount)
+    let clampedEnd = min(max(0, endOffset), totalCount)
+    guard clampedStart < clampedEnd else { return false }
+
+    let startIndex = markdown.index(markdown.startIndex, offsetBy: clampedStart)
+    let endIndex = markdown.index(markdown.startIndex, offsetBy: clampedEnd)
+    let slice = markdown[startIndex..<endIndex]
+
+    for ch in slice {
+      switch ch {
+      case ".", "!", "?", ",", ":", ";", "\n", "\r", "—", "–":
+        return true
+      default:
+        continue
+      }
+    }
+    return false
   }
 
   /// Computes the updated `displayedCharacterCount` immediately upon receiving a new Markdown chunk (`oldCount -> newCount`).

@@ -1785,3 +1785,226 @@ struct MessageComposerStyleTests {
     #expect(compactModelSelectorEvaluations == 1)
   }
 }
+
+// MARK: - 8. StreamingHapticsTests
+
+@Suite("Streaming Haptics")
+@MainActor
+struct StreamingHapticsTests {
+
+  @Test("StreamingHapticsConfiguration presets and clamping invariants")
+  func presetsAndClampingInvariants() throws {
+    // 1. Verify .punchy default preset
+    let punchy = StreamingHapticsConfiguration.punchy
+    #expect(punchy.cadence == .punchy)
+    #expect(punchy.isEnabled == true)
+    #expect(punchy.triggersTokenTicks == true)
+    #expect(punchy.triggersMilestones == true)
+    #expect(punchy.minimumInterval == 0.065)
+    #expect(punchy.intensity == 0.82)
+    #expect(StreamingHapticsConfiguration() == .punchy)
+
+    // 2. Verify .subtle preset
+    let subtle = StreamingHapticsConfiguration.subtle
+    #expect(subtle.cadence == .subtle)
+    #expect(subtle.isEnabled == true)
+    #expect(subtle.triggersTokenTicks == true)
+    #expect(subtle.triggersMilestones == true)
+    #expect(subtle.minimumInterval == 0.055)
+    #expect(subtle.intensity == 0.62)
+
+    // 3. Verify .typewriter preset
+    let typewriter = StreamingHapticsConfiguration.typewriter
+    #expect(typewriter.cadence == .typewriter)
+    #expect(typewriter.isEnabled == true)
+    #expect(typewriter.triggersTokenTicks == true)
+    #expect(typewriter.triggersMilestones == true)
+    #expect(typewriter.minimumInterval == 0.048)
+    #expect(typewriter.intensity == 0.75)
+
+    // 4. Verify .milestonesOnly preset
+    let milestonesOnly = StreamingHapticsConfiguration.milestonesOnly
+    #expect(milestonesOnly.cadence == .milestonesOnly)
+    #expect(milestonesOnly.isEnabled == true)
+    #expect(milestonesOnly.triggersTokenTicks == false)
+    #expect(milestonesOnly.triggersMilestones == true)
+    #expect(milestonesOnly.minimumInterval == 0.055)
+    #expect(milestonesOnly.intensity == 0.80)
+
+    // 5. Verify .disabled preset
+    let disabled = StreamingHapticsConfiguration.disabled
+    #expect(disabled.cadence == .off)
+    #expect(disabled.isEnabled == false)
+    #expect(disabled.triggersTokenTicks == false)
+    #expect(disabled.triggersMilestones == false)
+    #expect(disabled.minimumInterval == 0.055)
+    #expect(disabled.intensity == 0.0)
+
+    // 6. Verify initializer clamping and Codable round-trip
+    var clamped = StreamingHapticsConfiguration(
+      cadence: .subtle,
+      minimumInterval: 0.001,
+      intensity: 2.5
+    )
+    #expect(clamped.cadence == .subtle)
+    #expect(clamped.minimumInterval == 0.015)
+    #expect(clamped.intensity == 1.0)
+
+    let encoded = try JSONEncoder().encode(clamped)
+    let decoded = try JSONDecoder().decode(StreamingHapticsConfiguration.self, from: encoded)
+    #expect(decoded == clamped)
+    #expect(decoded.minimumInterval == 0.015)
+    #expect(decoded.intensity == 1.0)
+
+    // Verify property didSet clamping for negative values as well
+    clamped.minimumInterval = -5.0
+    clamped.intensity = -0.5
+    #expect(clamped.minimumInterval == 0.015)
+    #expect(clamped.intensity == 0.0)
+  }
+
+  @Test("PlatformHaptics coalescing gate, cadence filtering, and milestone triggers")
+  func coalescingGateAndCadenceFiltering() {
+    PlatformHaptics.resetStreamingCountersForTesting()
+    #expect(PlatformHaptics.streamingTickCountForTesting == 0)
+    #expect(PlatformHaptics.streamingMilestoneCountForTesting == 0)
+
+    // 1. .disabled and .milestonesOnly never emit token ticks
+    let disabledTick = PlatformHaptics.triggerStreamingTick(
+      configuration: .disabled,
+      isPunctuationOrBoundary: true,
+      now: 50.0
+    )
+    #expect(disabledTick == false)
+    #expect(PlatformHaptics.streamingTickCountForTesting == 0)
+
+    let milestonesOnlyTick = PlatformHaptics.triggerStreamingTick(
+      configuration: .milestonesOnly,
+      isPunctuationOrBoundary: true,
+      now: 60.0
+    )
+    #expect(milestonesOnlyTick == false)
+    #expect(PlatformHaptics.streamingTickCountForTesting == 0)
+
+    // 2. .subtle (minimumInterval == 0.055) coalescing gate
+    let firstSubtleTick = PlatformHaptics.triggerStreamingTick(
+      configuration: .subtle,
+      isPunctuationOrBoundary: false,
+      now: 100.0
+    )
+    #expect(firstSubtleTick == true)
+    #expect(PlatformHaptics.streamingTickCountForTesting == 1)
+
+    let throttledAt10ms = PlatformHaptics.triggerStreamingTick(
+      configuration: .subtle,
+      isPunctuationOrBoundary: true,
+      now: 100.010
+    )
+    #expect(throttledAt10ms == false)
+    #expect(PlatformHaptics.streamingTickCountForTesting == 1)
+
+    let throttledAt50ms = PlatformHaptics.triggerStreamingTick(
+      configuration: .subtle,
+      isPunctuationOrBoundary: false,
+      now: 100.050
+    )
+    #expect(throttledAt50ms == false)
+    #expect(PlatformHaptics.streamingTickCountForTesting == 1)
+
+    let secondSubtleTick = PlatformHaptics.triggerStreamingTick(
+      configuration: .subtle,
+      isPunctuationOrBoundary: true,
+      now: 100.060
+    )
+    #expect(secondSubtleTick == true)
+    #expect(PlatformHaptics.streamingTickCountForTesting == 2)
+
+    // 3. .punchy (minimumInterval == 0.065) coalescing gate
+    let throttledPunchyAt50msAfterLast = PlatformHaptics.triggerStreamingTick(
+      configuration: .punchy,
+      isPunctuationOrBoundary: false,
+      now: 100.110
+    )
+    #expect(throttledPunchyAt50msAfterLast == false)
+    #expect(PlatformHaptics.streamingTickCountForTesting == 2)
+
+    let punchyTickAfter65ms = PlatformHaptics.triggerStreamingTick(
+      configuration: .punchy,
+      isPunctuationOrBoundary: true,
+      now: 100.130
+    )
+    #expect(punchyTickAfter65ms == true)
+    #expect(PlatformHaptics.streamingTickCountForTesting == 3)
+
+    // 4. Milestone triggers across presets
+    #expect(
+      PlatformHaptics.triggerStreamingMilestone(configuration: .punchy, isCompletion: false) == true
+    )
+    #expect(
+      PlatformHaptics.triggerStreamingMilestone(configuration: .subtle, isCompletion: false) == true
+    )
+    #expect(
+      PlatformHaptics.triggerStreamingMilestone(configuration: .typewriter, isCompletion: false) == true
+    )
+    #expect(
+      PlatformHaptics.triggerStreamingMilestone(configuration: .milestonesOnly, isCompletion: true) == true
+    )
+    #expect(
+      PlatformHaptics.triggerStreamingMilestone(configuration: .disabled, isCompletion: false) == false
+    )
+    #expect(
+      PlatformHaptics.triggerStreamingMilestone(configuration: .disabled, isCompletion: true) == false
+    )
+    #expect(PlatformHaptics.streamingMilestoneCountForTesting == 4)
+  }
+
+  @Test("StreamingMarkdownView.containsPunctuationOrClauseBoundary detects sentence, clause, and newline boundaries")
+  func containsPunctuationOrClauseBoundaryDetection() {
+    let sample = "Hello, world! How are you? Fine: thanks; great.\nNext line"
+
+    // Plain mid-word character slices without boundaries return false
+    #expect(
+      StreamingMarkdownView.containsPunctuationOrClauseBoundary(in: sample, from: 0, to: 5) == false
+    ) // "Hello"
+    #expect(
+      StreamingMarkdownView.containsPunctuationOrClauseBoundary(in: sample, from: 7, to: 12) == false
+    ) // "world"
+    #expect(
+      StreamingMarkdownView.containsPunctuationOrClauseBoundary(in: sample, from: 14, to: 25) == false
+    ) // "How are you"
+
+    // Slices containing `,`, `!`, `?`, `:`, `;`, `.`, and `\n` return true
+    #expect(
+      StreamingMarkdownView.containsPunctuationOrClauseBoundary(in: sample, from: 0, to: 6) == true
+    ) // ","
+    #expect(
+      StreamingMarkdownView.containsPunctuationOrClauseBoundary(in: sample, from: 7, to: 13) == true
+    ) // "!"
+    #expect(
+      StreamingMarkdownView.containsPunctuationOrClauseBoundary(in: sample, from: 22, to: 26) == true
+    ) // "?"
+    #expect(
+      StreamingMarkdownView.containsPunctuationOrClauseBoundary(in: sample, from: 27, to: 32) == true
+    ) // ":"
+    #expect(
+      StreamingMarkdownView.containsPunctuationOrClauseBoundary(in: sample, from: 33, to: 40) == true
+    ) // ";"
+    #expect(
+      StreamingMarkdownView.containsPunctuationOrClauseBoundary(in: sample, from: 41, to: 47) == true
+    ) // "."
+    #expect(
+      StreamingMarkdownView.containsPunctuationOrClauseBoundary(in: sample, from: 47, to: 48) == true
+    ) // "\n"
+
+    // Empty or inverted ranges return false safely
+    #expect(
+      StreamingMarkdownView.containsPunctuationOrClauseBoundary(in: "", from: 0, to: 5) == false
+    )
+    #expect(
+      StreamingMarkdownView.containsPunctuationOrClauseBoundary(in: sample, from: 10, to: 10) == false
+    )
+    #expect(
+      StreamingMarkdownView.containsPunctuationOrClauseBoundary(in: sample, from: 12, to: 5) == false
+    )
+  }
+}
