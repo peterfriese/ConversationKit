@@ -170,7 +170,7 @@ public struct MessageView<MessageType: Message>: View {
           isStreaming: message.isStreaming
         )
       } else if shouldShowInitialBreathingIndicator {
-        AssistantBreathingIndicatorView(reduceMotion: reduceMotion)
+        WorkingStateView(messageID: message.id)
       }
 
       // 7. Inline error card with Retry button
@@ -374,34 +374,6 @@ private struct UserMessageTokensRowView: View {
     case .mention:
       return .indigo
     }
-  }
-}
-
-// MARK: - AssistantBreathingIndicatorView
-
-/// Subtle pulsing indicator shown when an assistant message has started streaming (`content == nil` or `""`)
-/// before the first reasoning block, tool call, or Markdown token arrives.
-private struct AssistantBreathingIndicatorView: View {
-  let reduceMotion: Bool
-
-  var body: some View {
-    HStack(spacing: 6) {
-      Image(systemName: "sparkles")
-        .font(.subheadline.weight(.semibold))
-        .foregroundStyle(.tint)
-        .symbolEffect(
-          .pulse.byLayer,
-          options: .repeating,
-          isActive: !reduceMotion
-        )
-
-      Text("Thinking…")
-        .font(.subheadline)
-        .foregroundStyle(.secondary)
-    }
-    .padding(.vertical, 4)
-    .accessibilityElement(children: .combine)
-    .accessibilityLabel("Assistant is thinking")
   }
 }
 

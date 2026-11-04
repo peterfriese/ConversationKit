@@ -10,6 +10,7 @@
 *   **`ConversationKitDemo/ContentView.swift`**: Hosts `ConversationView` and an interactive Inspector/Toolbar switcher allowing live toggling between:
     *   **`MessageComposerStyle`**: `.classicGlass` (default 3-zone bookend sibling layout), `.cardGlass` (2-row AI assistant card), and `.compactGlass` (single-row compact capsule).
     *   **`ThinkingStateStyle`**: `.collapsibleHeader`, `.pill`, and `.minimal`.
+    *   **`WorkingStateStyle`**: `.inline`, `.pill`, and `.minimal` (plus `.workingStateTitle(_:)`).
     *   **`UserMessageBubbleStyle`**: `.tailedBubble`, `.roundedCard`, and `.capsule`.
     *   **60Hz Streaming Cadence Smoother**: `.streamingCadenceEnabled(_:)`.
     *   **Streaming Haptics**: `.streamingHaptics(_:)` preset switcher (`.punchy`, `.typewriter`, `.subtle`, `.milestonesOnly`, `.disabled`).

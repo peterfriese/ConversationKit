@@ -135,6 +135,7 @@ struct AssistantChatView: View {
 - ``MessageActionBarView``
 - ``ThinkingTrace``
 - ``ThinkingStateView``
+- ``WorkingStateView``
 - ``ToolCall``
 - ``ToolCallsGroupView``
 - ``Citation``
@@ -160,6 +161,12 @@ struct AssistantChatView: View {
 - ``PillThinkingStateStyle``
 - ``MinimalThinkingStateStyle``
 - ``AnyThinkingStateStyle``
+- ``WorkingStateStyle``
+- ``WorkingStateStyleConfiguration``
+- ``InlineWorkingStateStyle``
+- ``PillWorkingStateStyle``
+- ``MinimalWorkingStateStyle``
+- ``AnyWorkingStateStyle``
 - ``UserMessageBubbleStyle``
 - ``UserMessageBubbleStyleConfiguration``
 - ``TailedBubbleUserMessageStyle``

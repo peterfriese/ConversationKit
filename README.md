@@ -120,6 +120,11 @@ Customize visual presentation, structured prompting, attachments, and timeline c
   - `.collapsibleHeader` *(default)*: Expandable disclosure card showing status, duration badge, and monospace reasoning transcript.
   - `.pill`: Compact capsule indicator.
   - `.minimal`: Lightweight inline status row.
+- **`WorkingStateStyle`**:
+  - `.inline` / `.inline(title:)` *(default)*: Pre-first-token breathing `sparkles` indicator and `"Working…"` subheadline label.
+  - `.pill` / `.pill(title:)`: Compact accent-tinted capsule indicator.
+  - `.minimal` / `.minimal(title:)`: Ultra-lightweight inline caption row.
+  - Customize the default working title globally via `.workingStateTitle(_:)`.
 - **`UserMessageBubbleStyle`**:
   - `.tailedBubble` *(default)*: iMessage/Gemini-inspired bubble with an asymmetric bottom-trailing corner.
   - `.roundedCard`: Uniform rounded card with subtle border.
@@ -129,6 +134,8 @@ Customize visual presentation, structured prompting, attachments, and timeline c
 ConversationView(messages: $messages, attachments: $attachments)
     .messageComposerStyle(.cardGlass)
     .thinkingStateStyle(.collapsibleHeader)
+    .workingStateStyle(.inline)
+    .workingStateTitle("Working…")
     .userMessageBubbleStyle(.tailedBubble)
     .streamingCadenceEnabled(true)
 ```
@@ -285,6 +292,7 @@ ConversationView(messages: $messages)
 
 Every agentic timeline component in `ConversationKit` is a standalone public `View` backed by `Sendable`, `Hashable`, `Codable` value types:
 
+- **`WorkingStateView`**: Pre-first-token assistant breathing indicator styled via `WorkingStateStyle` (`.inline`, `.pill`, `.minimal`) and `.workingStateTitle(_:)`.
 - **`ThinkingTrace` & `ThinkingStateView`**: Chain-of-thought reasoning indicator. Collapsed by default (`ThinkingTrace.defaultExpanded == false`) to preserve vertical reading space.
 - **`ToolCall` & `ToolCallsGroupView`**: Displays function/tool invocations (`ToolCall.Status`: `.pending`, `.running(startedAt:)`, `.succeeded(duration:)`, `.failed(error:duration:)`, `.cancelled(duration:)`), arguments JSON, result JSON, and retry buttons.
 - **`Citation` & `SourceStackView`**: Grounded source cards with automatic `http`/`https` URL allowlist validation (`citation.sanitizedURL` and `url.isAllowedConversationURL`—rejecting `javascript:`, `data:`, and `file:` schemes).

@@ -54,6 +54,25 @@ enum DemoComposerStyleOption: String, CaseIterable, Identifiable, Sendable {
   }
 }
 
+enum DemoWorkingStyleOption: String, CaseIterable, Identifiable, Sendable {
+  case inline = "Inline"
+  case pill = "Pill"
+  case minimal = "Minimal"
+
+  var id: String { rawValue }
+
+  var anyStyle: AnyWorkingStateStyle {
+    switch self {
+    case .inline:
+      return AnyWorkingStateStyle(.inline)
+    case .pill:
+      return AnyWorkingStateStyle(.pill)
+    case .minimal:
+      return AnyWorkingStateStyle(.minimal)
+    }
+  }
+}
+
 enum DemoThinkingStyleOption: String, CaseIterable, Identifiable, Sendable {
   case collapsibleHeader = "Collapsible Header"
   case pill = "Pill"

@@ -58,6 +58,9 @@ public enum ConversationAccessibilityID: Sendable {
   /// The footer disclaimer label below the composer.
   public static let disclaimerView = "composer.disclaimer"
 
+  /// The pre-first-token assistant working indicator surface.
+  public static let workingState = "working.state"
+
   // MARK: Dynamic Parameterized Identifiers
 
   /// Accessibility identifier for a turn container (`turn.<id>`).
@@ -68,6 +71,9 @@ public enum ConversationAccessibilityID: Sendable {
 
   /// Accessibility identifier for an assistant message canvas (`message.assistant.<id>`).
   public static func assistantMessage(_ id: String) -> String { "message.assistant.\(id)" }
+
+  /// Accessibility identifier for a `WorkingStateView` (`message.working.<id>`).
+  public static func workingState(_ id: String) -> String { "message.working.\(id)" }
 
   /// Accessibility identifier for a `ThinkingStateView` (`message.thinking.<id>`).
   public static func thinkingState(_ id: String) -> String { "message.thinking.\(id)" }
@@ -510,6 +516,10 @@ extension EnvironmentValues {
   /// Optional custom empty-state view builder displayed when `messages` is empty.
   @Entry public var emptyConversationView: EmptyConversationViewBuilder? = nil
 
+  /// Default label text displayed by `WorkingStateView` before the first reasoning trace,
+  /// tool call, or Markdown token arrives (defaults to `"Working…"`).
+  @Entry public var workingStateTitle: String = "Working…"
+
   /// Optional custom message action bar builder.
   @Entry public var messageActions: MessageActionsBuilder? = nil
 
@@ -698,6 +708,19 @@ extension View {
     @ViewBuilder _ content: @escaping @MainActor @Sendable () -> EmptyContent
   ) -> some View {
     environment(\.emptyConversationView, EmptyConversationViewBuilder(content))
+  }
+
+  /// Customizes the default label text displayed by `WorkingStateView` before the first reasoning trace,
+  /// tool call, or Markdown token arrives (defaults to `"Working…"`).
+  public func workingStateTitle(_ title: LocalizedStringResource) -> some View {
+    environment(\.workingStateTitle, String(localized: title))
+  }
+
+  /// Customizes the default label text displayed by `WorkingStateView` before the first reasoning trace,
+  /// tool call, or Markdown token arrives (defaults to `"Working…"`).
+  @_disfavoredOverload
+  public func workingStateTitle(_ title: String) -> some View {
+    environment(\.workingStateTitle, title)
   }
 
   /// Configures custom actions displayed alongside each message's action bar, receiving the message instance.

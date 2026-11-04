@@ -892,6 +892,94 @@ struct ThinkingAndAgenticModelsTests {
     #expect(fallbackThinkingConfig.transcript == "Fallback transcript")
     #expect(fallbackThinkingConfig.formattedElapsed == "")
   }
+
+  @Test("WorkingStateView, WorkingStateStyle presets (.inline, .pill, .minimal), and environment modifiers construct cleanly on @MainActor")
+  @MainActor
+  func workingStateViewAndStylePresets() {
+    // 1. Verify EnvironmentValues().workingStateTitle default & WorkingStateStyleConfiguration fields
+    var env = EnvironmentValues()
+    #expect(env.workingStateTitle == "Working…")
+    env.workingStateTitle = "Generating response…"
+    #expect(env.workingStateTitle == "Generating response…")
+
+    let defaultConfig = WorkingStateStyleConfiguration(
+      icon: AnyView(Image(systemName: "sparkles")),
+      label: AnyView(Text("Working…"))
+    )
+    #expect(defaultConfig.title == "Working…")
+    _ = defaultConfig.icon
+    _ = defaultConfig.label
+
+    let customConfig = WorkingStateStyleConfiguration(
+      title: "Synthesizing…",
+      icon: AnyView(Image(systemName: "sparkles")),
+      label: AnyView(Text("Synthesizing…"))
+    )
+    #expect(customConfig.title == "Synthesizing…")
+
+    // 2. Verify WorkingStateView() and all built-in WorkingStateStyle presets + AnyWorkingStateStyle
+    let workingView = WorkingStateView()
+    _ = workingView.body
+
+    _ = InlineWorkingStateStyle.inline.makeBody(configuration: defaultConfig)
+    _ = InlineWorkingStateStyle.inline(title: "Generating…").makeBody(configuration: defaultConfig)
+    _ = InlineWorkingStateStyle.default.makeBody(configuration: defaultConfig)
+    _ = InlineWorkingStateStyle.automatic.makeBody(configuration: defaultConfig)
+    _ = PillWorkingStateStyle.pill.makeBody(configuration: defaultConfig)
+    _ = PillWorkingStateStyle.pill(title: "Synthesizing…").makeBody(configuration: defaultConfig)
+    _ = MinimalWorkingStateStyle.minimal.makeBody(configuration: defaultConfig)
+    _ = MinimalWorkingStateStyle.minimal(title: "Drafting…").makeBody(configuration: defaultConfig)
+
+    #expect(InlineWorkingStateStyle.inline.customTitle == nil)
+    #expect(InlineWorkingStateStyle.inline(title: "Generating…").customTitle == "Generating…")
+    #expect(PillWorkingStateStyle.pill.customTitle == nil)
+    #expect(PillWorkingStateStyle.pill(title: "Synthesizing…").customTitle == "Synthesizing…")
+    #expect(MinimalWorkingStateStyle.minimal.customTitle == nil)
+    #expect(MinimalWorkingStateStyle.minimal(title: "Drafting…").customTitle == "Drafting…")
+
+    let anyStyles: [AnyWorkingStateStyle] = [
+      AnyWorkingStateStyle(.inline),
+      AnyWorkingStateStyle(.inline(title: "Generating…")),
+      AnyWorkingStateStyle(.pill),
+      AnyWorkingStateStyle(.pill(title: "Synthesizing…")),
+      AnyWorkingStateStyle(.minimal),
+      AnyWorkingStateStyle(.minimal(title: "Drafting…")),
+      AnyWorkingStateStyle(.default),
+      AnyWorkingStateStyle(.automatic),
+    ]
+    for style in anyStyles {
+      _ = style.makeBody(configuration: defaultConfig)
+      _ = style.makeBody(configuration: customConfig)
+    }
+
+    // 3. Verify custom WorkingStateStyle conformance and modifiers on MessageView
+    struct CustomWorkingStyle: WorkingStateStyle {
+      func makeBody(configuration: Configuration) -> some View {
+        HStack(spacing: 4) {
+          configuration.icon
+          configuration.label
+        }
+      }
+    }
+
+    let customStyle = CustomWorkingStyle()
+    _ = customStyle.makeBody(configuration: customConfig)
+    _ = AnyWorkingStateStyle(customStyle).makeBody(configuration: customConfig)
+
+    let streamingEmptyAssistantMessage = DefaultMessage(
+      content: nil,
+      participant: .other,
+      isStreaming: true
+    )
+    let messageView = MessageView(message: streamingEmptyAssistantMessage)
+    _ = messageView.body
+
+    let styledMessageView = messageView
+      .workingStateTitle("Generating response…")
+      .workingStateStyle(.pill(title: "Synthesizing…"))
+      .workingStateStyle(customStyle)
+    _ = styledMessageView
+  }
 }
 
 // MARK: - 5. IncrementalMarkdownAndScrollHysteresisTests (AC-14, AC-17)

@@ -36,6 +36,7 @@ struct ContentView: View {
     }
     return .classicGlass
   }()
+  @State private var workingStyleOption: DemoWorkingStyleOption = .inline
   @State private var thinkingStyleOption: DemoThinkingStyleOption = .collapsibleHeader
   @State private var bubbleStyleOption: DemoBubbleStyleOption = .tailedBubble
   @State private var streamingHapticsOption: DemoStreamingHapticsOption = .punchy
@@ -61,6 +62,7 @@ struct ContentView: View {
         .composerCapabilities([.think, .search, .image], active: $activeCapabilities)
         .composerTokens($tokens)
         .messageComposerStyle(composerStyleOption.anyStyle)
+        .workingStateStyle(workingStyleOption.anyStyle)
         .thinkingStateStyle(thinkingStyleOption.anyStyle)
         .userMessageBubbleStyle(bubbleStyleOption.anyStyle)
         .streamingHaptics(streamingHapticsOption.configuration)
@@ -149,6 +151,13 @@ struct ContentView: View {
         Picker("Composer Style", selection: $composerStyleOption) {
           ForEach(DemoComposerStyleOption.allCases) { option in
             Label(option.rawValue, systemImage: option.symbolName).tag(option)
+          }
+        }
+      }
+      Section("Working Style") {
+        Picker("Working Style", selection: $workingStyleOption) {
+          ForEach(DemoWorkingStyleOption.allCases) { option in
+            Text(option.rawValue).tag(option)
           }
         }
       }

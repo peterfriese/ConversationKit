@@ -20,6 +20,7 @@ The library under `Sources/ConversationKit/` is organized into four main directo
 ### Styles (`Sources/ConversationKit/Styles/`)
 *   **`Styles/MessageComposerStyle.swift`**: Defines the `MessageComposerStyle` protocol, `MessageComposerStyleConfiguration`, `AnyMessageComposerStyle`, and the three built-in Liquid Glass composer styles: `.classicGlass` (`ClassicGlassMessageComposerStyle`), `.cardGlass` (`CardGlassMessageComposerStyle`), and `.compactGlass` (`CompactGlassMessageComposerStyle`).
 *   **`Styles/ThinkingStateStyle.swift`**: Defines the `ThinkingStateStyle` protocol, `ThinkingStateStyleConfiguration`, and built-in styles: `.collapsibleHeader`, `.pill`, and `.minimal`.
+*   **`Styles/WorkingStateStyle.swift`**: Defines the `WorkingStateStyle` protocol, `WorkingStateStyleConfiguration`, and built-in styles: `.inline` (`.inline(title:)`, `.default`, `.automatic`), `.pill` (`.pill(title:)`), and `.minimal` (`.minimal(title:)`).
 *   **`Styles/UserMessageBubbleStyle.swift`**: Defines the `UserMessageBubbleStyle` protocol, `UserMessageBubbleStyleConfiguration`, and built-in styles: `.tailedBubble`, `.roundedCard`, and `.capsule`.
 
 ### Views (`Sources/ConversationKit/Views/`)
@@ -34,6 +35,7 @@ The library under `Sources/ConversationKit/` is organized into four main directo
 *   **`Views/Composer/ComposerPopupView.swift`**: Floating glass autocomplete list for `/commands` and `@mentions`.
 *   **`Views/Composer/ComposerAccessories.swift`**: Token pills bar, model selector menu pill, and capability toggle pills.
 *   **`Views/Composer/SuggestionChipsBar.swift`**: Horizontal scrollable suggestion chips bar (`PromptSuggestion`) mounted above the composer.
+*   **`Views/Agentic/WorkingStateView.swift`**: Pre-first-token assistant breathing indicator view styled via `WorkingStateStyle` and `.workingStateTitle(_:)`.
 *   **`Views/Agentic/ThinkingStateView.swift`**: Chain-of-thought reasoning disclosure view styled via `ThinkingStateStyle`.
 *   **`Views/Agentic/ToolCallsGroupView.swift`**: Collapsible parallel/sequential tool call execution cards with arguments, output, and retry controls.
 *   **`Views/Agentic/SourceStackView.swift`**: Grounded citation pills and expandable source list with `http`/`https` link validation.
