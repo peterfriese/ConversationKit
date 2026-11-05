@@ -345,9 +345,15 @@ public struct ConversationView<MessageType: Message, Content: View>: View {
     .scrollDismissesKeyboard(.interactively)
     .scrollEdgeEffectStyle(.soft, for: .bottom)
     .accessibilityIdentifier(ConversationAccessibilityID.timelineScrollView)
-    .onChange(of: turns.last?.id) { _, newLastID in
+    .onChange(of: turns.last?.id) { oldLastID, newLastID in
+      guard let newLastID, newLastID != oldLastID else { return }
       if let targetTurnID = pendingScrollTargetTurnID, targetTurnID == newLastID {
         scrollTurnToTop(targetTurnID, proxy: proxy)
+      } else if turns.last?.userMessage != nil {
+        // Programmatically appended user turn (e.g., interactive card action, catalog sheet, or external trigger):
+        // anchor the new turn to the top of the viewport runway just like composer submissions.
+        pendingScrollTargetTurnID = newLastID
+        scrollTurnToTop(newLastID, proxy: proxy)
       }
     }
     .onChange(of: pendingScrollTargetTurnID) { _, newTargetID in
