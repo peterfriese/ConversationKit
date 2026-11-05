@@ -1,0 +1,421 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A2C000012E1C5BED000EE62F /* ConversationKit in Frameworks */ = {isa = PBXBuildFile; productRef = A2C000022E1C5BED000EE62F /* ConversationKit */; };
+		A2C000032E1C6219000EE62F /* FirebaseAI in Frameworks */ = {isa = PBXBuildFile; productRef = A2C000042E1C6219000EE62F /* FirebaseAI */; };
+		A2C000052E1C6219000EE62F /* FirebaseAppCheck in Frameworks */ = {isa = PBXBuildFile; productRef = A2C000062E1C6219000EE62F /* FirebaseAppCheck */; };
+		A2C000072E1C6219000EE62F /* A2UISwiftCore in Frameworks */ = {isa = PBXBuildFile; productRef = A2C000082E1C6219000EE62F /* A2UISwiftCore */; };
+		A2C000092E1C6219000EE62F /* A2UISwiftUI in Frameworks */ = {isa = PBXBuildFile; productRef = A2C0000A2E1C6219000EE62F /* A2UISwiftUI */; };
+		A2C0000B2E1C6219000EE62F /* BasicCatalog in Frameworks */ = {isa = PBXBuildFile; productRef = A2C0000C2E1C6219000EE62F /* BasicCatalog */; };
+		A2C0000D2E1C6219000EE62F /* BasicCatalogSwiftUI in Frameworks */ = {isa = PBXBuildFile; productRef = A2C0000E2E1C6219000EE62F /* BasicCatalogSwiftUI */; };
+		A2C000102E1C6219000EE62F /* examples (v1.0) in Copy v1.0 Examples */ = {isa = PBXBuildFile; fileRef = A2C000112E1C6219000EE62F /* examples (v1.0) */; };
+		A2C000122E1C6219000EE62F /* examples (v0.9.1) in Copy v0.9.1 Examples */ = {isa = PBXBuildFile; fileRef = A2C000132E1C6219000EE62F /* examples (v0.9.1) */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		A2C000202E1C6219000EE62F /* Copy v1.0 Examples */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "examples/v1_0";
+			dstSubfolderSpec = 7;
+			files = (
+				A2C000102E1C6219000EE62F /* examples (v1.0) in Copy v1.0 Examples */,
+			);
+			name = "Copy v1.0 Examples";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A2C000212E1C6219000EE62F /* Copy v0.9.1 Examples */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "examples/v0_9_1";
+			dstSubfolderSpec = 7;
+			files = (
+				A2C000122E1C6219000EE62F /* examples (v0.9.1) in Copy v0.9.1 Examples */,
+			);
+			name = "Copy v0.9.1 Examples";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		889CF9AD2E1C5BB4000EE62F /* A2UIConversationDemo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = A2UIConversationDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A2C000112E1C6219000EE62F /* examples (v1.0) */ = {isa = PBXFileReference; lastKnownFileType = folder; name = "examples (v1.0)"; path = "../../../A2UI/a2ui/catalogs/basic/v1/examples"; sourceTree = "<group>"; };
+		A2C000132E1C6219000EE62F /* examples (v0.9.1) */ = {isa = PBXFileReference; lastKnownFileType = folder; name = "examples (v0.9.1)"; path = "../../../A2UI/a2ui/specification/v0_9_1/catalogs/basic/examples"; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		889CF9AF2E1C5BB4000EE62F /* A2UIConversationDemo */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = A2UIConversationDemo;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		889CF9AA2E1C5BB4000EE62F /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A2C000012E1C5BED000EE62F /* ConversationKit in Frameworks */,
+				A2C000032E1C6219000EE62F /* FirebaseAI in Frameworks */,
+				A2C000052E1C6219000EE62F /* FirebaseAppCheck in Frameworks */,
+				A2C000072E1C6219000EE62F /* A2UISwiftCore in Frameworks */,
+				A2C000092E1C6219000EE62F /* A2UISwiftUI in Frameworks */,
+				A2C0000B2E1C6219000EE62F /* BasicCatalog in Frameworks */,
+				A2C0000D2E1C6219000EE62F /* BasicCatalogSwiftUI in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		889CF9A42E1C5BB4000EE62F = {
+			isa = PBXGroup;
+			children = (
+				889CF9AF2E1C5BB4000EE62F /* A2UIConversationDemo */,
+				A2C000302E1C6219000EE62F /* Specification Resources */,
+				889CF9AE2E1C5BB4000EE62F /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		A2C000302E1C6219000EE62F /* Specification Resources */ = {
+			isa = PBXGroup;
+			children = (
+				A2C000112E1C6219000EE62F /* examples (v1.0) */,
+				A2C000132E1C6219000EE62F /* examples (v0.9.1) */,
+			);
+			name = "Specification Resources";
+			sourceTree = "<group>";
+		};
+		889CF9AE2E1C5BB4000EE62F /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				889CF9AD2E1C5BB4000EE62F /* A2UIConversationDemo.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		889CF9AC2E1C5BB4000EE62F /* A2UIConversationDemo */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 889CF9B82E1C5BB5000EE62F /* Build configuration list for PBXNativeTarget "A2UIConversationDemo" */;
+			buildPhases = (
+				889CF9A92E1C5BB4000EE62F /* Sources */,
+				889CF9AA2E1C5BB4000EE62F /* Frameworks */,
+				889CF9AB2E1C5BB4000EE62F /* Resources */,
+				A2C000202E1C6219000EE62F /* Copy v1.0 Examples */,
+				A2C000212E1C6219000EE62F /* Copy v0.9.1 Examples */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				889CF9AF2E1C5BB4000EE62F /* A2UIConversationDemo */,
+			);
+			name = A2UIConversationDemo;
+			packageProductDependencies = (
+				A2C000022E1C5BED000EE62F /* ConversationKit */,
+				A2C000042E1C6219000EE62F /* FirebaseAI */,
+				A2C000062E1C6219000EE62F /* FirebaseAppCheck */,
+				A2C000082E1C6219000EE62F /* A2UISwiftCore */,
+				A2C0000A2E1C6219000EE62F /* A2UISwiftUI */,
+				A2C0000C2E1C6219000EE62F /* BasicCatalog */,
+				A2C0000E2E1C6219000EE62F /* BasicCatalogSwiftUI */,
+			);
+			productName = A2UIConversationDemo;
+			productReference = 889CF9AD2E1C5BB4000EE62F /* A2UIConversationDemo.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		889CF9A52E1C5BB4000EE62F /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2600;
+				LastUpgradeCheck = 2600;
+				TargetAttributes = {
+					889CF9AC2E1C5BB4000EE62F = {
+						CreatedOnToolsVersion = 26.0;
+					};
+				};
+			};
+			buildConfigurationList = 889CF9A82E1C5BB4000EE62F /* Build configuration list for PBXProject "A2UIConversationDemo" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 889CF9A42E1C5BB4000EE62F;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				889CF9C22E1C6219000EE62F /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+				88BBBBE92E4B52E6005A4F9C /* XCLocalSwiftPackageReference "../../" */,
+				A2C000402E1C6219000EE62F /* XCLocalSwiftPackageReference "../../../A2UI/a2ui" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 889CF9AE2E1C5BB4000EE62F /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				889CF9AC2E1C5BB4000EE62F /* A2UIConversationDemo */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		889CF9AB2E1C5BB4000EE62F /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		889CF9A92E1C5BB4000EE62F /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		889CF9B62E1C5BB5000EE62F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = YGAZHQXHH4;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		889CF9B72E1C5BB5000EE62F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = YGAZHQXHH4;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		889CF9B92E1C5BB5000EE62F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = YGAZHQXHH4;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSAppTransportSecurity_NSAllowsLocalNetworking = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.peterfriese.Diagrammatic;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		889CF9BA2E1C5BB5000EE62F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = YGAZHQXHH4;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSAppTransportSecurity_NSAllowsLocalNetworking = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.peterfriese.Diagrammatic;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		889CF9A82E1C5BB4000EE62F /* Build configuration list for PBXProject "A2UIConversationDemo" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				889CF9B62E1C5BB5000EE62F /* Debug */,
+				889CF9B72E1C5BB5000EE62F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		889CF9B82E1C5BB5000EE62F /* Build configuration list for PBXNativeTarget "A2UIConversationDemo" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				889CF9B92E1C5BB5000EE62F /* Debug */,
+				889CF9BA2E1C5BB5000EE62F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		88BBBBE92E4B52E6005A4F9C /* XCLocalSwiftPackageReference "../../" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../../;
+		};
+		A2C000402E1C6219000EE62F /* XCLocalSwiftPackageReference "../../../A2UI/a2ui" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../../../A2UI/a2ui;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		889CF9C22E1C6219000EE62F /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 12.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		A2C000022E1C5BED000EE62F /* ConversationKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 88BBBBE92E4B52E6005A4F9C /* XCLocalSwiftPackageReference "../../" */;
+			productName = ConversationKit;
+		};
+		A2C000042E1C6219000EE62F /* FirebaseAI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 889CF9C22E1C6219000EE62F /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAI;
+		};
+		A2C000062E1C6219000EE62F /* FirebaseAppCheck */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 889CF9C22E1C6219000EE62F /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAppCheck;
+		};
+		A2C000082E1C6219000EE62F /* A2UISwiftCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A2C000402E1C6219000EE62F /* XCLocalSwiftPackageReference "../../../A2UI/a2ui" */;
+			productName = A2UISwiftCore;
+		};
+		A2C0000A2E1C6219000EE62F /* A2UISwiftUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A2C000402E1C6219000EE62F /* XCLocalSwiftPackageReference "../../../A2UI/a2ui" */;
+			productName = A2UISwiftUI;
+		};
+		A2C0000C2E1C6219000EE62F /* BasicCatalog */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A2C000402E1C6219000EE62F /* XCLocalSwiftPackageReference "../../../A2UI/a2ui" */;
+			productName = BasicCatalog;
+		};
+		A2C0000E2E1C6219000EE62F /* BasicCatalogSwiftUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A2C000402E1C6219000EE62F /* XCLocalSwiftPackageReference "../../../A2UI/a2ui" */;
+			productName = BasicCatalogSwiftUI;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 889CF9A52E1C5BB4000EE62F /* Project object */;
+}
